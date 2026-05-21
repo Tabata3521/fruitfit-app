@@ -1,0 +1,287 @@
+[
+  {
+    "confidence": "strong",
+    "score": 0.96,
+    "match_type": "title_contains_exercise",
+    "youtube_title": "#fitness #motivation #фитнес гильотина читай описание, там подарок🎁",
+    "youtube_url": "https://www.youtube.com/watch?v=gEBSJqbLUcE",
+    "video_id": "gEBSJqbLUcE",
+    "thumbnail_url": "https://i.ytimg.com/vi/gEBSJqbLUcE/maxres2.jpg?sqp=-oaymwEoCIAKENAF8quKqQMcGADwAQH4Ac4FgAKACooCDAgAEAEYZSBfKFswDw==&rs=AOn4CLCqsM2x3q9NOkwi4h5GdK4GMPof9g",
+    "duration": "0:54",
+    "upload_date": "Mar 24, 2023",
+    "inskill_exercise_id": "ex_гильотина",
+    "inskill_exercise_name": "Гильотина",
+    "inskill_category": "",
+    "muscle_group": "",
+    "movement_pattern": "",
+    "category": "needs_review",
+    "alternatives": [
+      {
+        "score": 0.96,
+        "name": "Гильотина",
+        "match_type": "title_contains_exercise"
+      }
+    ]
+  },
+  {
+    "confidence": "review",
+    "score": 0.74,
+    "match_type": "token_similarity",
+    "youtube_title": "Бицепс в скамье Скотта",
+    "youtube_url": "https://www.youtube.com/watch?v=-pcs5ji3Hho",
+    "video_id": "-pcs5ji3Hho",
+    "thumbnail_url": "https://i.ytimg.com/vi/-pcs5ji3Hho/maxres2.jpg?sqp=-oaymwEoCIAKENAF8quKqQMcGADwAQH4AbYIgAKAD4oCDAgAEAEYciBfKEYwDw==&rs=AOn4CLDj5n7sM02eytz3GqrMEM5Ez-0SbQ",
+    "duration": "0:54",
+    "upload_date": "Nov 19, 2024",
+    "inskill_exercise_id": "ex_бицепс-со-штангой-на-скамье-скотта",
+    "inskill_exercise_name": "Бицепс со штангой на скамье Скотта",
+    "inskill_category": "strength_elbow_flexion",
+    "muscle_group": "бицепс",
+    "movement_pattern": "elbow_flexion",
+    "category": "бицепс",
+    "alternatives": [
+      {
+        "score": 0.74,
+        "name": "Бицепс со штангой на скамье Скотта",
+        "match_type": "token_similarity"
+      },
+      {
+        "score": 0.74,
+        "name": "Бицепс с гантелью на скамье Скотта",
+        "match_type": "token_similarity"
+      },
+      {
+        "score": 0.74,
+        "name": "Бицепс с двумя гантелями на скамье Скотта",
+        "match_type": "token_similarity"
+      }
+    ]
+  },
+  {
+    "confidence": "strong",
+    "score": 0.9,
+    "match_type": "exercise_contains_title",
+    "youtube_title": "БИЦЕПС С ГАНТЕЛЯМИ",
+    "youtube_url": "https://www.youtube.com/watch?v=c1dad8F7Dxw",
+    "video_id": "c1dad8F7Dxw",
+    "thumbnail_url": "https://i.ytimg.com/vi/c1dad8F7Dxw/maxres2.jpg?sqp=-oaymwEoCIAKENAF8quKqQMcGADwAQH4Ac4FgAKACooCDAgAEAEYZSBXKEkwDw==&rs=AOn4CLAZAihuIebPWt7CfESVCL3CHCGwQw",
+    "duration": "0:53",
+    "upload_date": "Nov 6, 2024",
+    "inskill_exercise_id": "ex_подъем-на-бицепс-с-гантелями-сидя",
+    "inskill_exercise_name": "Подъем на бицепс с гантелями сидя",
+    "inskill_category": "strength_elbow_flexion",
+    "muscle_group": "бицепс",
+    "movement_pattern": "elbow_flexion",
+    "category": "бицепс",
+    "alternatives": [
+      {
+        "score": 0.9,
+        "name": "Подъем на бицепс с гантелями сидя",
+        "match_type": "exercise_contains_title"
+      }
+    ]
+  },
+  {
+    "confidence": "strong",
+    "score": 0.9,
+    "match_type": "exercise_contains_title",
+    "youtube_title": "Бицепс с гантелями сидя",
+    "youtube_url": "https://www.youtube.com/watch?v=hws0_ZEOnlo",
+    "video_id": "hws0_ZEOnlo",
+    "thumbnail_url": "https://i.ytimg.com/vi/hws0_ZEOnlo/maxres2.jpg?sqp=-oaymwEoCIAKENAF8quKqQMcGADwAQH4Ac4FgAKACooCDAgAEAEYZSBbKE0wDw==&rs=AOn4CLDFQTS3Y1DtUmHEOG5U8kpfTp0pFg",
+    "duration": "0:58",
+    "upload_date": "Nov 6, 2024",
+    "inskill_exercise_id": "ex_подъем-на-бицепс-с-гантелями-сидя",
+    "inskill_exercise_name": "Подъем на бицепс с гантелями сидя",
+    "inskill_category": "strength_elbow_flexion",
+    "muscle_group": "бицепс",
+    "movement_pattern": "elbow_flexion",
+    "category": "бицепс",
+    "alternatives": [
+      {
+        "score": 0.9,
+        "name": "Подъем на бицепс с гантелями сидя",
+        "match_type": "exercise_contains_title"
+      }
+    ]
+  },
+  {
+    "confidence": "strong",
+    "score": 0.9,
+    "match_type": "exercise_contains_title",
+    "youtube_title": "Бицепс с резинкой сидя",
+    "youtube_url": "https://www.youtube.com/watch?v=bLhkUE4S3fY",
+    "video_id": "bLhkUE4S3fY",
+    "thumbnail_url": "https://i.ytimg.com/vi/bLhkUE4S3fY/maxres2.jpg?sqp=-oaymwEoCIAKENAF8quKqQMcGADwAQH4Ac4FgAKACooCDAgAEAEYciBRKDkwDw==&rs=AOn4CLBXojaLW5WFBE_EfX3tlr5NxQ66iQ",
+    "duration": "0:50",
+    "upload_date": "Nov 19, 2024",
+    "inskill_exercise_id": "ex_подъем-на-бицепс-с-резинкой-сидя",
+    "inskill_exercise_name": "Подъем на бицепс с резинкой сидя",
+    "inskill_category": "strength_elbow_flexion",
+    "muscle_group": "бицепс",
+    "movement_pattern": "elbow_flexion",
+    "category": "бицепс",
+    "alternatives": [
+      {
+        "score": 0.9,
+        "name": "Подъем на бицепс с резинкой сидя",
+        "match_type": "exercise_contains_title"
+      }
+    ]
+  },
+  {
+    "confidence": "strong",
+    "score": 1,
+    "match_type": "exact",
+    "youtube_title": "гильотина #упражнения #грудные #здоровье #зож #фитнес #мотивация #бодибилдинг",
+    "youtube_url": "https://www.youtube.com/watch?v=VlDt6UgTRt4",
+    "video_id": "VlDt6UgTRt4",
+    "thumbnail_url": "https://i.ytimg.com/vi/VlDt6UgTRt4/maxres2.jpg?sqp=-oaymwEoCIAKENAF8quKqQMcGADwAQH4Ac4FgAKACooCDAgAEAEYYyBjKGMwDw==&rs=AOn4CLCPkMGB-hqFCLqOpdWce8IjAXdpyg",
+    "duration": "0:59",
+    "upload_date": "Apr 22, 2023",
+    "inskill_exercise_id": "ex_гильотина",
+    "inskill_exercise_name": "Гильотина",
+    "inskill_category": "",
+    "muscle_group": "",
+    "movement_pattern": "",
+    "category": "needs_review",
+    "alternatives": [
+      {
+        "score": 1,
+        "name": "Гильотина",
+        "match_type": "exact"
+      }
+    ]
+  },
+  {
+    "confidence": "strong",
+    "score": 0.84,
+    "match_type": "token_coverage",
+    "youtube_title": "Молотковые сгибания на бицепс в кроссовере с канатной рукояткой #упражнения #бицепс",
+    "youtube_url": "https://www.youtube.com/watch?v=1vpi4r-P6qo",
+    "video_id": "1vpi4r-P6qo",
+    "thumbnail_url": "https://i.ytimg.com/vi/1vpi4r-P6qo/maxres2.jpg?sqp=-oaymwEoCIAKENAF8quKqQMcGADwAQH4Ac4FgAKACooCDAgAEAEYZSBaKE8wDw==&rs=AOn4CLBvgDcszy3tIiDL5XpzBjjWGJNcJA",
+    "duration": "0:57",
+    "upload_date": "Nov 14, 2024",
+    "inskill_exercise_id": "ex_бицепс-с-канатной-рукояткой-в-кроссовере",
+    "inskill_exercise_name": "Бицепс с канатной рукояткой в кроссовере",
+    "inskill_category": "strength_elbow_flexion",
+    "muscle_group": "бицепс",
+    "movement_pattern": "elbow_flexion",
+    "category": "бицепс",
+    "alternatives": [
+      {
+        "score": 0.84,
+        "name": "Бицепс с канатной рукояткой в кроссовере",
+        "match_type": "token_coverage"
+      },
+      {
+        "score": 0.84,
+        "name": "Молотковые сгибания на бицепс с канатной рукояткой",
+        "match_type": "token_coverage"
+      },
+      {
+        "score": 0.84,
+        "name": "Молотковые сгибания с канатной рукоятью в кроссовере",
+        "match_type": "token_coverage"
+      }
+    ]
+  },
+  {
+    "confidence": "strong",
+    "score": 1,
+    "match_type": "exact",
+    "youtube_title": "Подъём на бицепс широким хватом",
+    "youtube_url": "https://www.youtube.com/watch?v=KTnHC38gNmA",
+    "video_id": "KTnHC38gNmA",
+    "thumbnail_url": "https://i.ytimg.com/vi/KTnHC38gNmA/maxres2.jpg?sqp=-oaymwEoCIAKENAF8quKqQMcGADwAQH4Ac4FgAKACooCDAgAEAEYZSBbKE8wDw==&rs=AOn4CLBhCpC75siaNocqxB_aneklXc7lKA",
+    "duration": "0:55",
+    "upload_date": "Nov 6, 2024",
+    "inskill_exercise_id": "ex_подъем-на-бицепс-широким-хватом",
+    "inskill_exercise_name": "Подъем на бицепс широким хватом",
+    "inskill_category": "strength_elbow_flexion",
+    "muscle_group": "бицепс",
+    "movement_pattern": "elbow_flexion",
+    "category": "бицепс",
+    "alternatives": [
+      {
+        "score": 1,
+        "name": "Подъем на бицепс широким хватом",
+        "match_type": "exact"
+      },
+      {
+        "score": 1,
+        "name": "Подъём на бицепс широким хватом",
+        "match_type": "exact"
+      },
+      {
+        "score": 0.84,
+        "name": "Молотки, подъем на бицепс.",
+        "match_type": "token_coverage"
+      },
+      {
+        "score": 0.84,
+        "name": "Подъем EZ-штанги на бицепс",
+        "match_type": "token_coverage"
+      },
+      {
+        "score": 0.84,
+        "name": "Изодинамический подъем на бицепс",
+        "match_type": "token_coverage"
+      }
+    ]
+  },
+  {
+    "confidence": "review",
+    "score": 0.74,
+    "match_type": "token_similarity",
+    "youtube_title": "Упражнения на пресс #тренер #похудение #фитнес #упражнения #пресс",
+    "youtube_url": "https://www.youtube.com/watch?v=Dh1nDYnYmqY",
+    "video_id": "Dh1nDYnYmqY",
+    "thumbnail_url": "https://i.ytimg.com/vi/Dh1nDYnYmqY/maxres2.jpg?sqp=-oaymwEoCIAKENAF8quKqQMcGADwAQH4AbYIgAKAD4oCDAgAEAEYZSBfKFEwDw==&rs=AOn4CLBpRW7JGRcrHtlwzrWnzybgXapoSA",
+    "duration": "0:32",
+    "upload_date": "Sep 1, 2024",
+    "inskill_exercise_id": "ex_пресс-на-босу",
+    "inskill_exercise_name": "Пресс на босу",
+    "inskill_category": "strength_trunk_flexion",
+    "muscle_group": "кор",
+    "movement_pattern": "trunk_flexion",
+    "category": "пресс",
+    "alternatives": [
+      {
+        "score": 0.74,
+        "name": "Пресс на босу",
+        "match_type": "token_similarity"
+      },
+      {
+        "score": 0.74,
+        "name": "Прямые скручивания на пресс",
+        "match_type": "token_similarity"
+      }
+    ]
+  },
+  {
+    "confidence": "strong",
+    "score": 1,
+    "match_type": "exact",
+    "youtube_title": "G-жим",
+    "youtube_url": "https://www.youtube.com/watch?v=jnlX6uyWaeg",
+    "video_id": "jnlX6uyWaeg",
+    "thumbnail_url": "https://i.ytimg.com/vi/jnlX6uyWaeg/maxres2.jpg?sqp=-oaymwEoCIAKENAF8quKqQMcGADwAQH4Ac4FgAKACooCDAgAEAEYYSBlKFswDw==&rs=AOn4CLDnieDT7bv3ANQLGtGjxncWPnhctA",
+    "duration": "1:00",
+    "upload_date": "Nov 24, 2024",
+    "inskill_exercise_id": "ex_g-жим",
+    "inskill_exercise_name": "G-жим",
+    "inskill_category": "",
+    "muscle_group": "",
+    "movement_pattern": "",
+    "category": "needs_review",
+    "alternatives": [
+      {
+        "score": 1,
+        "name": "G-жим",
+        "match_type": "exact"
+      }
+    ]
+  }
+]

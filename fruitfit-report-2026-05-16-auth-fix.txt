@@ -1,0 +1,43 @@
+FruitFit PWA report — 2026-05-16 (Auth Fix + Mifflin Fix)
+
+Готово:
+
+1. Исправлена формула Миффлина-Сен Жеора (profileStore.js)
+   - Было: goalDelta = +10% для массонабора → при весе 104кг выдавал ~3350–5000 ккал
+   - Стало: goalDelta = +200 ккал фиксировано для набора массы, -300 ккал для похудения
+   - Исправлены коэффициенты активности: 2 тренировки → 1.375, 3 тренировки → 1.55 (стандарт Mifflin)
+   - Добавлен cap: максимум 3500 ккал, минимум 1200 ккал
+   - Список рационов: [1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600, 2800, 3000]
+
+2. Исправлен Telegram Login (AuthPrompt.jsx + CF Functions)
+   - Было: синяя заглушка с неправильным встраиванием виджета через <script ref>
+   - Стало: виджет встраивается через useEffect + document.createElement (единственный надёжный способ)
+   - Callback обрабатывается прямо на Cloudflare Pages Function (functions/api/auth/telegram/callback.js)
+   - Проверка подпись HMAC-SHA256 Telegram без VDS бэкенда
+   - Срок действия auth_date проверяется (24ч)
+
+3. Исправлен Yandex Login (CF Functions)
+   - Было: "Cannot GET /api" — catchall прокси пытался перенаправить на VDS (не работал)
+   - Стало: OAuth flow полностью на Cloudflare Pages Functions
+     - functions/api/auth/yandex.js — старт OAuth (редирект на oauth.yandex.ru)
+     - functions/api/auth/yandex/callback.js — обмен code → token → профиль → JWT
+   - Удалён [[catchall]].js который ломал маршрутизацию
+
+4. Добавлен /api/auth/me (functions/api/auth/me.js)
+   - JWT верификация через SubtleCrypto без внешних зависимостей
+   - Валидирует токены Telegram и Yandex одинаково (единый JWT формат)
+
+5. Переменные окружения Cloudflare Pages обновлены через API:
+   - JWT_SECRET
+   - TELEGRAM_BOT_TOKEN
+   - YANDEX_CLIENT_ID
+   - YANDEX_CLIENT_SECRET
+   - YANDEX_REDIRECT_URI
+   - APP_BASE_URL
+
+Деплой:
+- Production: https://fruitfit.pages.dev/
+- Preview: https://04e90831.fruitfit.pages.dev
+
+Для активации Telegram виджета:
+- Нужно зарегистрировать domain в @BotFather: /setdomain → fruitfit.pages.dev

@@ -1,0 +1,10 @@
+{
+  "appId": "com.tagirfruit.fruitfit",
+  "appName": "FruitFit",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "hostname": "fruitfit.pages.dev"
+  }
+}

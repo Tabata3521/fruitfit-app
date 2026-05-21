@@ -1,0 +1,21 @@
+{
+  "youtube_videos_scanned": 274,
+  "inskill_exercises_scanned": 193,
+  "matched_videos_total": 10,
+  "strong_matches": 8,
+  "review_matches": 2,
+  "unique_inskill_exercises_strong": 6,
+  "unique_inskill_exercises_total": 8,
+  "breakdown": {
+    "strong:needs_review": 3,
+    "review:бицепс": 1,
+    "strong:бицепс": 5,
+    "review:пресс": 1
+  },
+  "output_files": [
+    "youtube_inskill_matches.json",
+    "youtube_inskill_matches.csv",
+    "youtube_inskill_strong_links.txt",
+    "youtube_inskill_match_summary.json"
+  ]
+}

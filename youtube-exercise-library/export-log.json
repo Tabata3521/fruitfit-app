@@ -1,0 +1,23 @@
+{
+  "channel_id": "UCNvRQaFdfLynkkh3y5bWXIA",
+  "channel_url": "https://youtube.com/@tagirfruit",
+  "exported_at": "2026-05-09T21:10:52.197Z",
+  "all_video_items": 274,
+  "exercise_videos": 18,
+  "category_breakdown": {
+    "бицепс": 8,
+    "грудь": 1,
+    "плечи": 1,
+    "пресс": 2,
+    "needs_review": 6
+  },
+  "files": [
+    "all_videos.json",
+    "all_videos.csv",
+    "exercises.json",
+    "exercises.csv",
+    "exercises_compact.csv",
+    "youtube_links.txt",
+    "all_youtube_links.txt"
+  ]
+}

@@ -1,0 +1,6 @@
+exercise_name;matched_selectel_url;match_confidence;status;match_reason
+Латеральная или боковая вытяжка в кроссовере;;0.800;manual_review;low_confidence_token_match
+Жим ногами с параллельной постановкой ног;;0.800;manual_review;low_confidence_token_match
+Обратный Гак присед;;0.667;manual_review;low_confidence_token_match
+Подъем EZ-штанги (кривой штанги) на бицепс;;0.750;manual_review;low_confidence_token_match
+Комплекс ЛФК упражнений на плечи;;0.750;manual_review;low_confidence_token_match

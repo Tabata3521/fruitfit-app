@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-05-14T06:21:45.769Z",
+  "programExerciseRows": 17964,
+  "uniqueProgramExercises": 191,
+  "exerciseDbRows": 190,
+  "statusCounts": {
+    "no_match": 9,
+    "ambiguous_match": 9,
+    "fuzzy_match": 53,
+    "exact_match": 120
+  },
+  "aliasSuggestionsCount": 53
+}

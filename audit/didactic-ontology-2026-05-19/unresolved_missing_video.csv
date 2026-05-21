@@ -1,0 +1,3 @@
+exercise_name;matched_selectel_url;match_confidence;status;match_reason
+Жим Арнольда;;0.500;missing_video;best_below_threshold: exercises/армейский-жим.mp4
+Разгибание ног;;0.333;missing_video;best_below_threshold: exercises/планка-с-перестановкой-ног.mp4

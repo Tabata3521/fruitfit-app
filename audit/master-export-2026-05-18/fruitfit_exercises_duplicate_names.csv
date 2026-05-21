@@ -1,0 +1,19 @@
+﻿exercise_id;exercise_name_clean;muscle_group;muscle_label;didactic_pattern_current;technical_pattern_current;issue_type;issue_details;source_file
+ex_дуговые-махи-на-заднюю-дельту;Дуговые махи на заднюю дельту;плечи;;shoulder_isolation;shoulder_isolation;duplicate_name;"normalized_base_name=дуговые махи на заднюю дельту; group_size=2";public/data/exercise-catalog.json
+prog_5322b24c53;Дуговые махи на заднюю дельту;;;;;duplicate_name;"normalized_base_name=дуговые махи на заднюю дельту; group_size=2";"public/data/exercises.json; public/data/training-programs.json"
+ex_изодинамические-махи-на-заднюю-дельту;Изодинамические махи на заднюю дельту;плечи;;shoulder_isolation;shoulder_isolation;duplicate_name;"normalized_base_name=изодинамические махи на заднюю дельту; group_size=2";public/data/exercise-catalog.json
+prog_5207bc9d32;Изодинамические махи на заднюю дельту;;;;;duplicate_name;"normalized_base_name=изодинамические махи на заднюю дельту; group_size=2";"public/data/exercises.json; public/data/training-programs.json"
+ex_классические-выпады;Классические выпады.;квадрицепс;;squat_lunge;squat_lunge;duplicate_name;"normalized_base_name=классические выпады; group_size=2";public/data/exercise-catalog.json
+prog_8e2a47091e;Классические выпады.;;;;;duplicate_name;"normalized_base_name=классические выпады; group_size=2";"public/data/exercises.json; public/data/training-programs.json"
+ex_молотковые-сгибания-с-канатной-рукоятью-в-кроссовере;Молотковые сгибания с канатной рукоятью в кроссовере;бицепс;;elbow_flexion;elbow_flexion;duplicate_name;"normalized_base_name=молотковые сгибания с канатной рукоятью в кроссовере; group_size=2";public/data/exercise-catalog.json
+prog_53822ac1cc;Молотковые сгибания с канатной рукоятью в кроссовере;;;;;duplicate_name;"normalized_base_name=молотковые сгибания с канатной рукоятью в кроссовере; group_size=2";"public/data/exercises.json; public/data/training-programs.json"
+ex_отжимания-в-смитте;Отжимания в смитте;грудь;;horizontal_push;horizontal_push;duplicate_name;"normalized_base_name=отжимания в смитте; group_size=2";public/data/exercise-catalog.json
+prog_1897de4f5d;Отжимания в смитте;;;;;duplicate_name;"normalized_base_name=отжимания в смитте; group_size=2";"public/data/exercises.json; public/data/training-programs.json"
+ex_присед-в-смите;Присед в смите;квадрицепс;;squat_lunge;squat_lunge;duplicate_name;"normalized_base_name=присед в смите; group_size=2";public/data/exercise-catalog.json
+prog_5add535f41;Присед в смите;;;;;duplicate_name;"normalized_base_name=присед в смите; group_size=2";"public/data/exercises.json; public/data/training-programs.json"
+ex_присед-плие;Присед плие;квадрицепс;;squat_lunge;squat_lunge;duplicate_name;"normalized_base_name=присед плие; group_size=2";public/data/exercise-catalog.json
+prog_a4b82a6571;Присед плие;;;;;duplicate_name;"normalized_base_name=присед плие; group_size=2";"public/data/exercises.json; public/data/training-programs.json"
+ex_растяжка-на-все-тело;Растяжка на все тело;мобильность;;mobility;mobility;duplicate_name;"normalized_base_name=растяжка на все тело; group_size=2";public/data/exercise-catalog.json
+prog_9dca3c00c2;Растяжка на все тело;;;;;duplicate_name;"normalized_base_name=растяжка на все тело; group_size=2";"public/data/exercises.json; public/data/training-programs.json"
+ex_скручивание-на-полу;Скручивание на полу;кор;;trunk_flexion;trunk_flexion;duplicate_name;"normalized_base_name=скручивание на полу; group_size=2";public/data/exercise-catalog.json
+prog_c2e132ab52;Скручивание на полу;;;;;duplicate_name;"normalized_base_name=скручивание на полу; group_size=2";"public/data/exercises.json; public/data/training-programs.json"

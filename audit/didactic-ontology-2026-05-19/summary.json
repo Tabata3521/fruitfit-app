@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-05-19T08:25:53.175Z",
+  "sourcePath": "C:\\Users\\Meyva\\Downloads\\Дидактическая таблица упражнений..xlsx",
+  "didacticExercises": 190,
+  "selectelMp4": 187,
+  "matched": 181,
+  "missingVideo": 2,
+  "manualReview": 5,
+  "duplicateConflicts": 2,
+  "outputDir": "C:\\Users\\Meyva\\Documents\\Codex\\2026-05-08\\files-mentioned-by-the-user-inskill\\tagirfruit-fitness-app\\audit\\didactic-ontology-2026-05-19",
+  "runtimeCatalog": "C:\\Users\\Meyva\\Documents\\Codex\\2026-05-08\\files-mentioned-by-the-user-inskill\\tagirfruit-fitness-app\\src\\data\\didacticExerciseCatalog.json",
+  "missingVideoExercises": [
+    "Жим Арнольда",
+    "Разгибание ног"
+  ]
+}

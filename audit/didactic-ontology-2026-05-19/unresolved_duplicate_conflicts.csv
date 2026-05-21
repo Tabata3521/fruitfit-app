@@ -1,0 +1,3 @@
+exercise_name;matched_selectel_url;match_confidence;status;match_reason
+Жим ногами с широкой постановкой ног;;1.000;duplicate_conflict;same_file_matched_multiple_exercises: Жим ногами с параллельной постановкой ног | Жим ногами с широкой постановкой ног
+Гак присед;;1.000;duplicate_conflict;same_file_matched_multiple_exercises: Гак присед | Обратный Гак присед

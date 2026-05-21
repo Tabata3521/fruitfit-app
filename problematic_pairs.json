@@ -1,0 +1,137 @@
+[
+  {
+    "original_exercise": "Сведение рук в кроссовере, техника выполнения упражнения",
+    "original_id": "table_007",
+    "suggested_replacement": "Сведение рук в кроссовере 10 раз",
+    "suggested_id": "prog_14500_175273_2",
+    "score": 291,
+    "why_selected": "Matched on movement pattern (сведение рук) and muscle group (грудь). Same equipment.",
+    "why_it_may_be_wrong": "Differ only by repetitions/reps, digits, or stop-words like 'раз', 'техника выполнения', 'вариант'. They are duplicate variants of the same exercise."
+  },
+  {
+    "original_exercise": "Зашагивания на тумбу, техника выполнения упражнения",
+    "original_id": "table_012",
+    "suggested_replacement": "Зашагивания на тумбу 10 раз",
+    "suggested_id": "prog_14525_175896_3",
+    "score": 291,
+    "why_selected": "Matched on movement pattern (зашагивание) and muscle group (ноги ягодицы). Same equipment.",
+    "why_it_may_be_wrong": "Differ only by repetitions/reps, digits, or stop-words like 'раз', 'техника выполнения', 'вариант'. They are duplicate variants of the same exercise."
+  },
+  {
+    "original_exercise": "Зашагивания на тумбу, техника выполнения упражнения",
+    "original_id": "table_012",
+    "suggested_replacement": "Зашагивания на тумбу 12 раз",
+    "suggested_id": "prog_14699_179889_3",
+    "score": 291,
+    "why_selected": "Matched on movement pattern (зашагивание) and muscle group (ноги ягодицы). Same equipment.",
+    "why_it_may_be_wrong": "Differ only by repetitions/reps, digits, or stop-words like 'раз', 'техника выполнения', 'вариант'. They are duplicate variants of the same exercise."
+  },
+  {
+    "original_exercise": "Зашагивания на тумбу, техника выполнения упражнения",
+    "original_id": "table_012",
+    "suggested_replacement": "Зашагивания на тумбу 15 раз",
+    "suggested_id": "prog_14591_177548_5",
+    "score": 291,
+    "why_selected": "Matched on movement pattern (зашагивание) and muscle group (ноги ягодицы). Same equipment.",
+    "why_it_may_be_wrong": "Differ only by repetitions/reps, digits, or stop-words like 'раз', 'техника выполнения', 'вариант'. They are duplicate variants of the same exercise."
+  },
+  {
+    "original_exercise": "Зашагивания на тумбу, техника выполнения упражнения",
+    "original_id": "table_012",
+    "suggested_replacement": "Зашагивания на тумбу 8 раз",
+    "suggested_id": "prog_14646_178621_5",
+    "score": 291,
+    "why_selected": "Matched on movement pattern (зашагивание) and muscle group (ноги ягодицы). Same equipment.",
+    "why_it_may_be_wrong": "Differ only by repetitions/reps, digits, or stop-words like 'раз', 'техника выполнения', 'вариант'. They are duplicate variants of the same exercise."
+  },
+  {
+    "original_exercise": "Си-си присед с собственным весом, техника выполнения упражнения",
+    "original_id": "table_014",
+    "suggested_replacement": "Си-си присед с собственным весом 10 раз",
+    "suggested_id": "prog_14673_179304_5",
+    "score": 291,
+    "why_selected": "Matched on movement pattern (приседание) and muscle group (ноги квадрицепс). Same equipment.",
+    "why_it_may_be_wrong": "Differ only by repetitions/reps, digits, or stop-words like 'раз', 'техника выполнения', 'вариант'. They are duplicate variants of the same exercise."
+  },
+  {
+    "original_exercise": "Латеральные или боковые зашагивания, техника выполнения упражнения",
+    "original_id": "table_036",
+    "suggested_replacement": "Латеральные или боковые зашагивания 10 раз",
+    "suggested_id": "prog_14525_175896_2",
+    "score": 291,
+    "why_selected": "Matched on movement pattern (зашагивание) and muscle group (ноги бицепс бедра). Same equipment.",
+    "why_it_may_be_wrong": "Differ only by repetitions/reps, digits, or stop-words like 'раз', 'техника выполнения', 'вариант'. They are duplicate variants of the same exercise."
+  },
+  {
+    "original_exercise": "Латеральные или боковые зашагивания, техника выполнения упражнения",
+    "original_id": "table_036",
+    "suggested_replacement": "Латеральные или боковые зашагивания 12 раз",
+    "suggested_id": "prog_14699_179889_4",
+    "score": 291,
+    "why_selected": "Matched on movement pattern (зашагивание) and muscle group (ноги бицепс бедра). Same equipment.",
+    "why_it_may_be_wrong": "Differ only by repetitions/reps, digits, or stop-words like 'раз', 'техника выполнения', 'вариант'. They are duplicate variants of the same exercise."
+  },
+  {
+    "original_exercise": "Латеральные или боковые зашагивания, техника выполнения упражнения",
+    "original_id": "table_036",
+    "suggested_replacement": "Латеральные или боковые зашагивания 15 раз",
+    "suggested_id": "prog_14591_177548_4",
+    "score": 291,
+    "why_selected": "Matched on movement pattern (зашагивание) and muscle group (ноги бицепс бедра). Same equipment.",
+    "why_it_may_be_wrong": "Differ only by repetitions/reps, digits, or stop-words like 'раз', 'техника выполнения', 'вариант'. They are duplicate variants of the same exercise."
+  },
+  {
+    "original_exercise": "Латеральные или боковые зашагивания, техника выполнения упражнения",
+    "original_id": "table_036",
+    "suggested_replacement": "Латеральные или боковые зашагивания 8 раз",
+    "suggested_id": "prog_14646_178621_6",
+    "score": 291,
+    "why_selected": "Matched on movement pattern (зашагивание) and muscle group (ноги бицепс бедра). Same equipment.",
+    "why_it_may_be_wrong": "Differ only by repetitions/reps, digits, or stop-words like 'раз', 'техника выполнения', 'вариант'. They are duplicate variants of the same exercise."
+  },
+  {
+    "original_exercise": "Сгибание ног лёжа, техника выполнения упражнения",
+    "original_id": "table_037",
+    "suggested_replacement": "Сгибание ног лежа 15 раз",
+    "suggested_id": "prog_14681_179486_5",
+    "score": 291,
+    "why_selected": "Matched on movement pattern (сгибание ног) and muscle group (ноги бицепс бедра). Same equipment.",
+    "why_it_may_be_wrong": "Differ only by repetitions/reps, digits, or stop-words like 'раз', 'техника выполнения', 'вариант'. They are duplicate variants of the same exercise."
+  },
+  {
+    "original_exercise": "Классические отжимания, техника выполнения упражнения",
+    "original_id": "table_103",
+    "suggested_replacement": "Классические отжимания 10 раз",
+    "suggested_id": "prog_14496_175210_3",
+    "score": 291,
+    "why_selected": "Matched on movement pattern (горизонтальный жим) and muscle group (грудь). Same equipment.",
+    "why_it_may_be_wrong": "Differ only by repetitions/reps, digits, or stop-words like 'раз', 'техника выполнения', 'вариант'. They are duplicate variants of the same exercise."
+  },
+  {
+    "original_exercise": "Мёртвая тяга, техника выполнения упражнения",
+    "original_id": "table_122",
+    "suggested_replacement": "Мертвая тяга 12 раз",
+    "suggested_id": "prog_14681_179486_6",
+    "score": 291,
+    "why_selected": "Matched on movement pattern (разгибание таза) and muscle group (ноги бицепс бедра). Same equipment.",
+    "why_it_may_be_wrong": "Differ only by repetitions/reps, digits, or stop-words like 'раз', 'техника выполнения', 'вариант'. They are duplicate variants of the same exercise."
+  },
+  {
+    "original_exercise": "Разгибание ног, техника выполнения упражнения",
+    "original_id": "table_123",
+    "suggested_replacement": "Разгибание ног 10 раз",
+    "suggested_id": "prog_14673_179304_4",
+    "score": 291,
+    "why_selected": "Matched on movement pattern (разгибание ног) and muscle group (ноги). Same equipment.",
+    "why_it_may_be_wrong": "Differ only by repetitions/reps, digits, or stop-words like 'раз', 'техника выполнения', 'вариант'. They are duplicate variants of the same exercise."
+  },
+  {
+    "original_exercise": "Отжимания с гантелей на трицепс, техника выполнения упражнений",
+    "original_id": "table_142",
+    "suggested_replacement": "Отжимания с гантелей на трицепс",
+    "suggested_id": "prog_14532_176076_5",
+    "score": 291,
+    "why_selected": "Matched on movement pattern (разгибание локтя) and muscle group (трицепс). Same equipment.",
+    "why_it_may_be_wrong": "Differ only by repetitions/reps, digits, or stop-words like 'раз', 'техника выполнения', 'вариант'. They are duplicate variants of the same exercise."
+  }
+]

@@ -1,0 +1,64 @@
+﻿FruitFit PWA report — 2026-05-16
+
+Готово:
+1. Muscle map rendering
+- Убран подход с auto-crop/auto-slice для текущего рендера muscle map.
+- Подключены static full-card anatomy assets из готового Атласа 2.0.
+- Рендер в блоке “Какие мышцы работают” использует object-fit: contain и object-position: center.
+- В компоненте нет transform translate/scale hacks для подгонки анатомии.
+- Создана папка: public/muscle-templates/full/
+- Подключено 19 anatomy template images.
+
+2. Muscle template assignment
+- Добавлен явный mapping layer: src/data/exerciseMuscleTemplateMap.js
+- Runtime сначала ищет explicit normalized exercise name -> muscle_template_id.
+- Если mapping не найден, есть safe fallback с пометкой review, но текущий audit показал 190/190 mapped.
+- Важно: 190/190 означает наличие назначенного шаблона, а не полную ручную методическую верификацию каждого упражнения.
+- Создан audit файл: audit/exercise_muscle_template_audit.csv
+
+3. Исправлены найденные mismatches
+- Жим Арнольда -> upper_front_delt_press
+- Армейский жим / вертикальные жимы -> upper_front_delt_press
+- Махи гантелями / дуговые махи / изодинамические махи -> upper_lateral_delt
+- Бабочка/махи на заднюю дельту -> upper_rear_delt
+- Румынская тяга / мертвая тяга / становая / тяга со стоек / тяга из ямы -> lower_posterior_chain
+- Подтягивания / вертикальные тяги -> upper_lats_pulldown
+- Грудные жимы / брусья -> upper_chest_dominant или upper_incline_chest
+- Приседания / фронтальный присед / гак -> lower_quad_dominant или lower_glute_dominant по целевой зоне
+- Планки / пресс -> core templates
+
+4. Hero card
+- Убрана жёсткая вертикальная граница между фото и тёмным градиентом.
+- Фото спортсмена интегрировано через мягкий blend/mask, без прямоугольной подложки.
+- CTA “Начать тренировку” остаётся поверх слоёв и не перекрывается фото.
+- Проверено на mobile viewport 393px.
+
+5. Проверки
+- npm run audit:muscle-templates — успешно.
+- npm run build — успешно.
+- Production URL открывается: https://fruitfit.pages.dev/
+- Cloudflare Pages /api/health отвечает:
+  ok=true, openaiKeyLoaded=true, model=gpt-5-nano, endpoint=responses.
+- Production HTML уже с новыми asset hashes:
+  index-ClcFwS4N.js
+  index-BUsGGAdd.css
+
+Ключевые изменённые файлы:
+- src/components/MuscleWorkBlock.jsx
+- src/components/HeroWorkoutCard.jsx
+- src/data/muscleTemplates.js
+- src/data/exerciseMuscleTemplateMap.js
+- scripts/audit-muscle-templates.mjs
+- public/muscle-templates/full/*
+- audit/exercise_muscle_template_audit.csv
+
+Deploy:
+- Production: https://fruitfit.pages.dev/
+- Cloudflare preview: https://2b0f7544.fruitfit.pages.dev
+
+Known issues / что стоит проверить руками:
+- Mapping теперь явный и исправлены заметные ошибки, но 190 упражнений не были все по одному вручную методически утверждены. Лучше позже пройти audit CSV и пометить спорные упражнения.
+- Vite всё ещё предупреждает о большом JS chunk (~3.1 MB). Это не ломает приложение, но позже стоит вынести тяжёлые data-модули в lazy chunks.
+- Anatomy assets используются как предоставленные production images, без генерации и без улучшения. Если в самом исходном изображении есть нежелательная деталь, её нужно заменить исходным asset, а не CSS crop.
+
+ПК не выключал: в последнем сообщении было, что компьютер выключит жена.

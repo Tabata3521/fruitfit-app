@@ -1,0 +1,18 @@
+FruitFit PWA report — 2026-05-16 Auth
+
+Готово:
+1. Интегрирован полноценный Yandex ID OAuth.
+2. Интегрирован полноценный Telegram Login Widget.
+3. Добавлена SQLite база (таблица users) на VDS бэкенде для сохранения пользователей и привязки по email/ID.
+4. Сделаны Cloudflare Pages Functions proxy (functions/api/auth/[[catchall]].js), которые проксируют запросы от домена PWA на VDS бэкенд, чтобы не хранить секреты на клиенте и обойти CORS.
+5. Настроен JWT для сессий (передается через URL hash auth_token, перехватывается в App.jsx и валидируется через /api/auth/me).
+
+Изменённые/созданные файлы:
+- package.json (добавлены jsonwebtoken, cookie)
+- server/authDb.js (управление SQLite таблицей users)
+- server/authHandlers.js (роуты для Yandex и Telegram, выдача JWT)
+- server.js (подключение auth роутера и создание схемы БД)
+- functions/api/auth/[[catchall]].js (прокси Cloudflare Pages)
+- src/data/authStore.js (логика сохранения токена и запроса профиля с бэкенда)
+- src/App.jsx (useEffect для перехвата токена из хеша)
+- src/screens/AuthPrompt.jsx (обновленные кнопки Yandex и Telegram Login Widget)

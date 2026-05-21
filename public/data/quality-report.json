@@ -1,0 +1,16 @@
+{
+  "generated_at": "2026-05-08T18:29:28.040Z",
+  "original_exercises": 18090,
+  "final_exercises": 17964,
+  "fixed_empty_sets": 2422,
+  "removed_duplicate_exercises": 126,
+  "missing_sets_after": 173,
+  "missing_reps_after": 2509,
+  "missing_names_after": 0,
+  "missing_comments_after": 0,
+  "sequence_issue_lessons_after": 0,
+  "lessons_without_exercises_after": 0,
+  "has_video_true": 17964,
+  "regenerated_at": "2026-05-08T18:30:36.371Z",
+  "fixed_reps_without_sets": 70
+}

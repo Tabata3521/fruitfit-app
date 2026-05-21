@@ -1,0 +1,78 @@
+﻿{
+    "upper_triceps":  {
+                          "file":  "upper_triceps.jpg",
+                          "source":  "photo_2026-05-15_22-16-17.jpg"
+                      },
+    "upper_lateral_delt":  {
+                               "file":  "upper_lateral_delt.jpg",
+                               "source":  "photo_2026-05-15_22-16-24.jpg"
+                           },
+    "upper_rotator_cuff":  {
+                               "file":  "upper_rotator_cuff.jpg",
+                               "source":  "photo_2026-05-15_22-16-29.jpg"
+                           },
+    "upper_front_delt_press":  {
+                                   "file":  "upper_front_delt_press.jpg",
+                                   "source":  "photo_2026-05-15_22-16-04.jpg"
+                               },
+    "upper_back_rows":  {
+                            "file":  "upper_back_rows.jpg",
+                            "source":  "photo_2026-05-15_22-15-48.jpg"
+                        },
+    "core_rectus_abdominis":  {
+                                  "file":  "core_rectus_abdominis.jpg",
+                                  "source":  "photo_2026-05-15_22-16-13.jpg"
+                              },
+    "core_obliques":  {
+                          "file":  "core_obliques.jpg",
+                          "source":  "photo_2026-05-15_22-16-33.jpg"
+                      },
+    "upper_incline_chest":  {
+                                "file":  "upper_incline_chest.jpg",
+                                "source":  "photo_2026-05-15_22-15-40.jpg"
+                            },
+    "lower_glute_dominant":  {
+                                 "file":  "lower_glute_dominant.jpg",
+                                 "source":  "photo_2026-05-15_22-15-04.jpg"
+                             },
+    "upper_chest_dominant":  {
+                                 "file":  "upper_chest_dominant.jpg",
+                                 "source":  "photo_2026-05-15_22-15-33.jpg"
+                             },
+    "lower_quad_dominant":  {
+                                "file":  "lower_quad_dominant.jpg",
+                                "source":  "photo_2026-05-15_22-15-13.jpg"
+                            },
+    "lower_posterior_chain":  {
+                                  "file":  "lower_posterior_chain.jpg",
+                                  "source":  "photo_2026-05-15_22-15-07.jpg"
+                              },
+    "upper_rear_delt":  {
+                            "file":  "upper_rear_delt.jpg",
+                            "source":  "photo_2026-05-15_22-16-10.jpg"
+                        },
+    "lower_adductors":  {
+                            "file":  "lower_adductors.jpg",
+                            "source":  "photo_2026-05-15_22-15-29.jpg"
+                        },
+    "upper_biceps":  {
+                         "file":  "upper_biceps.jpg",
+                         "source":  "photo_2026-05-15_22-16-20.jpg"
+                     },
+    "lower_whole_leg_stability":  {
+                                      "file":  "lower_whole_leg_stability.jpg",
+                                      "source":  "photo_2026-05-15_22-15-45.jpg"
+                                  },
+    "upper_lats_pulldown":  {
+                                "file":  "upper_lats_pulldown.jpg",
+                                "source":  "photo_2026-05-15_22-14-33.jpg"
+                            },
+    "lower_glutes_quads":  {
+                               "file":  "lower_glutes_quads.jpg",
+                               "source":  "photo_2026-05-15_22-15-17.jpg"
+                           },
+    "lower_plyometric":  {
+                             "file":  "lower_plyometric.jpg",
+                             "source":  "photo_2026-05-15_22-16-07.jpg"
+                         }
+}

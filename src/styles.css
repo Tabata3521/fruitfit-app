@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f7f5ef;
+  --dark: #181f19;
+  --green: #ddf7b4;
+  --orange: #ff7a2f;
+  --soft-orange: #ffd8b5;
+  --text: #111827;
+  --muted: #737c74;
+  --border: #eef0ec;
+  --card: #ffffff;
+  --page-grad-a: rgba(255, 219, 181, 0.42);
+  --page-grad-b: #fbfaf6;
+  color: #111827;
+  background: #f7f5ef;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-theme="dark"] {
+  --bg: #111811;
+  --dark: #071009;
+  --green: #d8ff8f;
+  --orange: #ff8a3d;
+  --soft-orange: #3f3023;
+  --text: #f6f8ef;
+  --muted: #b9c3b4;
+  --border: rgba(225, 235, 220, 0.18);
+  --card: #1b241b;
+  --page-grad-a: rgba(216, 255, 143, 0.10);
+  --page-grad-b: #0f160f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root,
+.phone-shell,
+button,
+nav,
+[role="button"],
+.card,
+.widget,
+.bottom-nav,
+.tab-bar,
+.no-select-ui {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea,
+[contenteditable="true"],
+.allow-select,
+.selectable,
+.debug-output,
+pre,
+code {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 20% 0%, var(--page-grad-a), transparent 28%),
+    linear-gradient(180deg, var(--page-grad-b) 0%, var(--bg) 100%);
+  font-family: Inter, "SF Pro Display", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.phone-shell {
+  width: min(100vw, 393px);
+  min-height: 100vh;
+  margin: 0 auto;
+  background: var(--bg);
+  overflow: hidden;
+  position: relative;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .portrait-lock body::before {
+    content: "Поверните телефон вертикально";
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: grid;
+    place-items: center;
+    background: var(--bg);
+    color: var(--text);
+    font-weight: 900;
+    text-align: center;
+    padding: 32px;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
