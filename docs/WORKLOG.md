@@ -86,6 +86,34 @@
 - App icon settings сохраняют выбор.
 - Launcher icons orange/apple/pear/strawberry выглядят без белой подложки и без кропа.
 
+## 2026-05-22 - Health refresh buttons + exercise video patch
+
+### Что исправлено
+
+- Маленькие refresh-кнопки health detail pages теперь вызывают общий `syncNativeHealth({ force: true })`, а не отдельный/пассивный UI refresh.
+- `syncNativeHealth` больше не зависает навсегда на старом in-flight promise: добавлен age guard и сброс stale-запроса после 45 секунд.
+- Если Health Connect возвращает `no_data`, pipeline всё равно может читать native records. Это важно для случаев, когда availability ещё не отражает реальные записи, но debug/export уже видит данные.
+- Время `lastFruitFitRefreshAt` обновляется даже если новых записей нет, чтобы UI показывал факт проверки.
+- Ошибки refresh сохраняются в `syncError` / `lastHealthSyncError` и выводятся на health detail pages.
+- Empty health cards с действием “Обновить” теперь вызывают чтение данных, а не повторный permission-flow.
+- Кнопка “Обновить данные” в профиле теперь использует refresh pipeline, если разрешения уже есть; permission-flow остаётся для первичного доступа.
+- Добавлены source labels/shortcuts для WHOOP. Apple Health оставлен как iOS/HealthKit provider; Android APK не может напрямую проверить HealthKit.
+- Точечно восстановлена ссылка Selectel для упражнения “Выпады в кроссовере”.
+
+### Проверки
+
+- `npm run build` - ok.
+- `npx cap sync android` - ok.
+- `.\gradlew.bat :app:assembleDebug` - ok.
+- Selectel URL “Выпады в кроссовере” отвечает `HTTP 200`, `Content-Type: video/mp4`.
+
+### Что проверить на телефоне
+
+- Samsung Health / Galaxy Watch: маленькая кнопка refresh на health page обновляет timestamp “FruitFit обновил данные”.
+- Если Health Connect отдаёт свежий `com.sec.android.app.shealth`, Dashboard и detail pages показывают Samsung Health, а не старый Google Fit cache.
+- Empty cards “Обновить” запускают чтение Health Connect, а не только экран разрешений.
+- “Выпады в кроссовере” открывают видео из Selectel.
+
 ## 2026-05-22 - tagirfruit food MVP iteration
 
 ### Что было незавершено

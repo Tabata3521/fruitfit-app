@@ -404,7 +404,15 @@ function MiniLectureWidget({ onOpen }) {
   );
 }
 
-function EmptyHealthWidget({ title, icon: Icon, color = "#8BBE3D", onOpen, onConnect, headline = "Трекер не подключён", description = "После подключения Health Connect или Apple Health здесь появятся реальные данные.", actionLabel = "Подключить трекер" }) {
+function EmptyHealthWidget({ title, icon: Icon, color = "#8BBE3D", onOpen, onConnect, onRefresh, headline = "Трекер не подключён", description = "После подключения Health Connect или Apple Health здесь появятся реальные данные.", actionLabel = "Подключить трекер" }) {
+  const runAction = () => {
+    if (actionLabel === "Обновить" || actionLabel === "Посмотреть") {
+      onRefresh?.();
+      if (actionLabel === "Посмотреть") onOpen?.();
+      return;
+    }
+    onConnect?.();
+  };
   return (
     <motion.button
       type="button"
@@ -425,13 +433,13 @@ function EmptyHealthWidget({ title, icon: Icon, color = "#8BBE3D", onOpen, onCon
         tabIndex={0}
         onClick={(event) => {
           event.stopPropagation();
-          onConnect?.();
+          runAction();
         }}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
             event.stopPropagation();
-            onConnect?.();
+            runAction();
           }
         }}
         className="mt-3 inline-flex h-8 items-center rounded-full bg-appGreen px-3 text-[11px] font-black text-[#181F19]"
@@ -442,7 +450,7 @@ function EmptyHealthWidget({ title, icon: Icon, color = "#8BBE3D", onOpen, onCon
   );
 }
 
-function HeartWidget({ health, onOpen, onConnect }) {
+function HeartWidget({ health, onOpen, onConnect, onRefresh }) {
   const heart = health.heart_rate || {};
   const hasHeartData = Boolean(
     heart.dataSource
@@ -465,6 +473,7 @@ function HeartWidget({ health, onOpen, onConnect }) {
         color="#EF4444"
         onOpen={onOpen}
         onConnect={onConnect}
+        onRefresh={onRefresh}
         headline={permissionMissing ? "Разрешение не выдано" : hasLast ? `Последний пульс: ${heart.latestBpm}` : stale ? "Нет актуальных данных" : "Нет данных пульса"}
         description={permissionMissing ? "Разрешите FruitFit читать пульс в Health Connect." : hasLast ? `Обновлено ${heart.updatedAgoText || "давно"}. Не показываю это как live HR.` : stale ? "Есть старые записи, но за последние 15 минут источник не передал пульс." : "Источник не передал данные пульса. Проверьте синхронизацию часов с Health Connect."}
         actionLabel={permissionMissing ? "Выдать доступ" : "Обновить"}
@@ -521,9 +530,9 @@ function AggregateProgress({ value, target, color, unit, note }) {
   );
 }
 
-function MetricWidget({ title, icon: Icon, value, target, color, suffix, sourceNote, onOpen, onConnect }) {
+function MetricWidget({ title, icon: Icon, value, target, color, suffix, sourceNote, onOpen, onConnect, onRefresh }) {
   if (value == null || value === 0) {
-    return <EmptyHealthWidget title={title} icon={Icon} color={color} onOpen={onOpen} onConnect={onConnect} />;
+    return <EmptyHealthWidget title={title} icon={Icon} color={color} onOpen={onOpen} onConnect={onConnect} onRefresh={onRefresh} actionLabel="Обновить" />;
   }
   const percent = formatPercent(value, target);
   return (
@@ -542,11 +551,11 @@ function MetricWidget({ title, icon: Icon, value, target, color, suffix, sourceN
   );
 }
 
-function SleepWidget({ health, onOpen, onConnect }) {
+function SleepWidget({ health, onOpen, onConnect, onRefresh }) {
   const sleep = health.sleep || {};
   const hasSleepData = Boolean(sleep.dataSource || sleep.minutes > 0 || (sleep.week || []).some((item) => Number(item.minutes || 0) > 0));
   if (!hasSleepData) {
-    return <EmptyHealthWidget title="Сон" icon={Moon} color="#60A5FA" onOpen={onOpen} onConnect={onConnect} />;
+    return <EmptyHealthWidget title="Сон" icon={Moon} color="#60A5FA" onOpen={onOpen} onConnect={onConnect} onRefresh={onRefresh} actionLabel="Обновить" />;
   }
   return (
     <motion.button type="button" onClick={onOpen} whileTap={{ scale: 0.985 }} className="rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
@@ -558,11 +567,11 @@ function SleepWidget({ health, onOpen, onConnect }) {
   );
 }
 
-function RecoveryWidget({ health, onOpen, onConnect }) {
+function RecoveryWidget({ health, onOpen, onConnect, onRefresh }) {
   const score = health.readiness.score;
   if (score == null) {
     const hasPartialData = Boolean(health.heart_rate?.latestBpm || health.sleep?.minutes || health.steps?.today);
-    return <EmptyHealthWidget title="Восстановление" icon={Activity} color="#8BBE3D" onOpen={onOpen} onConnect={onConnect} headline={hasPartialData ? "Недостаточно данных" : undefined} description={hasPartialData ? "Часть данных уже есть. Откройте детали, чтобы посмотреть, чего не хватает для точной оценки." : undefined} actionLabel={hasPartialData ? "Посмотреть" : undefined} />;
+    return <EmptyHealthWidget title="Восстановление" icon={Activity} color="#8BBE3D" onOpen={onOpen} onConnect={onConnect} onRefresh={onRefresh} headline={hasPartialData ? "Недостаточно данных" : undefined} description={hasPartialData ? "Часть данных уже есть. Откройте детали, чтобы посмотреть, чего не хватает для точной оценки." : undefined} actionLabel={hasPartialData ? "Посмотреть" : "Обновить"} />;
   }
   return (
     <motion.button type="button" onClick={onOpen} whileTap={{ scale: 0.985 }} className="rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
@@ -1209,7 +1218,8 @@ function DetailRouter({ type, onClose }) {
 }
 
 export function HealthDetailScreen({ type, onBack }) {
-  const { health, setHeartCondition, updateSleepManual, updateCycle, syncNativeHealth, syncing } = useHealth();
+  const { health, setHeartCondition, updateSleepManual, updateCycle, syncNativeHealth, syncing, syncError } = useHealth();
+  const [refreshNote, setRefreshNote] = useState("");
   const titles = {
     heart: "Пульс",
     steps: "Шаги",
@@ -1227,6 +1237,12 @@ export function HealthDetailScreen({ type, onBack }) {
     return () => window.clearInterval(id);
   }, [refreshMs, syncNativeHealth]);
 
+  async function handleRefresh() {
+    setRefreshNote("");
+    const result = await syncNativeHealth?.({ force: true });
+    setRefreshNote(result?.message || "Health Connect проверен.");
+  }
+
   return (
     <main className="phone-shell min-h-screen px-5 pb-8 pt-[calc(env(safe-area-inset-top)+104px)]">
       <header className="fixed left-1/2 top-0 z-50 flex w-[min(100vw,393px)] -translate-x-1/2 items-center gap-3 border-b border-appBorder bg-appBg/95 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+12px)] shadow-sm backdrop-blur">
@@ -1239,7 +1255,7 @@ export function HealthDetailScreen({ type, onBack }) {
         </div>
         <button
           type="button"
-          onClick={() => syncNativeHealth?.()}
+          onClick={handleRefresh}
           disabled={syncing}
           className="ml-auto grid h-10 w-10 place-items-center rounded-full bg-appCard text-appMuted shadow-sm disabled:opacity-50"
           aria-label="Обновить данные"
@@ -1251,7 +1267,9 @@ export function HealthDetailScreen({ type, onBack }) {
       <section className="rounded-[28px] border border-appBorder bg-appCard/95 p-4 shadow-sm">
         <p className="mb-3 rounded-2xl bg-appBg/70 px-3 py-2 text-[11px] font-semibold text-appMuted">
           FruitFit обновил данные: {health.lastFruitFitRefreshAt ? new Date(health.lastFruitFitRefreshAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }) : "ещё нет"}
+          {refreshNote ? ` · ${refreshNote}` : ""}
         </p>
+        {syncError && <p className="mb-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] font-bold text-red-500">{syncError}</p>}
         {type === "heart" && <HeartDetail health={health} setHeartCondition={setHeartCondition} />}
         {type === "steps" && <MetricDetail type="steps" health={health} />}
         {type === "calories" && <MetricDetail type="calories" health={health} />}
@@ -1295,15 +1313,15 @@ export default function WidgetGrid({ profile, onNavigate }) {
       case "nutrition":
         return <NutritionWidget key={widget.id} profile={profile} onOpen={() => onNavigate?.("food")} />;
       case "heart":
-        return <HeartWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:heart")} onConnect={requestConnection} />;
+        return <HeartWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:heart")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true })} />;
       case "steps":
-        return <MetricWidget key={widget.id} title="Шаги" icon={Footprints} value={health.steps.today} target={health.steps.goal} color="#8BBE3D" suffix="шагов" sourceNote={health.steps?.sourceName ? `${health.steps.sourceName}` : ""} onOpen={() => onNavigate?.("health:steps")} onConnect={requestConnection} />;
+        return <MetricWidget key={widget.id} title="Шаги" icon={Footprints} value={health.steps.today} target={health.steps.goal} color="#8BBE3D" suffix="шагов" sourceNote={health.steps?.sourceName ? `${health.steps.sourceName}` : ""} onOpen={() => onNavigate?.("health:steps")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true })} />;
       case "calories":
-        return <MetricWidget key={widget.id} title="Калории" icon={Flame} value={health.calories.today} target={health.calories.goal} color="#FF7A2F" suffix="ккал" sourceNote={health.calories?.isEstimated ? "Оценка активности" : health.calories?.sourceName || ""} onOpen={() => onNavigate?.("health:calories")} onConnect={requestConnection} />;
+        return <MetricWidget key={widget.id} title="Калории" icon={Flame} value={health.calories.today} target={health.calories.goal} color="#FF7A2F" suffix="ккал" sourceNote={health.calories?.isEstimated ? "Оценка активности" : health.calories?.sourceName || ""} onOpen={() => onNavigate?.("health:calories")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true })} />;
       case "sleep":
-        return <SleepWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:sleep")} onConnect={requestConnection} />;
+        return <SleepWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:sleep")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true })} />;
       case "recovery":
-        return <RecoveryWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:recovery")} onConnect={requestConnection} />;
+        return <RecoveryWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:recovery")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true })} />;
       case "cycle":
         return <CycleWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:cycle")} />;
       case "weekly":

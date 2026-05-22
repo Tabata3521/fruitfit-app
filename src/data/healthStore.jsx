@@ -278,7 +278,9 @@ function buildSeriesFromSamples(samples = [], range = "week", valueKey = "value"
 }
 
 function canReadNativeData(state) {
-  return state === healthProviderStates.CONNECTED || state === healthProviderStates.PARTIALLY_GRANTED;
+  return state === healthProviderStates.CONNECTED
+    || state === healthProviderStates.PARTIALLY_GRANTED
+    || state === healthProviderStates.NO_DATA;
 }
 
 function selectedSourceSamples(result) {
@@ -298,6 +300,8 @@ function sourceLabel(source) {
   if (raw.includes("com.sec.android.app.shealth") || raw.includes("samsung")) return "Samsung Health";
   if (raw.includes("com.huami.watch.hmwatchmanager") || raw.includes("zepp") || raw.includes("amazfit")) return "Zepp / Amazfit";
   if (raw.includes("com.google.android.apps.fitness") || raw.includes("google fit")) return "Google Fit";
+  if (raw.includes("whoop")) return "WHOOP";
+  if (raw.includes("apple") || raw.includes("healthkit")) return "Apple Health";
   if (raw === "android" || raw.includes("health connect aggregate")) return "Health Connect aggregate";
   return source?.selectedSourceName || source?.sourceName || source?.selectedSourcePackage || source?.sourcePackage || source?.source || source || "Health Connect";
 }
@@ -740,20 +744,31 @@ export function HealthProvider({ children }) {
     message: health.providerMessage || "Трекер не подключён",
   });
   const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState("");
   const healthRef = useRef(health);
   const syncPromiseRef = useRef(null);
+  const syncStartedAtRef = useRef(0);
   const nativeCommitSeqRef = useRef(0);
 
   useEffect(() => {
     healthRef.current = health;
   }, [health]);
 
-  const syncNativeHealth = useCallback(async () => {
-    if (syncPromiseRef.current) return syncPromiseRef.current;
+  const syncNativeHealth = useCallback(async ({ force = false } = {}) => {
+    const now = Date.now();
+    const inFlightAge = now - (syncStartedAtRef.current || 0);
+    if (syncPromiseRef.current && inFlightAge < 45_000) return syncPromiseRef.current;
+    if (syncPromiseRef.current && (force || inFlightAge >= 45_000)) {
+      syncPromiseRef.current = null;
+      syncStartedAtRef.current = 0;
+    }
 
     const commitSeq = ++nativeCommitSeqRef.current;
+    syncStartedAtRef.current = now;
     syncPromiseRef.current = (async () => {
       setSyncing(true);
+      setSyncError("");
+      const checkedAt = new Date().toISOString();
       const nextAvailability = await getHealthAvailability();
       setAvailability(nextAvailability);
       setHealth((current) => ({
@@ -761,18 +776,28 @@ export function HealthProvider({ children }) {
         providerState: nextAvailability.state,
         providerSource: nextAvailability.source,
         providerMessage: nextAvailability.message,
-        lastFruitFitRefreshAt: new Date().toISOString(),
+        lastFruitFitRefreshAt: checkedAt,
       }));
       if (!canReadNativeData(nextAvailability.state)) return nextAvailability;
 
       const snapshot = await readNativeHealthSnapshot(healthRef.current || loadHealthData());
       if (commitSeq === nativeCommitSeqRef.current) {
-        setHealth(snapshot);
+        setHealth({ ...snapshot, lastFruitFitRefreshAt: checkedAt });
       }
       return nextAvailability;
+    })().catch((error) => {
+      const message = error?.message || "Не удалось обновить Health Connect.";
+      setSyncError(message);
+      setHealth((current) => ({
+        ...current,
+        lastFruitFitRefreshAt: new Date().toISOString(),
+        lastHealthSyncError: message,
+      }));
+      return { state: healthProviderStates.ERROR, source: "Health Connect", message };
     })().finally(() => {
       if (commitSeq === nativeCommitSeqRef.current) setSyncing(false);
       syncPromiseRef.current = null;
+      syncStartedAtRef.current = 0;
     });
 
     return syncPromiseRef.current;
@@ -1150,13 +1175,14 @@ export function HealthProvider({ children }) {
     health,
     availability,
     syncing,
+    syncError,
     requestConnection,
     syncNativeHealth,
     buildHealthDebugReport,
     setHeartCondition,
     updateSleepManual,
     updateCycle,
-  }), [availability, buildHealthDebugReport, health, requestConnection, setHeartCondition, syncNativeHealth, syncing, updateCycle, updateSleepManual]);
+  }), [availability, buildHealthDebugReport, health, requestConnection, setHeartCondition, syncError, syncNativeHealth, syncing, updateCycle, updateSleepManual]);
 
   return <HealthContext.Provider value={value}>{children}</HealthContext.Provider>;
 }

@@ -566,6 +566,7 @@ public class FruitFitHealthPlugin extends Plugin {
         if ("google_fit".equals(sourceId)) return new String[] { "com.google.android.apps.fitness" };
         if ("zepp".equals(sourceId)) return new String[] { "com.huami.watch.hmwatchmanager", "com.zepp.z" };
         if ("mi_fitness".equals(sourceId)) return new String[] { "com.xiaomi.wearable", "com.mi.health", "com.xiaomi.hm.health" };
+        if ("whoop".equals(sourceId)) return new String[] { "com.whoop.android", "com.whoop" };
         return new String[] {};
     }
 

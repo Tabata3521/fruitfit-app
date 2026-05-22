@@ -162,4 +162,6 @@ export const healthSourceShortcuts = [
   { id: "google_fit", label: "Google Fit", hint: "Промежуточный источник для Mi Fitness/Zepp" },
   { id: "zepp", label: "Zepp / Amazfit", hint: "Amazfit и Zepp" },
   { id: "mi_fitness", label: "Mi Fitness", hint: "Xiaomi Watch / Mi Fitness" },
+  { id: "whoop", label: "WHOOP", hint: "WHOOP через Health Connect / Apple Health" },
+  { id: "apple_health", label: "Apple Health", hint: "iPhone и Apple Watch через HealthKit" },
 ];

@@ -334,7 +334,7 @@ function PromoPlaceholderSection() {
 }
 
 export default function ProfileScreen({ profile, onProfileChange, theme, onThemeChange, onNavigate, onRestartQuiz }) {
-  const { health, availability, syncing, requestConnection, buildHealthDebugReport } = useHealth();
+  const { health, availability, syncing, requestConnection, syncNativeHealth, buildHealthDebugReport } = useHealth();
   const [avatar, setAvatar] = useState(localStorage.getItem("fruitfit.avatar") || "");
   const [draft, setDraft] = useState(() => normalizeProfile(profile));
   const [errors, setErrors] = useState({});
@@ -370,7 +370,7 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
     function rescanAfterReturn() {
       if (!pendingSourceScan) return;
       setPendingSourceScan(false);
-      requestConnection?.();
+      refreshHealthData();
     }
     window.addEventListener("focus", rescanAfterReturn);
     document.addEventListener("visibilitychange", rescanAfterReturn);
@@ -378,7 +378,7 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
       window.removeEventListener("focus", rescanAfterReturn);
       document.removeEventListener("visibilitychange", rescanAfterReturn);
     };
-  }, [pendingSourceScan, requestConnection]);
+  }, [pendingSourceScan, requestConnection, syncNativeHealth]);
 
   function onAvatar(event) {
     const file = event.target.files?.[0];
@@ -403,6 +403,20 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
     const savedProfile = saveProfile(draft);
     onProfileChange?.(savedProfile);
     setSaved(true);
+  }
+
+  function canRefreshNativeHealth() {
+    return availability?.state === healthProviderStates.CONNECTED
+      || availability?.state === healthProviderStates.PARTIALLY_GRANTED
+      || availability?.state === healthProviderStates.NO_DATA;
+  }
+
+  async function refreshHealthData() {
+    if (canRefreshNativeHealth()) {
+      await syncNativeHealth?.({ force: true });
+      return;
+    }
+    await requestConnection?.();
   }
 
   async function togglePermission(item) {
@@ -554,7 +568,7 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
                     <p className="mt-2 text-[11px] leading-4 text-appMuted">
                       Если ваш трекер не передаёт данные напрямую в Health Connect, подключите его приложение к Google Fit, а Google Fit — к Health Connect.
                     </p>
-                    <button type="button" onClick={() => requestConnection?.()} className="mt-3 h-10 w-full rounded-full bg-appGreen text-[12px] font-black text-[#181F19]">
+                    <button type="button" onClick={refreshHealthData} className="mt-3 h-10 w-full rounded-full bg-appGreen text-[12px] font-black text-[#181F19]">
                       {syncing ? "Обновляю..." : "Обновить данные"}
                     </button>
                     <div className="mt-3 grid grid-cols-2 gap-2">
