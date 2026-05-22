@@ -1,3 +1,5 @@
+import { findProduct } from "./nutritionDb.js";
+
 const FOOD_INTENT_RE =
   /(кбжу|калори|калорийн|посчитай|рассчитай|что я съел|что съел|еда|прием пищи|приём пищи|белк|жир|углевод)/i;
 
@@ -31,8 +33,21 @@ const PIECE_GRAMS_BY_NAME = [
   { re: /сыр/i, grams: 20 },
 ];
 
-export function isNutritionIntent(message = "") {
-  return FOOD_INTENT_RE.test(message) || parseFoodItemsFromMessage(message).length > 0;
+export function isNutritionIntent(message = "", options = {}) {
+  const text = String(message || "");
+  if (FOOD_INTENT_RE.test(text)) return true;
+
+  const parsedItems = parseFoodItemsFromMessage(text);
+  if (!parsedItems.length) return false;
+
+  try {
+    return parsedItems.some((item) => {
+      const matched = findProduct(item.name, { ...options, externalFallback: false });
+      return matched && matched.matched !== false && matched.confidence >= 0.68;
+    });
+  } catch (_) {
+    return false;
+  }
 }
 
 export function parseFoodItemsFromMessage(message = "") {
@@ -46,20 +61,20 @@ export function parseFoodItemsFromMessage(message = "") {
   const items = [];
 
   const parts = text
-    .split(/[,;+]|\s+\+\s+|\s+и\s+(?=(?:\d|пачк|банк|ложк|ст\.|ч\.|яйц|банан|яблок|кус|ломтик))/iu)
+    .split(/[,;+]|\s+\+\s+|\s+и\s+/iu)
     .map((part) => cleanFoodName(part))
     .filter(Boolean);
 
   for (const part of parts) {
     let match = part.match(new RegExp(`^(?<grams>\\d+(?:[,.]\\d+)?)\\s*${GRAMS_RE}\\s+(?<name>.+)$`, "iu"));
     if (match) {
-      addItem(items, match.groups.name, parseNumber(match.groups.grams));
+      addItem(items, match.groups.name, parseNumber(match.groups.grams), 1);
       continue;
     }
 
     match = part.match(new RegExp(`^(?<name>.+?)\\s+(?<grams>\\d+(?:[,.]\\d+)?)\\s*${GRAMS_RE}$`, "iu"));
     if (match) {
-      addItem(items, match.groups.name, parseNumber(match.groups.grams));
+      addItem(items, match.groups.name, parseNumber(match.groups.grams), 1);
       continue;
     }
 
@@ -68,24 +83,37 @@ export function parseFoodItemsFromMessage(message = "") {
       const unit = match.groups.unit;
       const rawName = match.groups.name || unit;
       const count = parseNumber(match.groups.count || "1");
-      addItem(items, rawName, gramsFromUnit(unit, rawName, count));
+      addItem(items, rawName, gramsFromUnit(unit, rawName, count), count);
       continue;
     }
 
     match = part.match(new RegExp(`^(?<name>.+?)\\s+(?<count>\\d+(?:[,.]\\d+)?)\\s*(?<unit>${COUNT_UNIT_RE})$`, "iu"));
     if (match) {
       const rawName = match.groups.name;
-      addItem(items, rawName, gramsFromUnit(match.groups.unit, rawName, parseNumber(match.groups.count)));
+      addItem(items, rawName, gramsFromUnit(match.groups.unit, rawName, parseNumber(match.groups.count)), parseNumber(match.groups.count));
+      continue;
+    }
+
+    // Pattern: "2 бургера" or "3 банана" — count + name without unit
+    match = part.match(/^(?<count>\d+(?:[,.]\d+)?)\s+(?<name>.+)$/iu);
+    if (match) {
+      addItem(items, match.groups.name, null, parseNumber(match.groups.count));
+      continue;
+    }
+
+    // Fallback: bare product name like "бургер", "кола", "гречка с молоком"
+    if (part.length >= 2) {
+      addItem(items, part, null, 1);
     }
   }
 
   return mergeDuplicateItems(items);
 }
 
-function addItem(items, rawName, grams) {
+function addItem(items, rawName, grams, count) {
   const name = cleanFoodName(rawName || "");
-  if (name && grams) {
-    items.push({ name, grams });
+  if (name) {
+    items.push({ name, grams: grams || null, count: count || 1 });
   }
 }
 
@@ -127,7 +155,9 @@ function mergeDuplicateItems(items) {
     const key = item.name.toLowerCase().trim();
     const existing = byName.get(key);
     if (existing) {
-      existing.grams += item.grams;
+      if (item.grams && existing.grams) existing.grams += item.grams;
+      else if (item.grams) existing.grams = item.grams;
+      existing.count = (existing.count || 1) + (item.count || 1);
     } else {
       byName.set(key, { ...item });
     }
@@ -158,3 +188,4 @@ export function buildNutritionAnswer(result) {
 
   return `Посчитал по базе продуктов. ${lines.join("; ")}. ${total}${warningText} Расчёт примерный и зависит от конкретного бренда/состава.`;
 }
+

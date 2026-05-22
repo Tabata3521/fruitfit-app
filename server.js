@@ -1,7 +1,7 @@
 import express from "express";
 import fs from "node:fs";
 import path from "node:path";
-import { calculateNutritionItems, getNutritionDb, NUTRITION_DB_PATH, searchProducts } from "./server/nutritionDb.js";
+import { calculateNutritionItemsWithFallback, getNutritionDb, NUTRITION_DB_PATH, searchProducts } from "./server/nutritionDb.js";
 import { buildNutritionAnswer, isNutritionIntent, parseFoodItemsFromMessage } from "./server/foodParser.js";
 import authRouter from "./server/authHandlers.js";
 import { createAuthSchema } from "./server/authDb.js";
@@ -52,9 +52,9 @@ app.get("/api/nutrition/search", (request, response) => {
   }
 });
 
-app.post("/api/nutrition/calc", (request, response) => {
+app.post("/api/nutrition/calc", async (request, response) => {
   try {
-    const result = calculateNutritionItems(request.body?.items || [], {
+    const result = await calculateNutritionItemsWithFallback(request.body?.items || [], {
       userId: request.body?.userId || "",
       db: getNutritionDb(),
     });
@@ -171,7 +171,7 @@ async function handleCoach(request, response) {
 
   if (isNutritionIntent(userMessage)) {
     const parsedItems = parseFoodItemsFromMessage(userMessage);
-    const result = calculateNutritionItems(parsedItems, {
+    const result = await calculateNutritionItemsWithFallback(parsedItems, {
       userId: payload.context?.userId || payload.userId || "",
       db: getNutritionDb(),
     });

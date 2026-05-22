@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { lookupExternalFoodProduct } from "./externalFoodApi.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -218,6 +219,46 @@ function parseServingExamples(value) {
   }
 }
 
+function cacheExternalProduct(product, db = getNutritionDb()) {
+  if (!product?.name) return null;
+
+  const existing = findProduct(product.name, { db });
+  if (existing && existing.matched !== false) return existing;
+
+  const insertProduct = db.prepare(`
+    INSERT INTO products (
+      name, brand, category, kcal_per_100, protein_per_100, fat_per_100, carbs_per_100,
+      serving_examples, default_serving_grams, source, is_verified, country, updated_at
+    )
+    VALUES (
+      @name, @brand, @category, @kcal, @protein, @fat, @carbs,
+      @serving_examples, @default_serving_grams, @source, 0, @country, CURRENT_TIMESTAMP
+    )
+  `);
+  const insertAlias = db.prepare("INSERT INTO product_aliases (product_id, alias) VALUES (?, ?)");
+
+  const result = insertProduct.run({
+    name: product.name,
+    brand: product.brand || null,
+    category: product.category || "External food",
+    kcal: product.kcal,
+    protein: product.protein,
+    fat: product.fat,
+    carbs: product.carbs,
+    serving_examples: JSON.stringify(product.servingExamples || []),
+    default_serving_grams: product.defaultServingGrams || 100,
+    source: product.source || "external_food_api",
+    country: "INT",
+  });
+
+  const aliases = new Set([product.name, ...(product.aliases || [])].filter(Boolean));
+  for (const alias of aliases) {
+    insertAlias.run(result.lastInsertRowid, alias);
+  }
+
+  return findProduct(product.name, { db });
+}
+
 export function findProduct(inputName, options = {}) {
   const normalizedInput = normalizeProductName(inputName);
   if (!normalizedInput) return null;
@@ -263,6 +304,18 @@ export function findProduct(inputName, options = {}) {
   return makeProductDto(best.product, round(Math.min(best.score, 0.9)), "fuzzy");
 }
 
+export async function findProductWithExternalFallback(inputName, options = {}) {
+  const localMatch = findProduct(inputName, options);
+  if (localMatch && localMatch.matched !== false) return localMatch;
+  if (options.externalFallback === false) return localMatch;
+
+  const externalProduct = await lookupExternalFoodProduct(inputName, options.externalApi || {});
+  if (!externalProduct) return localMatch;
+
+  const cached = cacheExternalProduct(externalProduct, options.db || getNutritionDb());
+  return cached ? { ...cached, matchedBy: "external_api_cached", confidence: Math.max(cached.confidence || 0, 0.72) } : localMatch;
+}
+
 export function searchProducts(query, options = {}) {
   const normalizedQuery = normalizeProductName(query);
   if (!normalizedQuery) return [];
@@ -294,10 +347,10 @@ export function calculateNutritionItems(items, options = {}) {
 
   for (const item of Array.isArray(items) ? items : []) {
     const inputName = String(item?.name || "").trim();
-    let grams = Number(String(item?.grams || "").replace(",", "."));
+    let grams = item?.grams !== null && item?.grams !== undefined ? Number(String(item.grams).replace(",", ".")) : null;
 
     if (!inputName) {
-      warnings.push({ type: "invalid_item", message: "??????? ??? ???????? ????????." });
+      warnings.push({ type: "invalid_item", message: "Непонятный или пустой продукт." });
       continue;
     }
 
@@ -308,15 +361,15 @@ export function calculateNutritionItems(items, options = {}) {
         inputName,
         suggestion: matched?.suggestion || null,
         confidence: matched?.confidence || 0,
-        message: `??????? "${inputName}" ?? ?????? ? ???? ?????????.`,
+        message: `Продукт "${inputName}" не найден в базе продуктов.`,
       });
       continue;
     }
 
     if (!Number.isFinite(grams) || grams <= 0) {
-      grams = Number(matched.default_serving_grams || 0);
+      grams = Number(matched.default_serving_grams || 0) * (item.count || 1);
       if (!Number.isFinite(grams) || grams <= 0) {
-        warnings.push({ type: "invalid_grams", inputName, message: `??? "${inputName}" ????? ????????? ??? ???????? ??????.` });
+        warnings.push({ type: "invalid_grams", inputName, message: `Для "${inputName}" нужна граммовка или дефолтная порция.` });
         continue;
       }
     }
@@ -358,8 +411,80 @@ export function calculateNutritionItems(items, options = {}) {
   };
 }
 
+export async function calculateNutritionItemsWithFallback(items, options = {}) {
+  const warnings = [];
+  const calculatedItems = [];
+
+  for (const item of Array.isArray(items) ? items : []) {
+    const inputName = String(item?.name || "").trim();
+    let grams = item?.grams !== null && item?.grams !== undefined ? Number(String(item.grams).replace(",", ".")) : null;
+
+    if (!inputName) {
+      warnings.push({ type: "invalid_item", message: "Непонятный или пустой продукт." });
+      continue;
+    }
+
+    const matched = await findProductWithExternalFallback(inputName, options);
+    if (!matched || matched.matched === false) {
+      warnings.push({
+        type: "product_not_found",
+        inputName,
+        suggestion: matched?.suggestion || null,
+        confidence: matched?.confidence || 0,
+        message: `Продукт "${inputName}" не найден в локальной базе и external API fallback.`,
+      });
+      continue;
+    }
+
+    if (!Number.isFinite(grams) || grams <= 0) {
+      grams = Number(matched.default_serving_grams || 0) * (item.count || 1);
+      if (!Number.isFinite(grams) || grams <= 0) {
+        warnings.push({ type: "invalid_grams", inputName, message: `Для "${inputName}" нужна граммовка или дефолтная порция.` });
+        continue;
+      }
+    }
+
+    const multiplier = grams / 100;
+    calculatedItems.push({
+      inputName,
+      matchedProduct: matched.name,
+      grams: round(grams),
+      kcal: Math.round(matched.kcal_per_100 * multiplier),
+      protein: round(matched.protein_per_100 * multiplier),
+      fat: round(matched.fat_per_100 * multiplier),
+      carbs: round(matched.carbs_per_100 * multiplier),
+      confidence: matched.confidence,
+      matchedBy: matched.matchedBy,
+      servingExamples: matched.serving_examples || [],
+      source: matched.source || null,
+    });
+  }
+
+  const total = calculatedItems.reduce(
+    (acc, item) => ({
+      kcal: acc.kcal + item.kcal,
+      protein: acc.protein + item.protein,
+      fat: acc.fat + item.fat,
+      carbs: acc.carbs + item.carbs,
+    }),
+    { kcal: 0, protein: 0, fat: 0, carbs: 0 },
+  );
+
+  return {
+    items: calculatedItems,
+    total: {
+      kcal: Math.round(total.kcal),
+      protein: round(total.protein),
+      fat: round(total.fat),
+      carbs: round(total.carbs),
+    },
+    warnings,
+  };
+}
+
 export function round(value, digits = 1) {
   const factor = 10 ** digits;
   const rounded = Math.round(Number(value || 0) * factor) / factor;
   return Number.isInteger(rounded) ? rounded : rounded;
 }
+

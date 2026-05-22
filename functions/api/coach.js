@@ -128,3 +128,4 @@ export async function onRequestPost({ request, env }) {
     return json({ error: "Ошибка AI: смотри Cloudflare Pages Functions logs" }, 500);
   }
 }
+

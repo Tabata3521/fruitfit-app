@@ -8,6 +8,7 @@
     "dev:vite": "vite --configLoader runner --host 0.0.0.0",
     "api": "node server.js",
     "db:nutrition:seed": "node scripts/seed-nutrition-db.js",
+    "test:nutrition": "node scripts/test-nutrition.js",
     "build:exercise-catalog": "node tools/import-didactic-exercises.mjs",
     "audit:muscle-templates": "node scripts/audit-muscle-templates.mjs",
     "audit:exercise-videos": "node scripts/audit-missing-exercise-videos.mjs",
