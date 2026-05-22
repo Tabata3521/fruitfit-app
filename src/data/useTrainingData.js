@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { cleanTitle, decodeText } from "../utils/decodeText";
 import { didacticCatalog, resolveDidacticExercise } from "./didacticExerciseData";
+import { resolveExerciseVideoOverride } from "./exerciseVideoOverrides";
 import { assignMuscleTemplate } from "./muscleTemplates";
 import { profileDefaults } from "./profileStore";
 
@@ -30,7 +31,7 @@ function normalizeLesson(lesson) {
 function normalizeExercise(exercise) {
   const title = cleanTitle(exercise.exercise_name);
   const resolvedMeta = resolveDidacticExercise(title);
-  const resolvedVideo = resolvedMeta?.video_url || resolvedMeta?.rfVideoUrl || resolvedMeta?.rf_video_url || null;
+  const resolvedVideo = resolvedMeta?.video_url || resolvedMeta?.rfVideoUrl || resolvedMeta?.rf_video_url || resolveExerciseVideoOverride(title) || null;
   const template = assignMuscleTemplate({ ...exercise, exercise_name: title, exercise_table_meta: resolvedMeta });
   return {
     ...exercise,

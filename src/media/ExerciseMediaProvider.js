@@ -1,4 +1,5 @@
 import { resolveDidacticExercise } from "../data/didacticExerciseData";
+import { resolveExerciseVideoOverride } from "../data/exerciseVideoOverrides";
 import exerciseCatalogTable from "../data/exerciseCatalogTable.json";
 
 function normalizeMediaName(value = "") {
@@ -37,6 +38,7 @@ export function resolveExerciseMedia(exercise) {
   const exerciseName = exercise?.exercise_name || exercise?.name || exercise?.title || "";
   const catalogExercise = resolveDidacticExercise(exerciseName);
   const catalogVideo = resolveCatalogVideo(exerciseName);
+  const overrideVideo = resolveExerciseVideoOverride(exerciseName);
   const preview =
     exercise?.preview_url ||
     exercise?.image_path ||
@@ -54,6 +56,7 @@ export function resolveExerciseMedia(exercise) {
     catalogExercise?.video_url ||
     catalogExercise?.rfVideoUrl ||
     catalogExercise?.rf_video_url ||
+    overrideVideo ||
     catalogVideo ||
     null;
 
