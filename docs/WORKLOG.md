@@ -173,3 +173,48 @@
 
 - External API fallback зависит от доступности OpenFoodFacts. Во время локальной проверки сервис отвечал 503, поэтому fallback реализован и безопасно деградирует, но успешное API-кеширование нужно проверить при доступном сервисе.
 - Брендовая РФ-база пока MVP, без barcode scanner и без большой branded базы.
+
+## 2026-05-22 - Production VDS tagirfruit AI/Nutrition update
+
+Production backend path: `/var/www/fruitfit-ai-api`.
+
+Backup created before changes:
+`/root/fruitfit-backups/fruitfit-ai-api-20260522-213515.tar.gz`.
+
+Additional single-file backup before API input normalization:
+`/root/fruitfit-backups/server.js-api-input-normalization-20260522-2149.bak`.
+
+Changed on production VDS:
+
+- `server.js`
+- `src/nutrition/foodParser.js`
+- `src/coach/prompt.js`
+- `src/lectures/lectureContexts.js`
+- `scripts/seed-fruitfit-mvp-products.js`
+- `data/fruitfit-food-mvp-products.json`
+- `data/nutrition.db`
+
+What was done:
+
+- Assistant identity fixed as `tagirfruit`.
+- Added server-side tagirfruit prompt/personality and free vs active-program access rules.
+- Added lecture context architecture with 16 lecture summaries/categories/keywords.
+- Expanded production nutrition DB to 1066 products.
+- Production DB stats after seed: 984 verified products, 82 external products, 2405 aliases.
+- Parser supports common phrases: `2 яйца и банан`, `250 г риса и куриная грудка`, `бургер и кола`, `творог 5% 200 г`, `гречка с молоком`, `3 сырника`, `шаурма`, `протеин 30г`.
+- `/api/coach` now supports both `messages[]` and single `message/text/prompt/content` payloads.
+- `/api/nutrition/parse-calc` now supports `message`, `text`, `prompt`, `content`, `query`, and `input`.
+- Nutrition intent short-circuits GPT: backend parser/DB calculates calories and macros first, then returns structured nutrition result.
+- `pm2 restart fruitfit-ai-api --update-env` completed successfully and `pm2 save` completed.
+
+Production checks:
+
+- `GET /api/health` returned `assistant: tagirfruit`, model `gpt-4.1-mini`, DB loaded, 1066 products, 2405 aliases.
+- `POST /api/nutrition/parse-calc` returned expected nutrition totals for test phrases.
+- `POST /api/coach` returned nutrition answers without GPT calorie invention for food phrases.
+- `POST /api/coach` personality tests passed for `кто ты?`, `можешь составить мне тренировку?`, `почему приложение иногда ошибается?`.
+
+Notes:
+
+- APK rebuild is not required for this server-side prompt/nutrition iteration.
+- Public DNS check for `tagirfruit-mini.duckdns.org` did not resolve from the local machine during this run; VDS-local API checks passed on `127.0.0.1:8787`.
