@@ -11,6 +11,7 @@ import HomeScreen from "./screens/HomeScreen";
 import NutritionScreen from "./screens/NutritionScreen";
 import OnboardingQuiz from "./screens/OnboardingQuiz";
 import ProfileScreen from "./screens/ProfileScreen";
+import SettingsScreen from "./screens/SettingsScreen";
 import WorkoutScreen from "./screens/WorkoutScreen";
 import WorkoutsScreen from "./screens/WorkoutsScreen";
 import { HealthDetailScreen } from "./components/WidgetGrid";
@@ -25,9 +26,19 @@ const healthRoutes = {
   "health:cycle": "#/health/cycle",
 };
 
+const appRoutes = {
+  settings: "#/settings",
+};
+
 function healthScreenFromHash(hash = window.location.hash) {
   const normalized = String(hash || "").replace(/^#/, "");
   const match = Object.entries(healthRoutes).find(([, route]) => route.replace(/^#/, "") === normalized);
+  return match?.[0] || null;
+}
+
+function appScreenFromHash(hash = window.location.hash) {
+  const normalized = String(hash || "").replace(/^#/, "");
+  const match = Object.entries(appRoutes).find(([, route]) => route.replace(/^#/, "") === normalized);
   return match?.[0] || null;
 }
 
@@ -51,7 +62,7 @@ function getInitialTheme() {
 
 function AppContent() {
   const { loading, error, data } = useTrainingData();
-  const [screen, setScreen] = useState(() => healthScreenFromHash() || "home");
+  const [screen, setScreen] = useState(() => healthScreenFromHash() || appScreenFromHash() || "home");
   const [selectedWorkoutIndex, setSelectedWorkoutIndex] = useState(0);
   const [theme, setTheme] = useState(getInitialTheme);
   const [profile, setProfile] = useState(loadProfile);
@@ -68,6 +79,12 @@ function AppContent() {
     setScreen((current) => {
       if (typeof nextScreen === "string" && nextScreen.startsWith("health:") && current !== nextScreen) {
         window.history.pushState({ fruitfitScreen: nextScreen }, "", healthRoutes[nextScreen] || `#/${nextScreen.replace(":", "/")}`);
+      }
+      if (typeof nextScreen === "string" && appRoutes[nextScreen] && current !== nextScreen) {
+        window.history.pushState({ fruitfitScreen: nextScreen }, "", appRoutes[nextScreen]);
+      }
+      if (nextScreen === "profile" && current === "settings") {
+        window.history.replaceState({ fruitfitScreen: "profile" }, "", window.location.pathname + window.location.search);
       }
       return nextScreen;
     });
@@ -89,8 +106,15 @@ function AppContent() {
         setScreen(nextHealthScreen);
         return;
       }
+      const nextAppScreen = appScreenFromHash();
+      if (nextAppScreen) {
+        setScreen(nextAppScreen);
+        return;
+      }
       if (screenRef.current?.startsWith?.("health:")) {
         setScreen("home");
+      } else if (screenRef.current === "settings") {
+        setScreen("profile");
       }
     }
     window.addEventListener("popstate", handlePopState);
@@ -106,6 +130,11 @@ function AppContent() {
     CapacitorApp.addListener("backButton", ({ canGoBack }) => {
       if (screenRef.current?.startsWith?.("health:")) {
         backFromHealth();
+        return;
+      }
+      if (screenRef.current === "settings") {
+        window.history.replaceState({ fruitfitScreen: "profile" }, "", window.location.pathname + window.location.search);
+        setScreen("profile");
         return;
       }
       if (canGoBack) {
@@ -280,6 +309,10 @@ function AppContent() {
 
   if (screen === "profile") {
     return <ProfileScreen profile={profile} onProfileChange={setProfile} theme={theme} onThemeChange={setTheme} onNavigate={navigate} onRestartQuiz={() => setQuizOpen(true)} />;
+  }
+
+  if (screen === "settings") {
+    return <SettingsScreen theme={theme} onThemeChange={setTheme} onNavigate={navigate} />;
   }
 
   return (

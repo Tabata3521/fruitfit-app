@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Camera, CheckCircle2, ChevronDown, Moon, Settings, Sun, Watch, X } from "lucide-react";
+import { Camera, CheckCircle2, ChevronDown, Gift, Settings, TicketPercent, Watch, X } from "lucide-react";
 import BottomNavigation from "../components/BottomNavigation";
 import CustomSelect from "../components/CustomSelect";
-import { appIcons } from "../config/appIcons";
-import { useAppIcon } from "../data/appIconStore";
 import { useHealth } from "../data/healthStore";
 import { normalizeProfile, profileOptions, profileSummary, saveProfile, validateProfile } from "../data/profileStore";
-import { saveAuthUser } from "../data/authStore";
 import { healthProviderLabels, healthProviderStates, healthSourceShortcuts, openHealthSource } from "../services/health/healthProvider";
 
 const MEASUREMENTS_KEY = "fruitfit.measurements";
@@ -305,61 +302,33 @@ function MeasurementsSection({ goal }) {
   );
 }
 
-function AppIconSection() {
-  const { iconId, status, selectIcon } = useAppIcon();
-  const [open, setOpen] = useState(false);
-  const current = appIcons.find((item) => item.id === iconId) || appIcons[0];
-
-  const copy = {
-    section: "\u0412\u043d\u0435\u0448\u043d\u0438\u0439 \u0432\u0438\u0434",
-    title: "\u042f\u0440\u043b\u044b\u043a \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u044f",
-    current: "\u0421\u0435\u0439\u0447\u0430\u0441",
-    helper: "\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0432\u0430\u0440\u0438\u0430\u043d\u0442, \u043d\u0430\u0436\u043c\u0438\u0442\u0435 \"\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c\" \u0438 \u0432\u0435\u0440\u043d\u0438\u0442\u0435\u0441\u044c \u0432 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435. \u041d\u0430 Xiaomi \u044f\u0440\u043b\u044b\u043a \u0438\u043d\u043e\u0433\u0434\u0430 \u043e\u0431\u043d\u043e\u0432\u043b\u044f\u0435\u0442\u0441\u044f \u0447\u0435\u0440\u0435\u0437 \u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u0441\u0435\u043a\u0443\u043d\u0434.",
-    selected: "\u0412\u044b\u0431\u0440\u0430\u043d\u043e",
-    use: "\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c",
-  };
-
+function PromoPlaceholderSection() {
   return (
-    <section className="mt-4 overflow-hidden rounded-[26px] border border-appBorder bg-appCard shadow-sm">
-      <button type="button" onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between gap-3 p-4 text-left">
-        <span className="flex min-w-0 items-center gap-3">
-          <img src={current.preview} alt="" className="h-12 w-12 shrink-0 rounded-2xl bg-black object-cover" />
-          <span className="min-w-0">
-            <span className="block text-[11px] font-bold uppercase tracking-wide text-appMuted">{copy.section}</span>
-            <span className="mt-0.5 block text-[16px] font-black text-appText">{copy.title}</span>
-            <span className="mt-0.5 block text-[12px] text-appMuted">{copy.current}: {current.label}</span>
-          </span>
+    <section className="mt-4 rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[18px] bg-appGreen/20 text-appGreen">
+          <Gift size={21} />
         </span>
-        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full bg-appBg text-appText transition ${open ? "rotate-180" : ""}`}>
-          <ChevronDown size={18} />
-        </span>
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-appBorder">
-            <div className="p-4 pt-3">
-              <p className="mb-3 text-[12px] leading-5 text-appMuted">{copy.helper}</p>
-              <div className="grid grid-cols-2 gap-3">
-                {appIcons.map((item) => {
-                  const active = item.id === iconId;
-                  return (
-                    <div key={item.id} className={`rounded-[22px] border p-3 text-left transition ${active ? "border-appGreen bg-appGreen/20" : "border-appBorder bg-appBg"}`}>
-                      <img src={item.preview} alt="" className="aspect-square w-full rounded-[18px] bg-black object-cover" loading="lazy" />
-                      <div className="mt-3">
-                        <span className="block text-[13px] font-black text-appText">{item.label}</span>
-                        <button type="button" onClick={() => selectIcon(item.id)} className={`mt-2 h-9 w-full rounded-full text-[11px] font-black ${active ? "bg-appGreen text-[#181F19]" : "bg-appCard text-appText"}`}>
-                          {active ? copy.selected : copy.use}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {status && <p className="mt-3 rounded-2xl bg-appBg px-3 py-2 text-[11px] font-semibold text-appMuted">{status}</p>}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-[16px] font-black text-appText">Реферальная программа</h2>
+            <span className="rounded-full bg-appGreen/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-appGreen">скоро</span>
+          </div>
+          <p className="mt-1 text-[13px] leading-5 text-appMuted">Пригласи друга — получи месяц бесплатно. Механика готовится, backend пока не подключён.</p>
+        </div>
+      </div>
+      <div className="mt-4 rounded-[20px] border border-appBorder bg-appBg p-3">
+        <label className="text-[11px] font-black uppercase tracking-[0.12em] text-appMuted">Промокод</label>
+        <div className="mt-2 flex gap-2">
+          <div className="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-2xl border border-appBorder bg-appCard px-3">
+            <TicketPercent size={17} className="shrink-0 text-appOrange" />
+            <input disabled placeholder="Скоро будет доступно" className="min-w-0 flex-1 bg-transparent text-[13px] font-bold text-appText outline-none placeholder:text-appMuted" />
+          </div>
+          <button type="button" disabled className="h-12 rounded-2xl bg-appGreen/40 px-4 text-[12px] font-black text-[#181F19] opacity-70">
+            Применить
+          </button>
+        </div>
+      </div>
     </section>
   );
 }
@@ -504,7 +473,7 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
       <div className="px-4 pt-5">
         <header className="flex items-center justify-between">
           <h1 className="text-[26px] font-black text-appText">Профиль</h1>
-          <button type="button" className="grid h-10 w-10 place-items-center rounded-full bg-appCard shadow-sm">
+          <button type="button" onClick={() => onNavigate?.("settings")} className="grid h-10 w-10 place-items-center rounded-full bg-appCard shadow-sm">
             <Settings size={18} />
           </button>
         </header>
@@ -547,11 +516,11 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
           {saved && <p className="mt-3 text-center text-[12px] font-bold text-[#86B936]">Профиль сохранен, рекомендации обновлены.</p>}
         </section>
 
+        <PromoPlaceholderSection />
+
         <MeasurementsSection goal={draft.goal} />
 
-        <AppIconSection />
-
-                <section className="mt-4 overflow-hidden rounded-[26px] border border-appBorder bg-appCard shadow-sm">
+        <section className="mt-4 overflow-hidden rounded-[26px] border border-appBorder bg-appCard shadow-sm">
           <button
             type="button"
             onClick={() => setPermissionsOpen((value) => !value)}
@@ -691,34 +660,6 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
           </AnimatePresence>
         </section>
 
-        <section className="mt-4 rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">
-          <h2 className="text-[16px] font-black text-appText">Тема</h2>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {[
-              ["light", "Светлая", Sun],
-              ["dark", "Темная", Moon],
-              ["system", "Системная", Settings],
-            ].map(([id, label, Icon]) => (
-              <button key={id} type="button" onClick={() => onThemeChange(id)} className={`grid h-20 place-items-center rounded-[18px] border text-[12px] font-bold ${theme === id ? "border-[#A9D95A] bg-appGreen text-[#181F19]" : "border-appBorder bg-appBg text-appMuted"}`}>
-                <Icon size={18} />
-                {label}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-4 rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm text-center">
-          <button 
-            type="button" 
-            onClick={() => {
-              saveAuthUser(null);
-              window.location.reload();
-            }} 
-            className="h-12 w-full rounded-full border border-red-500/30 bg-red-500/10 text-[14px] font-black text-red-500 hover:bg-red-500/20 transition-colors"
-          >
-            Выйти из аккаунта
-          </button>
-        </section>
       </div>
       <BottomNavigation active="profile" onNavigate={onNavigate} />
     </main>

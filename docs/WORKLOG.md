@@ -1,5 +1,73 @@
 # WORKLOG - FruitFit Food Database & Nutrition Parser
 
+## 2026-05-22 - UI polish: профиль, настройки, auth placeholders, app icons
+
+### Что сделано
+
+1. **Profile / account refactor**
+   - Вкладка "Профиль" разгружена: настройки приложения, выход, опасные действия, тема, версия и иконка приложения вынесены на отдельный экран настроек.
+   - В профиле оставлены профильные данные, замеры, Health Connect block и будущий referral/promo placeholder.
+   - Добавлена шестерёнка настроек в profile header.
+
+2. **Settings page**
+   - Добавлен отдельный экран `SettingsScreen` с route `#/settings`.
+   - В настройки вынесены:
+     - logout;
+     - delete account placeholder;
+     - payment/billing placeholders;
+     - app icon settings;
+     - theme settings;
+     - privacy/data placeholders;
+     - version/build info.
+   - Android back с экрана настроек возвращает в профиль, а не сворачивает приложение.
+
+3. **Referral / promo placeholders**
+   - Добавлена карточка "Реферальная программа".
+   - Добавлен текст "Пригласи друга - получи месяц бесплатно".
+   - Добавлены поле промокода и кнопка "Применить" в disabled/soon состоянии.
+   - Backend logic не подключалась.
+
+4. **Auth UI preparation**
+   - В настройках добавлены аккуратные disabled placeholders:
+     - "Войти через Telegram";
+     - "Войти через Яндекс".
+   - Реальная auth/backend logic не добавлялась и не менялась.
+
+5. **App icon polish**
+   - Android adaptive icons переведены на black background + transparent fruit foreground.
+   - Добавлены отдельные foreground artwork assets для orange/apple/pear/strawberry.
+   - Иконки центрированы в safe zone без белой подложки и без растягивания fruit artwork.
+
+### Проверки
+
+- `npm run build` - ok.
+- `npx cap sync android` - ok.
+- `.\gradlew.bat :app:assembleDebug` - ok.
+- Локально проверены:
+  - `#/settings`;
+  - переход из профиля в настройки;
+  - возврат из настроек в профиль;
+  - referral/promo placeholder;
+  - отсутствие inline app icon блока в профиле.
+
+### APK
+
+- Собран debug APK:
+  - `android/app/build/outputs/apk/debug/app-debug.apk`
+- Скопирован в корень проекта:
+  - `FruitFit-ui-polish-debug.apk`
+
+### Что проверить на телефоне
+
+- Профиль открывается без перегруза.
+- Шестерёнка открывает настройки.
+- Android back из настроек возвращает в профиль.
+- Telegram/Yandex кнопки выглядят как заготовки и не обещают активный login.
+- Referral/promo блок отображается как "скоро/готовится".
+- Переключение темы не сломано.
+- App icon settings сохраняют выбор.
+- Launcher icons orange/apple/pear/strawberry выглядят без белой подложки и без кропа.
+
 ## 2026-05-22 - tagirfruit food MVP iteration
 
 ### Что было незавершено
