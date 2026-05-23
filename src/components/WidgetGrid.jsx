@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Copy,
   Flame,
   Footprints,
   Heart,
@@ -22,6 +23,7 @@ import {
 import NeutralPreview from "./NeutralPreview";
 import { useHealth, formatSleepDuration } from "../data/healthStore";
 import { lecturePlaybackUrl, lectures } from "../data/lectures";
+import { lectureTextFor } from "../data/lectureTexts";
 import { dietTypeToRation } from "../data/profileStore";
 import { getMealPlan, useNutritionData } from "../data/useNutritionData";
 
@@ -704,7 +706,9 @@ function AppModal({ title, onClose, children }) {
 function LectureModal({ onClose }) {
   const [index, setIndex] = useState(0);
   const [textOpen, setTextOpen] = useState(false);
+  const [copyStatus, setCopyStatus] = useState("");
   const activeLecture = lectures[index] || lectures[0];
+  const activeLectureText = lectureTextFor(activeLecture?.id);
   const [meta, setMeta] = useState({ title: activeLecture.title, thumbnailUrl: activeLecture.thumbnailUrl, error: "" });
   const hasSelectel = Boolean(activeLecture?.selectelUrl);
 
@@ -715,6 +719,27 @@ function LectureModal({ onClose }) {
   function move(direction) {
     setIndex((value) => (value + direction + lectures.length) % lectures.length);
     setTextOpen(false);
+    setCopyStatus("");
+  }
+
+  async function copyLectureText() {
+    if (!activeLectureText) return;
+    try {
+      await navigator.clipboard.writeText(activeLectureText);
+    } catch (_) {
+      const fallback = document.createElement("textarea");
+      fallback.value = activeLectureText;
+      fallback.className = "allow-select";
+      fallback.setAttribute("readonly", "");
+      fallback.style.position = "fixed";
+      fallback.style.left = "-9999px";
+      document.body.appendChild(fallback);
+      fallback.select();
+      document.execCommand("copy");
+      fallback.remove();
+    }
+    setCopyStatus("Скопировано");
+    window.setTimeout(() => setCopyStatus(""), 1600);
   }
 
   useEffect(() => {
@@ -784,9 +809,27 @@ function LectureModal({ onClose }) {
           <ChevronRight size={17} className={`text-appMuted transition ${textOpen ? "rotate-90" : ""}`} />
         </button>
         {textOpen && (
-          <p className="border-t border-appBorder px-4 py-3 text-[12px] leading-5 text-appMuted">
-            Текстовая версия лекции находится в подготовке и скоро появится здесь.
-          </p>
+          <div className="border-t border-appBorder px-4 py-3">
+            {activeLectureText ? (
+              <>
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold text-appMuted">{activeLectureText.length.toLocaleString("ru-RU")} знаков</span>
+                  <button
+                    type="button"
+                    onClick={copyLectureText}
+                    className="inline-flex h-9 items-center gap-2 rounded-full bg-appGreen px-3 text-[11px] font-black text-[#181F19]"
+                  >
+                    <Copy size={14} /> {copyStatus || "Копировать"}
+                  </button>
+                </div>
+                <div className="allow-select max-h-[42vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-appBorder bg-appCard px-3 py-3 text-[12px] leading-5 text-appText">
+                  {activeLectureText}
+                </div>
+              </>
+            ) : (
+              <p className="text-[12px] leading-5 text-appMuted">Текстовая версия лекции пока не найдена.</p>
+            )}
+          </div>
         )}
       </section>
       <button

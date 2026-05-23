@@ -178,6 +178,14 @@
 
 Production backend path: `/var/www/fruitfit-ai-api`.
 
+## 2026-05-23 - Lecture transcripts attached
+
+- Added `src/data/lectureTexts.js` generated from the 16 lecture PDFs in `C:/Users/Meyva/Downloads/Лекции`.
+- Connected lecture text to the existing mini-lecture video modal, preserving the current lecture video URLs.
+- Removed PDF-style horizontal divider lines during text cleanup and kept the lecture wording intact.
+- Added a copy action for each lecture transcript and made the transcript area selectable via `.allow-select`.
+- Next phone check: open mini-lectures, switch between lecture videos, expand text, copy text into another app.
+
 Backup created before changes:
 `/root/fruitfit-backups/fruitfit-ai-api-20260522-213515.tar.gz`.
 

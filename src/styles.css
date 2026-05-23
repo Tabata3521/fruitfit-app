@@ -61,8 +61,11 @@ input,
 textarea,
 [contenteditable="true"],
 .allow-select,
+.allow-select *,
 .selectable,
+.selectable *,
 .debug-output,
+.debug-output *,
 pre,
 code {
   -webkit-user-select: text;
