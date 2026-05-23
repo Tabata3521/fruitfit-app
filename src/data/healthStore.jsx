@@ -580,8 +580,8 @@ async function readNativeHealthSnapshot(previous) {
   const stepSamplesMonth = samplesForSelectedSource(stepsMonth, stepSelectionMonth);
   const stepWeek = buildSeriesFromSamples(stepSamplesWeek, "week");
   const stepMonth = buildSeriesFromSamples(stepSamplesMonth, "month");
-  const calorieWeekRaw = buildSeriesFromSamples(caloriesWeek.samples, "week");
-  const calorieMonthRaw = buildSeriesFromSamples(caloriesMonth.samples, "month");
+  const caloriesWeekRaw = buildSeriesFromSamples(caloriesWeek.samples || [], "week");
+  const caloriesMonthRaw = buildSeriesFromSamples(caloriesMonth.samples || [], "month");
   const sleepSessions = mainSleepSessions(sleepWeek);
   const allSleepSessions = sleepWeek.sessions || [];
   const sleepToday = sleepSessions[sleepSessions.length - 1] || sleepWeek.latestSleep || allSleepSessions[allSleepSessions.length - 1] || null;
@@ -624,7 +624,7 @@ async function readNativeHealthSnapshot(previous) {
   const resolvedStepWeek = hasPositiveSeries(stepWeek) ? stepWeek.map(round) : historyStepWeek;
   const resolvedStepMonth = hasPositiveSeries(stepMonth) ? stepMonth.map(round) : historyStepMonth;
   const resolvedCaloriesWeek = hasPositiveSeries(estimatedCaloriesWeek) ? estimatedCaloriesWeek.map(round) : historyCaloriesWeek;
-  const resolvedCaloriesMonth = hasPositiveSeries(calorieMonthRaw) ? calorieMonthRaw.map(round) : historyCaloriesMonth;
+  const resolvedCaloriesMonth = hasPositiveSeries(caloriesMonthRaw) ? caloriesMonthRaw.map(round) : historyCaloriesMonth;
   const hasCalories = caloriesToday.state === healthProviderStates.CONNECTED
     || caloriesTodayValue > 0
     || (caloriesToday.samples || []).length > 0

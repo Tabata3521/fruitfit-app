@@ -254,6 +254,15 @@ Production backend path: `/var/www/fruitfit-ai-api`.
 - Added a copy action for each lecture transcript and made the transcript area selectable via `.allow-select`.
 - Next phone check: open mini-lectures, switch between lecture videos, expand text, copy text into another app.
 
+## 2026-05-23 - Health detail raw series reference fix
+
+- Fixed the runtime `caloriesWeekRaw is not defined` error that appeared on the Steps detail page after a real Health Connect refresh.
+- Root cause: `readNativeHealthSnapshot` created `calorieWeekRaw` / `calorieMonthRaw`, but later referenced `caloriesWeekRaw`. The undefined plural variable only surfaced at runtime after the native refresh rebuilt health state.
+- Renamed the raw calorie series variables consistently to `caloriesWeekRaw` / `caloriesMonthRaw`.
+- Added safe `[]` fallbacks when Health Connect does not return calorie samples for week/month ranges.
+- Did not change Health Connect permissions, source detection, AI, food DB, admin, exercise media, muscle maps, payments/auth, or APK config.
+- Validation: `npm run build` passed.
+
 Backup created before changes:
 `/root/fruitfit-backups/fruitfit-ai-api-20260522-213515.tar.gz`.
 
