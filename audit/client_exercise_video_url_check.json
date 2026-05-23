@@ -1,973 +1,823 @@
 {
-  "total": 161,
-  "ok": 161,
-  "broken": [],
+  "checkedAt": "2026-05-23T17:29:31.021Z",
+  "total": 163,
+  "ok": 163,
+  "broken": 0,
   "results": [
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/21.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=15403048"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B0%D1%80%D0%BC%D0%B5%D0%B9%D1%81%D0%BA%D0%B8%D0%B9-%D0%B6%D0%B8%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=20081566"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B1%D0%B0%D0%B1%D0%BE%D1%87%D0%BA%D0%B0-%D0%BD%D0%B0-%D0%B1%D0%BE%D0%BB%D1%8C%D1%88%D0%B8%D0%B5-%D0%B3%D1%80%D1%83%D0%B4%D0%BD%D1%8B%D0%B5-%D0%BC%D1%8B%D1%88%D1%86%D1%8B.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=21130958"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B1%D0%B0%D0%B1%D0%BE%D1%87%D0%BA%D0%B0-%D0%BD%D0%B0-%D0%B7%D0%B0%D0%B4%D0%BD%D1%8E%D1%8E-%D0%B4%D0%B5%D0%BB%D1%8C%D1%82%D1%83-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=10494731"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D1%81-%D0%B3%D0%B0%D0%BD%D1%82%D0%B5%D0%BB%D1%8C%D1%8E-%D0%BD%D0%B0-%D1%81%D0%BA%D0%B0%D0%BC%D1%8C%D0%B5-%D1%81%D0%BA%D0%BE%D1%82%D1%82%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=9602337"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D1%81-%D0%B4%D0%B2%D1%83%D0%BC%D1%8F-%D0%B3%D0%B0%D0%BD%D1%82%D0%B5%D0%BB%D1%8F%D0%BC%D0%B8-%D0%BD%D0%B0-%D1%81%D0%BA%D0%B0%D0%BC%D1%8C%D0%B5-%D1%81%D0%BA%D0%BE%D1%82%D1%82%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=11277265"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D1%81-%D0%BA%D0%B0%D0%BD%D0%B0%D1%82%D0%BD%D0%BE%D0%B9-%D1%80%D1%83%D0%BA%D0%BE%D1%8F%D1%82%D0%BA%D0%BE%D0%B9-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=13020537"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D1%81%D0%BE-%D1%88%D1%82%D0%B0%D0%BD%D0%B3%D0%BE%D0%B9-%D0%B2-%D1%81%D0%BA%D0%B0%D0%BC%D1%8C%D0%B5-%D1%81%D0%BA%D0%BE%D1%82%D1%82%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=10575896"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BB%D0%B0%D1%82%D0%B5%D1%80%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D0%BF%D0%BB%D0%B0%D0%BD%D0%BA%D0%B0-%D0%B8%D0%BB%D0%B8-%D0%B1%D0%BE%D0%BA%D0%BE%D0%B2%D0%B0%D1%8F-%D0%BF%D0%BB%D0%B0%D0%BD%D0%BA%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=13513057"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B1%D0%BE%D0%BB%D0%B3%D0%B0%D1%80%D1%81%D0%BA%D0%B8%D0%B9-%D0%BF%D1%80%D0%B8%D1%81%D0%B5%D0%B4.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=12737651"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B2%D0%B5%D0%BB%D0%BE%D1%81%D0%B8%D0%BF%D0%B5%D0%B4%D0%BD%D1%8B%D0%B5-%D1%81%D0%BA%D1%80%D1%83%D1%87%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F-%D0%BD%D0%B0-%D0%BF%D1%80%D0%B5%D1%81%D1%81.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=10718070"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B2%D0%B5%D1%80%D1%82%D0%B8%D0%BA%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D1%82%D1%8F%D0%B3%D0%B0-%D0%BE%D0%B1%D1%80%D0%B0%D1%82%D0%BD%D1%8B%D0%BC-%D1%85%D0%B2%D0%B0%D1%82%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=21454550"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B2%D0%B5%D1%80%D1%82%D0%B8%D0%BA%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D1%82%D1%8F%D0%B3%D0%B0-%D0%BE%D0%B4%D0%BD%D0%BE%D0%B9-%D1%80%D1%83%D0%BA%D0%BE%D0%B9.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=19069490"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B2%D0%B5%D1%80%D1%82%D0%B8%D0%BA%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D1%82%D1%8F%D0%B3%D0%B0-%D1%83%D0%B7%D0%BA%D0%B8%D0%BC-%D1%85%D0%B2%D0%B0%D1%82%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=20150156"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B2%D0%B5%D1%80%D1%82%D0%B8%D0%BA%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D1%82%D1%8F%D0%B3%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=34970945"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B2%D1%8B%D0%BF%D0%B0%D0%B4%D1%8B-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=18669875"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B2%D1%8B%D0%BF%D0%B0%D0%B4%D1%8B-%D0%B2-%D1%81%D0%BC%D0%B8%D1%82%D1%82%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=19479321"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B2%D1%8B%D0%BF%D0%B0%D0%B4%D1%8B-%D1%81-%D0%B3%D0%B0%D0%BD%D1%82%D0%B5%D0%BB%D1%8F%D0%BC%D0%B8.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=10405222"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B2%D1%8B%D0%BF%D0%B0%D0%B4%D1%8B-%D1%81%D0%BE-%D1%88%D1%82%D0%B0%D0%BD%D0%B3%D0%BE%D0%B9-%D0%BD%D0%B0-%D1%8F%D0%B3%D0%BE%D0%B4%D0%B8%D1%86%D1%8B.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=23559299"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B2%D1%8B%D1%82%D1%8F%D0%B6%D0%BA%D0%B0-%D0%B2-%D0%B3%D0%B8%D0%BF%D0%B5%D1%80%D1%8D%D0%BA%D1%81%D1%82%D0%B5%D0%BD%D0%B7%D0%B8%D0%B8.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=16638939"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B3%D0%B0%D0%BA-%D0%BF%D1%80%D0%B8%D1%81%D0%B5%D0%B4.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=21965755"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B3%D0%B8%D0%B1%D1%80%D0%B8%D0%B4%D0%BD%D0%B0%D1%8F-%D1%82%D1%8F%D0%B3%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=19032868"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B3%D0%B8%D0%BB%D1%8C%D0%BE%D1%82%D0%B8%D0%BD%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=20206211"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B3%D0%B8%D0%BF%D0%B5%D1%80%D1%8D%D0%BA%D1%81%D1%82%D0%B5%D0%BD%D0%B7%D0%B8%D1%8F.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=22456842"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B3%D0%BE%D1%80%D0%B8%D0%B7%D0%BE%D0%BD%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D0%B2%D1%8B%D1%82%D1%8F%D0%B6%D0%BA%D0%B0-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=28394630"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B3%D0%BE%D1%80%D0%B8%D0%B7%D0%BE%D0%BD%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D1%82%D1%8F%D0%B3%D0%B0-%D1%88%D0%B8%D1%80%D0%BE%D0%BA%D0%B8%D0%BC-%D1%85%D0%B2%D0%B0%D1%82%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=12820853"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B3%D0%BE%D1%80%D0%B8%D0%B7%D0%BE%D0%BD%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D1%82%D1%8F%D0%B3%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=16844912"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B3%D0%BE%D1%80%D0%B8%D0%B7%D0%BE%D0%BD%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9-%D0%B6%D0%B8%D0%BC-%D0%BD%D0%BE%D0%B3%D0%B0%D0%BC%D0%B8.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=30928042"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B4%D0%B8%D0%BD%D0%B0%D0%BC%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B0%D1%8F-%D0%BF%D0%BB%D0%B0%D0%BD%D0%BA%D0%B0-%D0%BD%D0%B0-%D0%BA%D0%BE%D1%81%D1%8B%D0%B5-%D0%BC%D1%8B%D1%88%D1%86%D1%8B.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=11984614"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B4%D1%83%D0%B3%D0%BE%D0%B2%D0%B0%D1%8F-%D1%80%D0%B0%D0%B7%D0%B2%D0%BE%D0%B4%D0%BA%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=17616913"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B4%D1%83%D0%B3%D0%BE%D0%B2%D1%8B%D0%B5-%D0%BC%D0%B0%D1%85%D0%B8-%D0%B3%D0%B0%D0%BD%D1%82%D0%B5%D0%BB%D1%8F%D0%BC%D0%B8.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=11436773"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BC%D0%B0%D1%85%D0%B8-%D0%B4%D0%B5%D1%80%D0%B8%D0%B6%D0%B5%D1%80-%D0%BD%D0%B0-%D0%B7%D0%B0%D0%B4%D0%BD%D1%8E%D1%8E-%D0%B4%D0%B5%D0%BB%D1%8C%D1%82%D1%83.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=12252900"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/%D0%96%D0%B8%D0%BC%20%D0%90%D1%80%D0%BD%D0%BE%D0%BB%D1%8C%D0%B4%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B6%D0%B8%D0%BC-%D1%81%D0%B2%D0%B5%D0%BD%D0%B4%D0%B0-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=13805454"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B6%D0%B8%D0%BC-%D0%B2-%D1%81%D0%BC%D0%B8%D1%82%D1%82%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=23273886"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B6%D0%B8%D0%BC-%D0%B2-%D1%85%D0%B0%D0%BC%D0%BC%D0%B5%D1%80%D0%B5-%D0%BD%D0%B0-%D0%B2%D0%B5%D1%80%D1%85-%D0%B3%D1%80%D1%83%D0%B4%D0%B8.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=13551337"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B6%D0%B8%D0%BC-%D0%B2-%D1%85%D0%B0%D0%BC%D0%BC%D0%B5%D1%80%D0%B5-%D0%BD%D0%B0-%D0%BD%D0%B8%D0%B7-%D0%B3%D1%80%D1%83%D0%B4%D0%B8.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=19470087"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B6%D0%B8%D0%BC-%D0%B3%D0%B0%D0%BD%D1%82%D0%B5%D0%BB%D0%B5%D0%B9-%D0%BB%D0%B5%D0%B6%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=19713399"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B6%D0%B8%D0%BC-%D0%B3%D0%B0%D0%BD%D1%82%D0%B5%D0%BB%D0%B5%D0%B9-%D1%81%D0%B8%D0%B4%D1%8F.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=14504838"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B6%D0%B8%D0%BC-%D0%B3%D0%B8%D1%80%D0%B5%D0%B9-%D1%81-%D0%BF%D0%BE%D0%BB%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=18413796"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B6%D0%B8%D0%BC-%D0%BD%D0%BE%D0%B3%D0%B0%D0%BC%D0%B8.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=20668385"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/%D0%96%D0%B8%D0%BC%20%D0%BD%D0%BE%D0%B3%D0%B0%D0%BC%D0%B8%20%D1%81%20%D0%BF%D0%B0%D1%80%D0%B0%D0%BB%D0%BB%D0%B5%D0%BB%D1%8C%D0%BD%D0%BE%D0%B9%20%D0%BF%D0%BE%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%BE%D0%B9%20%D0%BD%D0%BE%D0%B3.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B6%D0%B8%D0%BC-%D0%BD%D0%BE%D0%B3%D0%B0%D0%BC%D0%B8-%D1%81-%D1%88%D0%B8%D1%80%D0%BE%D0%BA%D0%BE%D0%B9-%D0%BF%D0%BE%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%BE%D0%B9-%D0%BD%D0%BE%D0%B3.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=18877862"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B6%D0%B8%D0%BC-%D0%BF%D0%BB%D0%B0%D1%82%D1%84%D0%BE%D1%80%D0%BC%D1%8B-%D0%BD%D0%B0-%D1%8F%D0%B3%D0%BE%D0%B4%D0%B8%D1%86%D1%8B.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=29602792"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B6%D0%B8%D0%BC-%D1%81-%D0%BF%D0%BE%D0%BB%D0%B0-%D1%83%D0%B7%D0%BA%D0%B8%D0%BC-%D1%85%D0%B2%D0%B0%D1%82%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=20373700"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B6%D0%B8%D0%BC-%D1%83%D0%B7%D0%BA%D0%B8%D0%BC-%D1%85%D0%B2%D0%B0%D1%82%D0%BE%D0%BC-%D0%B2-%D1%81%D0%BC%D0%B8%D1%82%D1%82%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=12001504"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B6%D0%B8%D0%BC-%D1%88%D1%82%D0%B0%D0%BD%D0%B3%D0%B8-%D0%BB%D0%B5%D0%B6%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=20058133"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B6%D0%B8%D0%BC-%D1%88%D1%82%D0%B0%D0%BD%D0%B3%D0%B8-%D0%BF%D0%BE%D0%B4-%D1%83%D0%B3%D0%BB%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=31747076"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B7%D0%B0%D0%B4%D0%BD%D1%8F%D1%8F-%D0%B4%D0%B5%D0%BB%D1%8C%D1%82%D0%B0-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5-%D1%81%D1%82%D0%BE%D1%8F.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=13084466"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B7%D0%B0%D1%88%D0%B0%D0%B3%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F-%D0%BD%D0%B0-%D1%82%D1%83%D0%BC%D0%B1%D1%83.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=15069598"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B8%D0%B7%D0%BE%D0%B4%D0%B8%D0%BD%D0%B0%D0%BC%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B5-%D0%BC%D0%B0%D1%85%D0%B8-%D0%B3%D0%B0%D0%BD%D1%82%D0%B5%D0%BB%D1%8F%D0%BC%D0%B8-%D1%81%D0%B8%D0%B4%D1%8F.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=9448824"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B8%D0%B7%D0%BE%D0%B4%D0%B8%D0%BD%D0%B0%D0%BC%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9-%D0%B6%D0%B8%D0%BC-%D0%B3%D0%B0%D0%BD%D1%82%D0%B5%D0%BB%D0%B5%D0%B9-%D0%BD%D0%B0-30-%D1%81%D0%BA%D0%B0%D0%BC%D1%8C%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=21191135"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B8%D0%B7%D0%BE%D0%B4%D0%B8%D0%BD%D0%B0%D0%BC%D0%B8%D0%B5%D1%81%D0%BA%D0%B8%D0%B9-%D0%BF%D0%BE%D0%B4%D1%8A%D0%B5%D0%BC-%D0%BD%D0%B0-%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=13344616"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BA%D0%B0%D0%BB%D0%B8%D1%84%D0%BE%D1%80%D0%BD%D0%B8%D0%B9%D1%81%D0%BA%D0%B8%D0%B9-%D0%B6%D0%B8%D0%BC-%D0%B2-%D1%81%D0%BC%D0%B8%D1%82%D1%82%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=15588262"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BA%D0%B0%D1%81%D0%B0%D0%BD%D0%B8%D0%B5-%D0%BF%D1%8F%D1%82%D0%BE%D0%BA-%D0%BD%D0%B0-%D0%BF%D1%80%D0%B5%D1%81%D1%81.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BA%D0%BB%D0%B0%D1%81%D1%81%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B0%D1%8F-%D0%BF%D0%BB%D0%B0%D0%BD%D0%BA%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=17244090"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BA%D0%BB%D0%B0%D1%81%D1%81%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B5-%D0%BE%D1%82%D0%B6%D0%B8%D0%BC%D0%B0%D0%BD%D0%B8%D1%8F.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=15655803"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BA%D0%BB%D0%B0%D1%81%D1%81%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9-%D0%B6%D0%B8%D0%BC-%D0%BE%D1%82-%D0%B3%D1%80%D1%83%D0%B4%D0%B8-%D0%B2-%D1%82%D1%80%D0%B5%D0%BD%D0%B0%D0%B6%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=15499841"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BA%D0%BB%D0%B0%D1%81%D1%81%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9-%D0%BF%D0%BE%D0%B4%D1%8A%D0%B5%D0%BC-%D0%BD%D0%B0-%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=12268157"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BA%D0%BE%D0%BC%D0%BB%D0%BF%D0%B5%D0%BA%D1%81-%D0%BB%D1%84%D0%BA-%D1%83%D0%BF%D1%80%D0%B0%D0%B6%D0%BD%D0%B5%D0%BD%D0%B8%D0%B9-%D0%BD%D0%B0-%D0%BF%D0%BB%D0%B5%D1%87%D0%B8-%D1%82%D0%B5%D1%85%D0%BD%D0%B8%D0%BA%D0%B0-%D0%B2%D1%8B%D0%BF%D0%BE%D0%BB%D0%BD%D0%B5%D0%BD%D0%B8%D1%8F-%D1%83%D0%BF%D1%80%D0%B0%D0%B6%D0%BD%D0%B5%D0%BD%D0%B8%D0%B9.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=54231593"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BA%D0%BE%D0%BD%D1%86%D0%B5%D0%BD%D1%82%D1%80%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%BD%D1%8B%D0%B9-%D0%BF%D0%BE%D0%B4%D1%8A%D0%B5%D0%BC-%D0%BD%D0%B0-%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=14431589"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BA%D0%BE%D1%81%D1%8B%D0%B5-%D1%81%D0%BA%D1%80%D1%83%D1%87%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F-%D1%81-%D0%BC%D1%8F%D1%87%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=18968612"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BB%D0%B0%D1%82%D0%B5%D1%80%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D0%B8%D0%BB%D0%B8-%D0%B1%D0%BE%D0%BA%D0%BE%D0%B2%D0%B0%D1%8F-%D0%B2%D1%8B%D1%82%D1%8F%D0%B6%D0%BA%D0%B0-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=35546385"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BB%D0%B0%D1%82%D0%B5%D1%80%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5-%D0%B8%D0%BB%D0%B8-%D0%B1%D0%BE%D0%BA%D0%BE%D0%B2%D1%8B%D0%B5-%D0%B7%D0%B0%D1%88%D0%B0%D0%B3%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=21536294"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BC%D0%B0%D1%85%D0%B8-%D0%B3%D0%B0%D0%BD%D1%82%D0%B5%D0%BB%D1%8F%D0%BC%D0%B8-%D1%81%D1%82%D0%BE%D1%8F.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=11315083"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BC%D0%B0%D1%85%D0%B8-%D0%BD%D0%B0-%D0%B7%D0%B0%D0%B4%D0%BD%D1%8E%D1%8E-%D0%B4%D0%B5%D0%BB%D1%8C%D1%82%D1%83-%D0%BD%D0%B0-30-%D1%81%D0%BA%D0%B0%D0%BC%D1%8C%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=12280240"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BC%D0%B0%D1%85%D0%B8-%D0%BD%D0%B0-%D0%BF%D0%BB%D0%B5%D1%87%D0%B8-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5-%D1%82%D1%80%D0%BE%D1%81%D1%81-%D1%81%D0%B7%D0%B0%D0%B4%D0%B8.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=11510856"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BC%D0%B0%D1%85%D0%B8-%D0%BD%D0%B0-%D1%81%D0%BA%D0%B0%D0%BC%D1%8C%D0%B5-%D0%BF%D0%BE%D0%B4-45.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=19305826"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BC%D0%B0%D1%85%D0%B8-%D0%BD%D0%B0-%D1%8F%D0%B3%D0%BE%D0%B4%D0%B8%D1%86%D1%8B-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=14378125"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BC%D0%B5%D1%80%D1%82%D0%B2%D0%B0%D1%8F-%D1%82%D1%8F%D0%B3%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=37270850"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BC%D0%BE%D0%BB%D0%BE%D1%82%D0%BA%D0%B8-%D0%BF%D0%BE%D0%B4%D1%8A%D0%B5%D0%BC-%D0%BD%D0%B0-%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=16433885"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BC%D0%BE%D0%BB%D0%BE%D1%82%D0%BA%D0%BE%D0%B2%D1%8B%D0%B5-%D1%81%D0%B3%D0%B8%D0%B1%D0%B0%D0%BD%D0%B8%D0%B5-%D0%BD%D0%B0-%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D1%81-%D0%BA%D0%B0%D0%BD%D0%B0%D1%82%D0%BD%D0%BE%D0%B9-%D1%80%D1%83%D0%BA%D0%BE%D1%8F%D1%82%D0%BA%D0%BE%D0%B9-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=13349549"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BE%D0%B1%D1%80%D0%B0%D1%82%D0%BD%D1%8B%D0%B5-%D0%BE%D1%82%D0%B6%D0%B8%D0%BC%D0%B0%D0%BD%D0%B8%D1%8F.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=10911450"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/%D0%9E%D0%B1%D1%80%D0%B0%D1%82%D0%BD%D1%8B%D0%B9%20%D0%93%D0%B0%D0%BA%20%D0%BF%D1%80%D0%B8%D1%81%D0%B5%D0%B4.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4"
+      "ok": true
+    },
+    {
+      "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BE%D1%82%D0%B6%D0%B8%D0%BC%D0%B0%D0%BD%D0%B8%D1%8F-%D0%B2-%D1%82%D1%80%D0%B5%D0%BD%D0%B0%D0%B6%D0%B5%D1%80%D0%B5-%D1%81%D0%BC%D0%B8%D1%82%D1%82%D0%B0.mp4",
+      "status": 200,
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BE%D1%82%D0%B6%D0%B8%D0%BC%D0%B0%D0%BD%D0%B8%D1%8F-%D0%BD%D0%B0-%D0%B1%D1%80%D1%83%D1%81%D1%8C%D1%8F%D1%85.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=84282615"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BE%D1%82%D0%B6%D0%B8%D0%BC%D0%B0%D0%BD%D0%B8%D1%8F-%D0%BD%D0%B0-%D0%B1%D1%80%D1%83%D1%81%D1%8C%D1%8F%D1%85-%D0%B2-%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%82%D1%80%D0%BE%D0%BD%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=20764501"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BE%D1%82%D0%B6%D0%B8%D0%BC%D0%B0%D0%BD%D0%B8%D1%8F-%D1%81-%D0%B3%D0%B0%D0%BD%D1%82%D0%B5%D0%BB%D0%B5%D0%B9-%D0%BD%D0%B0-%D1%82%D1%80%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D1%82%D0%B5%D1%85%D0%BD%D0%B8%D0%BA%D0%B0-%D0%B2%D1%8B%D0%BF%D0%BE%D0%BB%D0%BD%D0%B5%D0%BD%D0%B8%D1%8F-%D1%83%D0%BF%D1%80%D0%B0%D0%B6%D0%BD%D0%B5%D0%BD%D0%B8%D0%B9.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=13582098"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BE%D1%82%D0%B6%D0%B8%D0%BC%D0%B0%D0%BD%D0%B8%D1%8F-%D1%83%D0%B7%D0%BA%D0%B8%D0%BC-%D1%85%D0%B2%D0%B0%D1%82%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=14113341"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%B0%D1%83%D1%87%D1%8C%D0%B8-%D1%81%D0%B3%D0%B8%D0%B1%D0%B0%D0%BD%D0%B8%D1%8F-%D0%BC%D0%BE%D0%BB%D0%BE%D1%82%D0%BA%D0%BE%D0%B2%D1%8B%D0%BC-%D1%85%D0%B2%D0%B0%D1%82%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=19749850"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%B0%D1%83%D1%87%D1%8C%D0%B8-%D1%81%D0%B3%D0%B8%D0%B1%D0%B0%D0%BD%D0%B8%D1%8F.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=18029170"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BB%D0%B0%D0%BD%D0%BA%D0%B0-%D0%BD%D0%B0-%D0%B1%D0%BE%D1%81%D1%83.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=19638221"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BB%D0%B0%D0%BD%D0%BA%D0%B0-%D0%BD%D0%B0-%D0%B1%D0%BE%D1%81%D1%83-%D0%BF%D0%BE%D0%B4-%D0%BD%D0%BE%D0%B3%D0%B0%D0%BC%D0%B8.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=12007047"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BB%D0%B0%D0%BD%D0%BA%D0%B0-%D0%BD%D0%B0-%D1%84%D0%B8%D1%82%D0%B1%D0%BE%D0%BB%D0%B5-%D0%BF%D0%BE%D0%B4-%D0%BD%D0%BE%D0%B3%D0%B0%D0%BC%D0%B8.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=11582265"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BB%D0%B0%D0%BD%D0%BA%D0%B0-%D0%BD%D0%B0-%D1%84%D0%B8%D1%82%D0%B1%D0%BE%D0%BB%D0%B5-%D0%BF%D0%BE%D0%B4-%D1%80%D1%83%D0%BA%D0%B0%D0%BC%D0%B8.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=9593612"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BB%D0%B0%D0%BD%D0%BA%D0%B0-%D1%81-%D0%BF%D0%B5%D1%80%D0%B5%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%BE%D0%B9-%D0%BD%D0%BE%D0%B3.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=11803285"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BB%D0%B5%D0%BE%D0%BC%D0%B5%D1%82%D1%80%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9-%D0%B3%D0%B0%D0%BA.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=11310049"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BE%D0%B4%D1%82%D1%8F%D0%B3%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F-%D0%B2-%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%82%D1%80%D0%BE%D0%BD%D0%B5-%D0%BE%D0%B1%D1%80%D0%B0%D1%82%D0%BD%D1%8B%D0%BC-%D1%85%D0%B2%D0%B0%D1%82%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=14961015"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BE%D0%B4%D1%82%D1%8F%D0%B3%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F-%D0%B2-%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%82%D1%80%D0%BE%D0%BD%D0%B5-%D0%BF%D0%B0%D1%80%D0%B0%D0%BB%D0%BB%D0%B5%D0%BB%D1%8C%D0%BD%D1%8B%D0%BC-%D1%85%D0%B2%D0%B0%D1%82%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=14325156"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BE%D0%B4%D1%82%D1%8F%D0%B3%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F-%D0%B2-%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%82%D1%80%D0%BE%D0%BD%D0%B5-%D1%88%D0%B8%D1%80%D0%BE%D0%BA%D0%B8%D0%BC-%D1%85%D0%B2%D0%B0%D1%82%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=16343810"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BE%D0%B4%D1%82%D1%8F%D0%B3%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F-%D0%BE%D0%B1%D1%80%D0%B0%D1%82%D0%BD%D1%8B%D0%BC-%D1%85%D0%B2%D0%B0%D1%82%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=14395897"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BE%D0%B4%D1%82%D1%8F%D0%B3%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F-%D0%BF%D0%B0%D1%80%D0%B0%D0%BB%D0%BB%D0%B5%D0%BB%D1%8C%D0%BD%D1%8B%D0%BC-%D1%85%D0%B2%D0%B0%D1%82%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=15259692"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BE%D0%B4%D1%82%D1%8F%D0%B3%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F-%D1%88%D0%B8%D1%80%D0%BE%D0%BA%D0%B8%D0%BC-%D1%85%D0%B2%D0%B0%D1%82%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=9576532"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BE%D0%B4%D1%8A%D0%B5%D0%BC-%D0%BD%D0%B0-%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D0%B2-%D1%82%D1%80%D0%B5%D0%BD%D0%B0%D0%B6%D0%B5%D1%80%D0%B5-%D0%B4%D0%BB%D1%8F-%D0%B3%D1%80%D0%B5%D0%B1%D0%BD%D0%BE%D0%B9-%D1%82%D1%8F%D0%B3%D0%B8.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=13457272"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BE%D0%B4%D1%8A%D0%B5%D0%BC-%D0%BD%D0%B0-%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D0%B3%D0%B0%D0%BD%D1%82%D0%B5%D0%BB%D0%B5%D0%B9-%D1%81%D1%82%D0%BE%D1%8F.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=13331920"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BE%D0%B4%D1%8A%D0%B5%D0%BC-%D0%BD%D0%B0-%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D0%BD%D0%B0-%D0%BD%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%D0%BD%D0%BE%D0%B9-%D1%81%D0%BA%D0%B0%D0%BC%D1%8C%D0%B5-%D0%BF%D0%BE%D0%B4-45.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=15522221"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BE%D0%B4%D1%8A%D0%B5%D0%BC-%D0%BD%D0%B0-%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D0%BE%D0%B1%D1%80%D0%B0%D1%82%D0%BD%D1%8B%D0%BC-%D1%85%D0%B2%D0%B0%D1%82%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=17483187"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BE%D0%B4%D1%8A%D0%B5%D0%BC-%D0%BD%D0%B0-%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D1%81-%D1%80%D0%B5%D0%B7%D0%B8%D0%BD%D0%BA%D0%BE%D0%B9-%D1%81%D0%B8%D0%B4%D1%8F.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=13307384"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BE%D0%B4%D1%8A%D0%B5%D0%BC-%D0%BD%D0%B0-%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D1%81%D0%BF%D0%B8%D0%BD%D0%BE%D0%B9-%D0%BA-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D1%83.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=17884661"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BE%D0%B4%D1%8A%D0%B5%D0%BC-%D0%BD%D0%B0-%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D1%88%D0%B8%D1%80%D0%BE%D0%BA%D0%B8%D0%BC-%D1%85%D0%B2%D0%B0%D1%82%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=12145241"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BE%D0%B4%D1%8A%D0%B5%D0%BC-ez-%D1%88%D1%82%D0%B0%D0%BD%D0%B3%D0%B8-%D0%BD%D0%B0-%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=19684012"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BE%D0%B4%D1%8A%D0%B5%D0%BC%D1%8B-%D0%BD%D0%BE%D0%B3-%D0%BD%D0%B0-%D0%BF%D1%80%D0%B5%D1%81%D1%81.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=15728837"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BE%D0%B4%D1%8A%D0%B5%D0%BC%D1%8B-%D0%BD%D0%BE%D0%B3-%D0%BD%D0%B0-%D1%81%D0%BA%D0%B0%D0%BC%D1%8C%D0%B5-%D0%B4%D0%BB%D1%8F-%D0%BF%D1%80%D0%B5%D1%81%D1%81%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=10710179"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D0%BE%D0%BF%D0%B5%D1%80%D0%B5%D0%BC%D0%B5%D0%BD%D0%BD%D1%8B%D0%B9-%D0%BF%D0%BE%D0%B4%D1%8A%D0%B5%D0%BC-%D0%BD%D0%B0-%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=14807202"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D1%80%D0%B5%D1%81%D1%81-%D0%BD%D0%B0-%D0%B1%D0%BE%D1%81%D1%83.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=17417578"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D1%80%D0%B8%D1%81%D0%B5%D0%B4%D0%B0%D0%BD%D0%B8%D1%8F-%D0%B2-%D1%81%D0%BC%D0%B8%D1%82%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=11690953"
+      "ok": true
+    },
+    {
+      "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D1%80%D0%B8%D1%81%D0%B5%D0%B4-%D1%81-%D1%82%D0%BE%D1%87%D0%BA%D0%BE%D0%B9-%D0%BE%D0%BF%D0%BE%D1%80%D1%8B.mp4",
+      "status": 200,
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D1%80%D0%B8%D1%81%D0%B5%D0%B4%D0%B0%D0%BD%D0%B8%D1%8F-%D1%81-%D0%BF%D0%B0%D1%83%D0%B7%D0%BE%D0%B9-%D1%82%D0%B5%D1%85%D0%BD%D0%B8%D0%BA%D0%B0-%D0%B2%D1%8B%D0%BF%D0%BE%D0%BB%D0%BD%D0%B5%D0%BD%D0%B8%D1%8F-%D1%83%D0%BF%D1%80%D0%B0%D0%B6%D0%BD%D0%B5%D0%BD%D0%B8%D0%B9.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=22323329"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D1%80%D0%B8%D1%81%D0%B5%D0%B4%D0%B0%D0%BD%D0%B8%D0%B5-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=21780694"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D1%80%D0%B8%D1%81%D0%B5%D0%B4%D0%B0%D0%BD%D0%B8%D1%8F-%D1%81%D0%BE-%D1%88%D1%82%D0%B0%D0%BD%D0%B3%D0%BE%D0%B9-%D1%82%D0%B5%D1%85%D0%BD%D0%B8%D0%BA%D0%B0-%D0%B2%D1%8B%D0%BF%D0%BE%D0%BB%D0%BD%D0%B5%D0%BD%D0%B8%D1%8F-%D1%83%D0%BF%D1%80%D0%B0%D0%B6%D0%BD%D0%B5%D0%BD%D0%B8%D0%B9.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=30835496"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D1%80%D1%8F%D0%BC%D1%8B%D0%B5-%D1%81%D0%BA%D1%80%D1%83%D1%87%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F-%D1%81-%D0%BC%D1%8F%D1%87%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=15060463"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D1%83%D0%BB%D0%BE%D0%B2%D0%B5%D1%80-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=24659198"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D1%83%D0%BB%D0%BE%D0%B2%D0%B5%D1%80-%D1%81-%D0%B3%D0%B0%D0%BD%D1%82%D0%B5%D0%BB%D0%B5%D0%B9.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=19717216"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D1%83%D0%BB%D0%BE%D0%B2%D0%B5%D1%80-%D1%81%D0%BE-%D1%88%D1%82%D0%B0%D0%BD%D0%B3%D0%BE%D0%B9.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=24193633"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%80%D0%B0%D0%B2%D0%BE%D0%B4%D0%BA%D0%B0-%D0%BF%D0%BE%D0%B4-15.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=22944798"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%80%D0%B0%D0%B7%D0%B3%D0%B8%D0%B1%D0%B0%D0%BD%D0%B8%D0%B5-%D0%BD%D0%B0-%D1%82%D1%80%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D0%B2-%D0%BD%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=23068949"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%80%D0%B0%D0%B7%D0%B3%D0%B8%D0%B1%D0%B0%D0%BD%D0%B8%D0%B5-%D0%BD%D0%B0-%D1%82%D1%80%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D0%B8%D0%B7-%D0%B7%D0%B0-%D0%B3%D0%BE%D0%BB%D0%BE%D0%B2%D1%8B.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=14383277"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%80%D0%B0%D0%B7%D0%B3%D0%B8%D0%B1%D0%B0%D0%BD%D0%B8%D0%B5-%D0%BD%D0%B0-%D1%82%D1%80%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D0%BF%D0%BE-%D0%BE%D0%B4%D0%BD%D0%BE%D0%B9-%D1%80%D1%83%D0%BA%D0%B5-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=12629174"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%80%D0%B0%D0%B7%D0%B3%D0%B8%D0%B1%D0%B0%D0%BD%D0%B8%D0%B5-%D0%BD%D0%B0-%D1%82%D1%80%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5-%D1%81-%D0%BA%D0%B0%D0%BD%D0%B0%D1%82%D0%BD%D0%BE%D0%B9-%D1%80%D1%83%D0%BA%D0%BE%D1%8F%D1%82%D0%BA%D0%BE%D0%B9.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=18979854"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/%D0%A0%D0%B0%D0%B7%D0%B3%D0%B8%D0%B1%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%BD%D0%BE%D0%B3.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%A0%D0%B0%D1%81%D1%82%D1%8F%D0%B6%D0%BA%D0%B0%20%D0%BD%D0%B0%20%D0%B2%D1%81%D0%B5%20%D1%82%D0%B5%D0%BB%D0%BE.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%80%D0%B8%D0%BC%D1%81%D0%BA%D0%B8%D0%B5-%D0%BF%D0%BE%D0%B4%D1%82%D1%8F%D0%B3%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=23091383"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%80%D1%83%D0%BC%D1%8B%D0%BD%D1%81%D0%BA%D0%B0%D1%8F-%D1%82%D1%8F%D0%B3%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=18536395"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%80%D1%8B%D1%87%D0%B0%D0%B6%D0%BD%D0%B0%D1%8F-%D1%82%D1%8F%D0%B3%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=24528902"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%81%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5-%D0%B8-%D1%80%D0%B0%D0%B7%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5-%D0%BD%D0%BE%D0%B3.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=25719180"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%81%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5-%D1%80%D1%83%D0%BA-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=10098447"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%81%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5-%D1%80%D1%83%D0%BA-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5-%D0%BD%D0%B0-30-%D0%B3%D1%80%D0%B0%D0%B4%D1%83%D1%81%D0%BD%D0%BE%D0%B9-%D1%81%D0%BA%D0%B0%D0%BC%D1%8C%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=20094993"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%81%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5-%D1%80%D1%83%D0%BA-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5-%D0%BD%D0%B0-%D0%B3%D0%BE%D1%80%D0%B8%D0%B7%D0%BE%D0%BD%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D0%BE%D0%B9-%D1%81%D0%BA%D0%B0%D0%BC%D1%8C%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=22552638"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%81%D0%B3%D0%B8%D0%B1%D0%B0%D0%BD%D0%B8%D0%B5-%D0%B7%D0%BE%D1%82%D0%BC%D0%B0%D0%BD%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=10908953"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%81%D0%B3%D0%B8%D0%B1%D0%B0%D0%BD%D0%B8%D0%B5-%D0%BB%D0%B5%D0%B6%D0%B0-%D0%BF%D0%BE-1-%D0%BD%D0%BE%D0%B3%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=12731211"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%81%D0%B3%D0%B8%D0%B1%D0%B0%D0%BD%D0%B8%D0%B5-%D0%BD%D0%BE%D0%B3-%D0%BB%D0%B5%D0%B6%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=13068368"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%81%D0%B3%D0%B8%D0%B1%D0%B0%D0%BD%D0%B8%D0%B5-%D0%BD%D0%BE%D0%B3-%D1%81%D0%B8%D0%B4%D1%8F.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=19356816"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%81%D0%B8-%D1%81%D0%B8-%D0%BF%D1%80%D0%B8%D1%81%D0%B5%D0%B4-%D0%BD%D0%B0-%D0%B1%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D0%B1%D0%B5%D0%B4%D1%80%D0%B0-%D0%B2-%D1%81%D0%BC%D0%B8%D1%82%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=13786969"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%81%D0%B8-%D1%81%D0%B8-%D0%BF%D1%80%D0%B8%D1%81%D0%B5%D0%B4-%D1%81-%D1%81%D0%BE%D0%B1%D1%81%D1%82%D0%B2%D0%B5%D0%BD%D0%BD%D1%8B%D0%BC-%D0%B2%D0%B5%D1%81%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=180277495"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%81%D0%B8-%D1%81%D0%B8-%D0%BF%D1%80%D0%B8%D1%81%D0%B5%D0%B4%D0%B0%D0%BD%D0%B8%D1%8F-%D0%BD%D0%B0-%D0%BF%D0%B5%D1%80%D0%B5%D0%B4%D0%BD%D1%8E%D1%8E-%D0%BF%D0%BE%D0%B2%D0%B5%D1%80%D1%85%D0%BD%D0%BE%D1%81%D1%82%D1%8C-%D0%B1%D0%B5%D0%B4%D1%80%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=10496379"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%81%D0%BA%D1%80%D0%B5%D0%BF%D0%BA%D0%B0-%D0%BD%D0%B0-%D0%BF%D1%80%D0%B5%D1%81%D1%81.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=12145373"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%81%D0%BA%D1%80%D1%83%D1%87%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F-%D0%BD%D0%B0-%D0%BF%D0%BE%D0%BB%D1%83-%D0%BD%D0%B0-%D0%BF%D1%80%D0%B5%D1%81%D1%81.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=10977742"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%81%D0%BA%D1%80%D1%83%D1%87%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F-%D0%BD%D0%B0-%D1%81%D0%BA%D0%B0%D0%BC%D1%8C%D0%B5-%D0%B4%D0%BB%D1%8F-%D0%BF%D1%80%D0%B5%D1%81%D1%81%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=10982526"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%B0%D1%8F-%D1%82%D1%8F%D0%B3%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=18341923"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%B0%D1%8F-%D1%82%D1%8F%D0%B3%D0%B0-%D1%81%D1%83%D0%BC%D0%BE.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=22161171"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%81%D1%83%D0%BF%D0%B5%D1%80%D1%81%D0%B5%D1%82-%D0%BD%D0%B0-%D0%B2%D0%B5%D1%80%D1%85-%D0%B3%D1%80%D1%83%D0%B4%D0%B8-%D0%B2-%D1%81%D0%BC%D0%B8%D1%82%D1%82%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=23288507"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%82-%D1%82%D1%8F%D0%B3%D0%B0-%D0%B2-%D1%82%D1%80%D0%B5%D0%BD%D0%B0%D0%B6%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=30590040"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%82-%D1%82%D1%8F%D0%B3%D0%B0-%D1%81%D0%BE-%D1%88%D1%82%D0%B0%D0%BD%D0%B3%D0%BE%D0%B9.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=19252091"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%82%D1%80%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5-%D0%BE%D0%B1%D1%80%D0%B0%D1%82%D0%BD%D1%8B%D0%BC-%D1%85%D0%B2%D0%B0%D1%82%D0%BE%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=17433334"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%82%D1%80%D0%B8%D1%86%D0%B5%D0%BF%D1%81-%D0%B2-%D1%82%D1%80%D0%B5%D0%BD%D0%B0%D0%B6%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=139987046"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%82%D1%8F%D0%B3%D0%B0-%D0%B0%D1%80%D0%B1%D0%B0%D0%BB%D0%B5%D1%82-%D0%BD%D0%B0-%D0%B7%D0%B0%D0%B4%D0%BD%D1%8E%D1%8E-%D0%B4%D0%B5%D0%BB%D1%8C%D1%82%D1%83.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=22513531"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%82%D1%8F%D0%B3%D0%B0-%D0%B3%D0%B0%D0%BD%D1%82%D0%B5%D0%BB%D0%B8-%D0%BA-%D0%BF%D0%BE%D1%8F%D1%81%D1%83.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=20974784"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%82%D1%8F%D0%B3%D0%B0-%D0%B3%D0%B8%D1%80%D1%8C-%D0%BA-%D0%BF%D0%BE%D1%8F%D1%81%D1%83.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=14161451"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%82%D1%8F%D0%B3%D0%B0-%D0%B8%D0%B7-%D0%B7%D0%B0-%D0%B3%D0%BE%D0%BB%D0%BE%D0%B2%D1%8B-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5-%D0%BD%D0%B0-%D1%82%D1%80%D0%B8%D1%86%D0%B5%D0%BF%D1%81.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=21865991"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%82%D1%8F%D0%B3%D0%B0-%D0%BA-%D0%BF%D0%BE%D0%B4%D0%B1%D0%BE%D1%80%D0%BE%D0%B4%D0%BA%D1%83-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=25843574"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%82%D1%8F%D0%B3%D0%B0-%D0%BA-%D0%BF%D0%BE%D1%8F%D1%81%D1%83-%D0%B2-%D0%BA%D1%80%D0%BE%D1%81%D1%81%D0%BE%D0%B2%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=14458710"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%82%D1%8F%D0%B3%D0%B0-%D0%BB%D0%B8-%D1%85%D1%8D%D0%B9%D0%BD%D0%B8.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=22995860"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%82%D1%8F%D0%B3%D0%B0-%D1%88%D1%82%D0%B0%D0%BD%D0%B3%D0%B8-%D0%BA-%D0%BF%D0%BE%D1%8F%D1%81%D1%83.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=24023849"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%84%D1%80%D0%B0%D0%BD%D1%86%D1%83%D0%B7%D1%81%D0%BA%D0%B8%D0%B9-%D0%B6%D0%B8%D0%BC-%D0%B3%D0%B0%D0%BD%D1%82%D0%B5%D0%BB%D0%B8-%D1%81%D1%82%D0%BE%D1%8F.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=19663853"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%84%D1%80%D0%B0%D0%BD%D1%86%D1%83%D0%B7%D1%81%D0%BA%D0%B8%D0%B9-%D0%B6%D0%B8%D0%BC-%D0%BB%D0%B5%D0%B6%D0%B0.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=16492114"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%84%D1%80%D0%B0%D0%BD%D1%86%D1%83%D0%B7%D1%81%D0%BA%D0%B8%D0%B9-%D0%B6%D0%B8%D0%BC-%D1%81-%D0%B3%D0%B0%D0%BD%D1%82%D0%B5%D0%BB%D1%8F%D0%BC%D0%B8.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=14357715"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%84%D1%80%D0%BE%D0%BD%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5-%D0%BC%D0%B0%D1%85%D0%B8-%D1%81%D0%BE-%D1%88%D1%82%D0%B0%D0%BD%D0%B3%D0%BE%D0%B9-%D1%81%D1%82%D0%BE%D1%8F.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=20984971"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%84%D1%80%D0%BE%D0%BD%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5-%D0%BF%D1%80%D0%B8%D1%81%D0%B5%D0%B4%D0%B0%D0%BD%D0%B8%D1%8F.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=21570047"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%8F%D0%B3%D0%BE%D0%B4%D0%B8%D1%86%D1%8B-%D0%B2-%D1%82%D1%80%D0%B5%D0%BD%D0%B0%D0%B6%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=21343073"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%8F%D0%B3%D0%BE%D0%B4%D0%B8%D1%87%D0%BD%D1%8B%D0%B9-%D0%BC%D0%BE%D1%81%D1%82-%D0%B2-%D1%81%D0%BC%D0%B8%D1%82%D1%82%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=13528370"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%8F%D0%B3%D0%BE%D0%B4%D0%B8%D1%87%D0%BD%D1%8B%D0%B9-%D0%BC%D0%BE%D1%81%D1%82-%D0%B2-%D1%82%D1%80%D0%B5%D0%BD%D0%B0%D0%B6%D0%B5%D1%80%D0%B5.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=17498614"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D1%8F%D0%B3%D0%BE%D0%B4%D0%B8%D1%87%D0%BD%D1%8B%D0%B9-%D0%BC%D0%BE%D1%81%D1%82-%D1%81%D0%BE-%D1%88%D1%82%D0%B0%D0%BD%D0%B3%D0%BE%D0%B9.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=17127529"
+      "ok": true
     },
     {
       "url": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/g-%D0%B6%D0%B8%D0%BC.mp4",
-      "ok": true,
       "status": 200,
-      "type": "video/mp4; swift_bytes=24891031"
+      "ok": true
     }
   ]
 }

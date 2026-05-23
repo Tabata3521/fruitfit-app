@@ -1,5 +1,31 @@
 # WORKLOG - FruitFit Food Database & Nutrition Parser
 
+## 2026-05-23 - Finish remaining exercise video bindings
+
+### Что исправлено
+
+- Закрыты последние 3 media gap в client runtime fallbacks: `Классические выпады`, `Отжимания в смитте`, `Присед плие`.
+- Видео подключены через `src/data/exerciseRuntimeFallbacks.js`, то есть через тот же runtime binding pipeline, который используют workout card, exercise detail и video modal.
+- Назначены только безопасные близкие canonical videos с совпадающим movement pattern:
+  - `Классические выпады` -> canonical video `Выпады с гантелями`.
+  - `Отжимания в смитте` -> canonical video `Отжимания в тренажёре смитта`.
+  - `Присед плие` -> canonical video `Присед с точкой опоры`.
+
+### Итоги аудита
+
+- TOTAL CLIENT EXERCISES: 196.
+- WITH VIDEO: 196.
+- WITH MUSCLE MAP: 196.
+- BROKEN VIDEO: 0.
+- BROKEN MAPS: 0.
+- UNRESOLVED EXERCISES: 0.
+- VIDEO URL CHECK: 163/163 runtime video URLs ok, broken URL 0.
+
+### Проверки
+
+- `node scripts/audit-client-exercise-runtime.mjs` - ok.
+- HEAD-check для всех runtime video URL - ok.
+
 ## 2026-05-23 - Client exercise media binding audit
 
 ### Что исправлено

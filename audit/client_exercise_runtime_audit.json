@@ -3,171 +3,17 @@
     "totalProgramExerciseRows": 17964,
     "totalClientExercises": 196,
     "didacticCatalogRows": 194,
-    "withVideo": 193,
+    "withVideo": 196,
     "withMuscleMap": 196,
-    "brokenVideo": 3,
+    "brokenVideo": 0,
     "brokenMaps": 0,
     "unresolvedExercises": 0,
     "probableBrokenAliases": 0,
     "duplicateCanonicalIds": 0,
-    "uniqueVideoUrls": 161
+    "uniqueVideoUrls": 163
   },
   "duplicateCatalogIds": [],
-  "missingVideos": [
-    {
-      "title": "Классические выпады.",
-      "count": 2,
-      "sampleRows": [
-        {
-          "course_id": "14477",
-          "lesson_id": "174875",
-          "exercise_order": 5
-        },
-        {
-          "course_id": "14477",
-          "lesson_id": "174883",
-          "exercise_order": 5
-        }
-      ],
-      "canonicalId": "runtime_classic_lunges",
-      "canonicalTitle": "Классические выпады",
-      "slug": "классические-выпады",
-      "aliasKey": "классические выпады",
-      "aliasCanonicalName": "",
-      "lookupPath": "exact_key",
-      "hasRuntimeMeta": true,
-      "videoUrl": "",
-      "videoLookupPath": "no_fuzzy_match:0.50",
-      "hasVideo": false,
-      "thumbnail": "",
-      "muscleTemplateId": "Квадрицепс / ягодицы",
-      "muscleLabel": "Квадрицепс / ягодицы",
-      "anatomyImage": "/muscle-templates/manual/lower_quads_glutes.png",
-      "anatomyStatus": "ok",
-      "hasMuscleMap": true,
-      "primaryMuscle": "Квадрицепс / ягодицы",
-      "movementPattern": "выпад",
-      "bestCandidateTitle": "",
-      "bestCandidateId": "",
-      "bestCandidateScore": null,
-      "suggestedAlias": "",
-      "issues": [
-        "missing_runtime_video"
-      ]
-    },
-    {
-      "title": "Отжимания в смитте",
-      "count": 124,
-      "sampleRows": [
-        {
-          "course_id": "14506",
-          "lesson_id": "175414",
-          "exercise_order": 1
-        },
-        {
-          "course_id": "14506",
-          "lesson_id": "175418",
-          "exercise_order": 1
-        },
-        {
-          "course_id": "14506",
-          "lesson_id": "175422",
-          "exercise_order": 1
-        },
-        {
-          "course_id": "14506",
-          "lesson_id": "175426",
-          "exercise_order": 1
-        },
-        {
-          "course_id": "14507",
-          "lesson_id": "175430",
-          "exercise_order": 1
-        }
-      ],
-      "canonicalId": "runtime_smith_pushups",
-      "canonicalTitle": "Отжимания в смитте",
-      "slug": "отжимания-в-смитте",
-      "aliasKey": "отжимания в смитте",
-      "aliasCanonicalName": "",
-      "lookupPath": "exact_key",
-      "hasRuntimeMeta": true,
-      "videoUrl": "",
-      "videoLookupPath": "no_fuzzy_match:0.50",
-      "hasVideo": false,
-      "thumbnail": "",
-      "muscleTemplateId": "Грудные / трицепс",
-      "muscleLabel": "Грудные / трицепс",
-      "anatomyImage": "/muscle-templates/manual/upper_chest_triceps.jpg",
-      "anatomyStatus": "ok",
-      "hasMuscleMap": true,
-      "primaryMuscle": "Грудные / трицепс",
-      "movementPattern": "горизонтальный жим / отжимание",
-      "bestCandidateTitle": "",
-      "bestCandidateId": "",
-      "bestCandidateScore": null,
-      "suggestedAlias": "",
-      "issues": [
-        "missing_runtime_video"
-      ]
-    },
-    {
-      "title": "Присед плие",
-      "count": 45,
-      "sampleRows": [
-        {
-          "course_id": "14682",
-          "lesson_id": "179492",
-          "exercise_order": 3
-        },
-        {
-          "course_id": "14682",
-          "lesson_id": "179540",
-          "exercise_order": 3
-        },
-        {
-          "course_id": "14685",
-          "lesson_id": "179577",
-          "exercise_order": 2
-        },
-        {
-          "course_id": "14685",
-          "lesson_id": "179589",
-          "exercise_order": 3
-        },
-        {
-          "course_id": "14686",
-          "lesson_id": "179602",
-          "exercise_order": 2
-        }
-      ],
-      "canonicalId": "runtime_plie_squat",
-      "canonicalTitle": "Присед плие",
-      "slug": "присед-плие",
-      "aliasKey": "присед плие",
-      "aliasCanonicalName": "",
-      "lookupPath": "exact_key",
-      "hasRuntimeMeta": true,
-      "videoUrl": "",
-      "videoLookupPath": "no_fuzzy_match:0.50",
-      "hasVideo": false,
-      "thumbnail": "",
-      "muscleTemplateId": "Приводящие / ягодицы",
-      "muscleLabel": "Приводящие / ягодицы",
-      "anatomyImage": "/muscle-templates/manual/lower_adductors_glutes.png",
-      "anatomyStatus": "ok",
-      "hasMuscleMap": true,
-      "primaryMuscle": "Приводящие / ягодицы",
-      "movementPattern": "приседание",
-      "bestCandidateTitle": "",
-      "bestCandidateId": "",
-      "bestCandidateScore": null,
-      "suggestedAlias": "",
-      "issues": [
-        "missing_runtime_video"
-      ]
-    }
-  ],
+  "missingVideos": [],
   "missingMaps": [],
   "unresolved": [],
   "probableAliases": [],
@@ -3825,9 +3671,9 @@
       "aliasCanonicalName": "",
       "lookupPath": "exact_key",
       "hasRuntimeMeta": true,
-      "videoUrl": "",
-      "videoLookupPath": "no_fuzzy_match:0.50",
-      "hasVideo": false,
+      "videoUrl": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%B2%D1%8B%D0%BF%D0%B0%D0%B4%D1%8B-%D1%81-%D0%B3%D0%B0%D0%BD%D1%82%D0%B5%D0%BB%D1%8F%D0%BC%D0%B8.mp4",
+      "videoLookupPath": "normalizedExercise.video_url",
+      "hasVideo": true,
       "thumbnail": "",
       "muscleTemplateId": "Квадрицепс / ягодицы",
       "muscleLabel": "Квадрицепс / ягодицы",
@@ -3840,9 +3686,7 @@
       "bestCandidateId": "",
       "bestCandidateScore": null,
       "suggestedAlias": "",
-      "issues": [
-        "missing_runtime_video"
-      ]
+      "issues": []
     },
     {
       "title": "Классические отжимания",
@@ -5210,9 +5054,9 @@
       "aliasCanonicalName": "",
       "lookupPath": "exact_key",
       "hasRuntimeMeta": true,
-      "videoUrl": "",
-      "videoLookupPath": "no_fuzzy_match:0.50",
-      "hasVideo": false,
+      "videoUrl": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BE%D1%82%D0%B6%D0%B8%D0%BC%D0%B0%D0%BD%D0%B8%D1%8F-%D0%B2-%D1%82%D1%80%D0%B5%D0%BD%D0%B0%D0%B6%D0%B5%D1%80%D0%B5-%D1%81%D0%BC%D0%B8%D1%82%D1%82%D0%B0.mp4",
+      "videoLookupPath": "normalizedExercise.video_url",
+      "hasVideo": true,
       "thumbnail": "",
       "muscleTemplateId": "Грудные / трицепс",
       "muscleLabel": "Грудные / трицепс",
@@ -5225,9 +5069,7 @@
       "bestCandidateId": "",
       "bestCandidateScore": null,
       "suggestedAlias": "",
-      "issues": [
-        "missing_runtime_video"
-      ]
+      "issues": []
     },
     {
       "title": "Отжимания на брусьях",
@@ -7013,9 +6855,9 @@
       "aliasCanonicalName": "",
       "lookupPath": "exact_key",
       "hasRuntimeMeta": true,
-      "videoUrl": "",
-      "videoLookupPath": "no_fuzzy_match:0.50",
-      "hasVideo": false,
+      "videoUrl": "https://ac22cf36-390e-4f3a-b58f-98eb399f6f3b.selstorage.ru/exercises/%D0%BF%D1%80%D0%B8%D1%81%D0%B5%D0%B4-%D1%81-%D1%82%D0%BE%D1%87%D0%BA%D0%BE%D0%B9-%D0%BE%D0%BF%D0%BE%D1%80%D1%8B.mp4",
+      "videoLookupPath": "normalizedExercise.video_url",
+      "hasVideo": true,
       "thumbnail": "",
       "muscleTemplateId": "Приводящие / ягодицы",
       "muscleLabel": "Приводящие / ягодицы",
@@ -7028,9 +6870,7 @@
       "bestCandidateId": "",
       "bestCandidateScore": null,
       "suggestedAlias": "",
-      "issues": [
-        "missing_runtime_video"
-      ]
+      "issues": []
     },
     {
       "title": "Присед с паузой",
