@@ -1,5 +1,20 @@
 # WORKLOG - FruitFit Food Database & Nutrition Parser
 
+## 2026-05-23 - Health refresh wiring
+
+### Что исправлено
+
+- Debug/export health report больше не коммитит UI отдельным путём: перед сборкой JSON он запускает общий `syncNativeHealth({ force: true, reason: "debug-export" })`.
+- Dashboard health widgets и health detail pages используют тот же `syncNativeHealth` refresh pipeline.
+- `syncNativeHealth` теперь пытается читать native Health Connect records при любом установленном Health Connect состоянии, кроме `not_supported` / `not_installed`.
+- Добавлены console logs для acceptance-проверки: `refresh started`, `native health read started`, `health store updated`, `refresh finished`.
+- In-flight guard оставлен, но stale/forced refresh больше не может навсегда блокировать новые запросы; старый завершившийся request не сбрасывает refs нового request.
+- На заполненные Dashboard health cards добавлены отдельные маленькие refresh-иконки: пульс, шаги, калории, сон, восстановление.
+
+### Проверки
+
+- `npm run build` - ok.
+
 ## 2026-05-22 - Stretching video hotfix
 
 ### Что исправлено

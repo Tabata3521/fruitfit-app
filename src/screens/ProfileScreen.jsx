@@ -413,7 +413,7 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
 
   async function refreshHealthData() {
     if (canRefreshNativeHealth()) {
-      await syncNativeHealth?.({ force: true });
+      await syncNativeHealth?.({ force: true, reason: "profile-health-refresh" });
       return;
     }
     await requestConnection?.();

@@ -483,15 +483,16 @@ function HeartWidget({ health, onOpen, onConnect, onRefresh }) {
     );
   }
   return (
-    <motion.button type="button" onClick={onOpen} whileTap={{ scale: 0.985 }} className="rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
-      <div className="flex items-center justify-between">
+    <motion.div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(event) => openWidgetFromKeyboard(event, onOpen)} whileTap={{ scale: 0.985 }} className="cursor-pointer rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
+      <div className="flex items-center justify-between gap-2">
         <span className="inline-flex items-center gap-2 text-[13px] font-bold text-appText"><Heart size={15} className="text-red-500" fill="currentColor" /> Пульс</span>
-        <span className="rounded-full bg-red-50 px-2 py-1 text-[10px] font-bold text-red-500">{heart.freshness === "fresh" ? "live" : heart.freshness || "data"}</span>
+        <span className="ml-auto rounded-full bg-red-50 px-2 py-1 text-[10px] font-bold text-red-500">{heart.freshness === "fresh" ? "live" : heart.freshness || "data"}</span>
+        <DashboardRefreshButton onRefresh={onRefresh} />
       </div>
       <p className="mt-3 text-[26px] font-black text-appText">{displayedBpm || "—"} <span className="text-[12px] font-medium text-appMuted">уд/мин</span></p>
       <Sparkline values={(heart.hourly || []).slice(-9)} color="#EF4444" />
       <p className="mt-2 text-[11px] text-appMuted">обновлено {heart.updatedAgoText || "только что"} · {heart.sourceName || "Health Connect"}</p>
-    </motion.button>
+    </motion.div>
   );
 }
 
@@ -538,10 +539,11 @@ function MetricWidget({ title, icon: Icon, value, target, color, suffix, sourceN
   }
   const percent = formatPercent(value, target);
   return (
-    <motion.button type="button" onClick={onOpen} whileTap={{ scale: 0.985 }} className="rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
-      <div className="flex items-center justify-between">
+    <motion.div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(event) => openWidgetFromKeyboard(event, onOpen)} whileTap={{ scale: 0.985 }} className="cursor-pointer rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
+      <div className="flex items-center justify-between gap-2">
         <span className="inline-flex items-center gap-2 text-[13px] font-bold text-appText"><Icon size={15} style={{ color }} /> {title}</span>
-        <span className="text-[10px] font-bold text-appMuted">{percent}%</span>
+        <span className="ml-auto text-[10px] font-bold text-appMuted">{percent}%</span>
+        <DashboardRefreshButton onRefresh={onRefresh} />
       </div>
       <p className="mt-3 text-[26px] font-black text-appText">{formatCompact(value)}</p>
       <p className="text-[11px] text-appMuted">/ {target.toLocaleString("ru-RU")} {suffix}</p>
@@ -549,7 +551,7 @@ function MetricWidget({ title, icon: Icon, value, target, color, suffix, sourceN
       <div className="mt-3 h-2 rounded-full bg-appBg">
         <motion.div className="h-full rounded-full" style={{ background: color }} animate={{ width: `${percent}%` }} />
       </div>
-    </motion.button>
+    </motion.div>
   );
 }
 
@@ -560,12 +562,15 @@ function SleepWidget({ health, onOpen, onConnect, onRefresh }) {
     return <EmptyHealthWidget title="Сон" icon={Moon} color="#60A5FA" onOpen={onOpen} onConnect={onConnect} onRefresh={onRefresh} actionLabel="Обновить" />;
   }
   return (
-    <motion.button type="button" onClick={onOpen} whileTap={{ scale: 0.985 }} className="rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
+    <motion.div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(event) => openWidgetFromKeyboard(event, onOpen)} whileTap={{ scale: 0.985 }} className="cursor-pointer rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
       <span className="inline-flex items-center gap-2 text-[13px] font-bold text-appText"><Moon size={15} className="text-blue-500" /> Сон</span>
+      <div className="mt-2 flex justify-end">
+        <DashboardRefreshButton onRefresh={onRefresh} />
+      </div>
       <p className="mt-3 text-[24px] font-black text-appText">{formatSleepDuration(health.sleep.minutes)}</p>
       <p className="text-[11px] text-appMuted">качество: {health.sleep.quality}/5</p>
       <Sparkline values={health.sleep.week.map((item) => item.minutes)} color="#60A5FA" />
-    </motion.button>
+    </motion.div>
   );
 }
 
@@ -576,15 +581,18 @@ function RecoveryWidget({ health, onOpen, onConnect, onRefresh }) {
     return <EmptyHealthWidget title="Восстановление" icon={Activity} color="#8BBE3D" onOpen={onOpen} onConnect={onConnect} onRefresh={onRefresh} headline={hasPartialData ? "Недостаточно данных" : undefined} description={hasPartialData ? "Часть данных уже есть. Откройте детали, чтобы посмотреть, чего не хватает для точной оценки." : undefined} actionLabel={hasPartialData ? "Посмотреть" : "Обновить"} />;
   }
   return (
-    <motion.button type="button" onClick={onOpen} whileTap={{ scale: 0.985 }} className="rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
+    <motion.div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(event) => openWidgetFromKeyboard(event, onOpen)} whileTap={{ scale: 0.985 }} className="cursor-pointer rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
       <span className="inline-flex items-center gap-2 text-[13px] font-bold text-appText"><Activity size={15} className="text-[#8BBE3D]" /> Восстановление</span>
+      <div className="mt-2 flex justify-end">
+        <DashboardRefreshButton onRefresh={onRefresh} />
+      </div>
       <div className="mt-3 flex items-center gap-3">
         <Ring value={score} size={64}>
           <span className="text-[18px] font-black text-appText">{score}%</span>
         </Ring>
         <p className="line-clamp-3 text-[11px] leading-4 text-appMuted">{health.readiness.recommendation}</p>
       </div>
-    </motion.button>
+    </motion.div>
   );
 }
 
@@ -1260,6 +1268,29 @@ function DetailRouter({ type, onClose }) {
   return null;
 }
 
+function openWidgetFromKeyboard(event, onOpen) {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  event.preventDefault();
+  onOpen?.();
+}
+
+function DashboardRefreshButton({ onRefresh }) {
+  if (!onRefresh) return null;
+  return (
+    <button
+      type="button"
+      onClick={(event) => {
+        event.stopPropagation();
+        onRefresh();
+      }}
+      className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-appBg text-appMuted shadow-sm transition active:scale-95"
+      aria-label="Обновить данные Health Connect"
+    >
+      <RefreshCcw size={14} />
+    </button>
+  );
+}
+
 export function HealthDetailScreen({ type, onBack }) {
   const { health, setHeartCondition, updateSleepManual, updateCycle, syncNativeHealth, syncing, syncError } = useHealth();
   const [refreshNote, setRefreshNote] = useState("");
@@ -1282,7 +1313,7 @@ export function HealthDetailScreen({ type, onBack }) {
 
   async function handleRefresh() {
     setRefreshNote("");
-    const result = await syncNativeHealth?.({ force: true });
+    const result = await syncNativeHealth?.({ force: true, reason: `detail-${type}` });
     setRefreshNote(result?.message || "Health Connect проверен.");
   }
 
@@ -1356,15 +1387,15 @@ export default function WidgetGrid({ profile, onNavigate }) {
       case "nutrition":
         return <NutritionWidget key={widget.id} profile={profile} onOpen={() => onNavigate?.("food")} />;
       case "heart":
-        return <HeartWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:heart")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true })} />;
+        return <HeartWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:heart")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-heart" })} />;
       case "steps":
-        return <MetricWidget key={widget.id} title="Шаги" icon={Footprints} value={health.steps.today} target={health.steps.goal} color="#8BBE3D" suffix="шагов" sourceNote={health.steps?.sourceName ? `${health.steps.sourceName}` : ""} onOpen={() => onNavigate?.("health:steps")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true })} />;
+        return <MetricWidget key={widget.id} title="Шаги" icon={Footprints} value={health.steps.today} target={health.steps.goal} color="#8BBE3D" suffix="шагов" sourceNote={health.steps?.sourceName ? `${health.steps.sourceName}` : ""} onOpen={() => onNavigate?.("health:steps")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-steps" })} />;
       case "calories":
-        return <MetricWidget key={widget.id} title="Калории" icon={Flame} value={health.calories.today} target={health.calories.goal} color="#FF7A2F" suffix="ккал" sourceNote={health.calories?.isEstimated ? "Оценка активности" : health.calories?.sourceName || ""} onOpen={() => onNavigate?.("health:calories")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true })} />;
+        return <MetricWidget key={widget.id} title="Калории" icon={Flame} value={health.calories.today} target={health.calories.goal} color="#FF7A2F" suffix="ккал" sourceNote={health.calories?.isEstimated ? "Оценка активности" : health.calories?.sourceName || ""} onOpen={() => onNavigate?.("health:calories")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-calories" })} />;
       case "sleep":
-        return <SleepWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:sleep")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true })} />;
+        return <SleepWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:sleep")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-sleep" })} />;
       case "recovery":
-        return <RecoveryWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:recovery")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true })} />;
+        return <RecoveryWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:recovery")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-recovery" })} />;
       case "cycle":
         return <CycleWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:cycle")} />;
       case "weekly":

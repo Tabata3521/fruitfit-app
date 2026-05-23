@@ -283,6 +283,11 @@ function canReadNativeData(state) {
     || state === healthProviderStates.NO_DATA;
 }
 
+function canAttemptNativeRead(state) {
+  return state !== healthProviderStates.NOT_SUPPORTED
+    && state !== healthProviderStates.NOT_INSTALLED;
+}
+
 function selectedSourceSamples(result) {
   const samples = result?.samples || [];
   const selected = result?.selectedSourcePackage;
@@ -754,10 +759,11 @@ export function HealthProvider({ children }) {
     healthRef.current = health;
   }, [health]);
 
-  const syncNativeHealth = useCallback(async ({ force = false } = {}) => {
+  const syncNativeHealth = useCallback(async ({ force = false, reason = "ui" } = {}) => {
     const now = Date.now();
     const inFlightAge = now - (syncStartedAtRef.current || 0);
-    if (syncPromiseRef.current && inFlightAge < 45_000) return syncPromiseRef.current;
+    if (syncPromiseRef.current && !force && inFlightAge < 45_000) return syncPromiseRef.current;
+    if (syncPromiseRef.current && force && inFlightAge < 1_500) return syncPromiseRef.current;
     if (syncPromiseRef.current && (force || inFlightAge >= 45_000)) {
       syncPromiseRef.current = null;
       syncStartedAtRef.current = 0;
@@ -766,6 +772,7 @@ export function HealthProvider({ children }) {
     const commitSeq = ++nativeCommitSeqRef.current;
     syncStartedAtRef.current = now;
     syncPromiseRef.current = (async () => {
+      console.info("[FruitFit health refresh] refresh started", { force, reason });
       setSyncing(true);
       setSyncError("");
       const checkedAt = new Date().toISOString();
@@ -778,11 +785,23 @@ export function HealthProvider({ children }) {
         providerMessage: nextAvailability.message,
         lastFruitFitRefreshAt: checkedAt,
       }));
-      if (!canReadNativeData(nextAvailability.state)) return nextAvailability;
+      if (!canAttemptNativeRead(nextAvailability.state)) {
+        console.info("[FruitFit health refresh] refresh finished", { state: nextAvailability.state, skippedNativeRead: true });
+        return nextAvailability;
+      }
 
+      console.info("[FruitFit health refresh] native health read started", { state: nextAvailability.state });
       const snapshot = await readNativeHealthSnapshot(healthRef.current || loadHealthData());
       if (commitSeq === nativeCommitSeqRef.current) {
         setHealth({ ...snapshot, lastFruitFitRefreshAt: checkedAt });
+        console.info("[FruitFit health refresh] health store updated", {
+          checkedAt,
+          providerState: snapshot.providerState,
+          heartSource: snapshot.heart_rate?.sourceName || null,
+          stepsSource: snapshot.steps?.sourceName || null,
+          caloriesSource: snapshot.calories?.sourceName || null,
+          sleepSource: snapshot.sleep?.sourceName || null,
+        });
       }
       return nextAvailability;
     })().catch((error) => {
@@ -795,9 +814,12 @@ export function HealthProvider({ children }) {
       }));
       return { state: healthProviderStates.ERROR, source: "Health Connect", message };
     })().finally(() => {
-      if (commitSeq === nativeCommitSeqRef.current) setSyncing(false);
-      syncPromiseRef.current = null;
-      syncStartedAtRef.current = 0;
+      if (commitSeq === nativeCommitSeqRef.current) {
+        setSyncing(false);
+        syncPromiseRef.current = null;
+        syncStartedAtRef.current = 0;
+      }
+      console.info("[FruitFit health refresh] refresh finished", { reason });
     });
 
     return syncPromiseRef.current;
@@ -927,7 +949,7 @@ export function HealthProvider({ children }) {
   }, []);
 
   const buildHealthDebugReport = useCallback(async () => {
-    const commitSeq = ++nativeCommitSeqRef.current;
+    await syncNativeHealth({ force: true, reason: "debug-export" });
     const stepSourceOptions = preferredHealthSourceOptions();
     const now = new Date();
     const [
@@ -953,7 +975,6 @@ export function HealthProvider({ children }) {
     ]);
     const latest = latestHeartSampleFromResults([heart15, heart24, heart7], stepSourceOptions.preferredSourcePackage || "");
     const stepSelection = selectBestSource(stepsToday, stepSourceOptions.preferredSourcePackage || "");
-    const heart24Values = (heart24.samples || []).map((sample) => Number(sample.value || 0)).filter(Boolean);
     const heartFresh = heartFreshness(latest?.time || heart24.latestTimestamp || null);
     const stepsDebugTotal = Number(stepSelection.selectedTotal || stepsToday.total || 0) || 0;
     const sleepDebugSessions = mainSleepSessions(sleepWeek);
@@ -970,104 +991,13 @@ export function HealthProvider({ children }) {
     });
     const activeCaloriesDebug = calorieSplitDebug.activeCalories;
     const caloriesEstimatedDebug = calorieSplitDebug.isEstimatedActive;
-    const historyDebug = writeHealthHistory({
-      date: localDateKey(),
-      steps: stepsDebugTotal,
-      activeCalories: calorieSplitDebug.activeCalories,
-      restingCalories: calorieSplitDebug.restingCalories,
-      totalCalories: calorieSplitDebug.totalCalories,
-    });
-    const historyStepWeekDebug = historySeries(historyDebug, "steps", 7);
-    const historyCaloriesWeekDebug = historySeries(historyDebug, "activeCalories", 7);
     const latestHeartBpmDebug = latest ? Number(latest.value) : heart24.latestBpm || heart7.latestBpm || null;
-    const latestHeartTimestampDebug = latest?.time || heart24.latestTimestamp || heart7.latestTimestamp || null;
     const manualSleep = health.sleep?.dataSource === "manual" ? health.sleep : null;
     const latestNativeSleep = (sleepWeek.sessions || []).slice(-1)[0] || null;
     const sleepMinutesDebug = sleepDebugSessions[sleepDebugSessions.length - 1]?.minutes
       || latestNativeSleep?.minutes
       || manualSleep?.minutes
       || 0;
-    const sleepWeekForUi = sleepDebugSessions.length
-      ? buildSleepWeek(sleepDebugSessions)
-      : manualSleep?.week || health.sleep?.week || weekLabels.map((day) => ({ day, minutes: 0, quality: 0 }));
-    if (commitSeq === nativeCommitSeqRef.current) {
-      setHealth((current) => {
-        const next = {
-        ...current,
-        providerState: nextAvailability.state,
-        providerSource: nextAvailability.source,
-        providerMessage: nextAvailability.message,
-        lastFruitFitRefreshAt: new Date().toISOString(),
-        steps: {
-          ...current.steps,
-          today: round(stepsDebugTotal || current.steps?.today || 0),
-          week: historyStepWeekDebug,
-          sourceName: sourceLabel(stepSelection),
-          sourcePackage: stepSelection.selectedSourcePackage || stepsToday.selectedSourcePackage || current.steps?.sourcePackage || null,
-          selectedSourceReason: stepSelection.selectedSourceReason,
-          sources: stepsToday.sources || current.steps?.sources || [],
-          dataSource: stepsDebugTotal > 0 ? "tracker" : current.steps?.dataSource || null,
-          status: stepsDebugTotal > 0 ? "connected" : current.steps?.status || "no_data",
-        },
-        calories: {
-          ...current.calories,
-          today: round(activeCaloriesDebug || current.calories?.today || 0),
-          activeToday: round(activeCaloriesDebug || current.calories?.activeToday || 0),
-          restingToday: round(calorieSplitDebug.restingCalories || current.calories?.restingToday || 0),
-          totalToday: round(calorieSplitDebug.totalCalories || current.calories?.totalToday || 0),
-          week: historyCaloriesWeekDebug,
-          sourceName: caloriesEstimatedDebug ? "Оценка активности" : dataSourceName(caloriesToday),
-          selectedSourceReason: caloriesEstimatedDebug
-            ? "active calories missing, estimated from steps/distance/workouts; total = resting BMR + active"
-            : (calorieSplitDebug.totalWasEstimated ? "Health Connect active calories; total = resting BMR + active" : "Health Connect active and total calories"),
-          isEstimated: caloriesEstimatedDebug,
-          totalWasEstimated: calorieSplitDebug.totalWasEstimated,
-          dataSource: activeCaloriesDebug > 0 ? "tracker" : current.calories?.dataSource || null,
-          status: activeCaloriesDebug > 0 ? (caloriesEstimatedDebug ? "estimated" : "connected") : current.calories?.status || "no_data",
-        },
-        heart_rate: {
-          ...current.heart_rate,
-          current: heartFresh.status === "fresh" ? latestHeartBpmDebug : null,
-          latestBpm: latestHeartBpmDebug || current.heart_rate?.latestBpm || null,
-          resting: heart24.min || current.heart_rate?.resting || null,
-          baselineResting: current.heart_rate?.baselineResting || heart24.min || current.heart_rate?.resting || null,
-          avgWorkout: heart24.avg || current.heart_rate?.avgWorkout || null,
-          dayRange: [heart24.min || current.heart_rate?.dayRange?.[0] || null, heart24.max || current.heart_rate?.dayRange?.[1] || null],
-          hourly: heart24Values.length ? heart24Values : current.heart_rate?.hourly || [],
-          sourceName: sourceLabel(latest || heart24),
-          sourcePackage: latest?.sourcePackage || heart24.latestSourcePackage || current.heart_rate?.sourcePackage || null,
-          latestTimestamp: latestHeartTimestampDebug || current.heart_rate?.latestTimestamp || null,
-          freshness: heartFresh.status,
-          ageMinutes: heartFresh.ageMinutes,
-          updatedAgoText: agoText(heartFresh.ageMinutes),
-          records24h: heart24.recordsCount || current.heart_rate?.records24h || 0,
-          records7d: heart7.recordsCount || current.heart_rate?.records7d || 0,
-          sources: heart24.sources || heart7.sources || current.heart_rate?.sources || [],
-          dataSource: latestHeartBpmDebug || heart24.recordsCount || heart7.recordsCount ? "tracker" : current.heart_rate?.dataSource || null,
-          status: latestHeartBpmDebug || heart24.recordsCount || heart7.recordsCount ? heartWidgetStatus(heartFresh.status, true) : current.heart_rate?.status || "no_data",
-        },
-        sleep: {
-          ...current.sleep,
-          minutes: round(sleepMinutesDebug || current.sleep?.minutes || 0),
-          quality: manualSleep?.quality || current.sleep?.quality || 3,
-          week: sleepWeekForUi,
-          stages: latestNativeSleep?.stages || current.sleep?.stages || [],
-          fragments: sleepWeek.fragments || current.sleep?.fragments || [],
-          sourceName: manualSleep ? "Ручной ввод" : dataSourceName(sleepWeek),
-          dataSource: sleepMinutesDebug > 0 ? (manualSleep ? "manual" : "tracker") : current.sleep?.dataSource || null,
-          status: sleepMinutesDebug > 0 ? "connected" : current.sleep?.status || "no_data",
-        },
-        workouts: {
-          recentWorkouts: (workoutsWeek.sessions || []).length,
-          recentLoad: (workoutsWeek.sessions || []).length,
-          latestWorkout: (workoutsWeek.sessions || []).slice(-1)[0] || current.workouts?.latestWorkout || null,
-          dataSource: (workoutsWeek.sessions || []).length ? "tracker" : current.workouts?.dataSource || null,
-          status: (workoutsWeek.sessions || []).length ? "connected" : current.workouts?.status || "no_data",
-        },
-      };
-        return { ...next, readiness: calculateReadiness(next) };
-      });
-    }
     return {
       fileName: `fruitfit_health_debug_${now.toISOString().slice(0, 16).replace("T", "_").replace(":", "-")}.json`,
       app: {
@@ -1169,7 +1099,7 @@ export function HealthProvider({ children }) {
         permissionRequestErrors: [],
       },
     };
-  }, [health]);
+  }, [health, syncNativeHealth]);
 
   const value = useMemo(() => ({
     health,
