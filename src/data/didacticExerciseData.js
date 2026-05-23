@@ -1,5 +1,8 @@
-import didacticCatalog from "./didacticExerciseCatalog.json";
+import rawDidacticCatalog from "./didacticExerciseCatalog.json";
 import { normalizeExerciseKey, resolveExerciseAlias } from "./exerciseAliases.js";
+import { runtimeExerciseFallbacks } from "./exerciseRuntimeFallbacks.js";
+
+const didacticCatalog = [...rawDidacticCatalog, ...runtimeExerciseFallbacks];
 
 export function normalizeDidacticExerciseName(value) {
   return String(value || "")

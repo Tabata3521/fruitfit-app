@@ -1,5 +1,32 @@
 # WORKLOG - FruitFit Food Database & Nutrition Parser
 
+## 2026-05-23 - Client exercise media binding audit
+
+### Что исправлено
+
+- Проведён full client runtime audit: `public/data/exercises.json` -> alias resolver -> didactic/runtime catalog -> video lookup -> anatomy map lookup -> workout card/detail fallback.
+- Добавлен `scripts/audit-client-exercise-runtime.mjs`; отчёты сохраняются в `audit/client_exercise_runtime_audit.json` и `.csv`.
+- Исправлены broken aliases/runtime bindings для вариантов: `Приседания в кроссовере`, `Боковая или латеральная планка`, `Дуговые махи на заднюю дельту`, `Изодинамические махи на заднюю дельту`, `Комплекс ЛФК упражнений на плечи`, `Латеральная или боковая вытяжка в кроссовере`, `Молотковые сгибания с канатной рукоятью в кроссовере`, `Присед в смите`, `Си-си присед на бицепс бедра`, `Скручивание на полу`.
+- Добавлены client runtime fallback bindings для упражнений, которых нет в didactic table: `Растяжка на все тело`, `Классические выпады`, `Отжимания в смитте`, `Присед плие`.
+- Для ЛФК боковой/латеральной вытяжки anatomy fallback теперь выбирает `Квадратная мышца поясницы`, а не общий случайный template.
+- Media placeholder теперь явно показывает `Демонстрация скоро появится`, если безопасного видео нет.
+
+### Итоги аудита
+
+- TOTAL CLIENT EXERCISES: 196.
+- WITH VIDEO: 193.
+- WITH MUSCLE MAP: 196.
+- BROKEN VIDEO: 3 (`Классические выпады.`, `Отжимания в смитте`, `Присед плие`) - безопасного видео в Selectel/catalog/upload log не найдено, UI показывает placeholder.
+- BROKEN MAPS: 0.
+- UNRESOLVED EXERCISES: 0.
+- AUTO-BINDINGS APPLIED: 14.
+- VIDEO URL CHECK: 161/161 runtime video URLs ok, broken URL 0.
+
+### Проверки
+
+- `node scripts/audit-client-exercise-runtime.mjs` - ok.
+- `npm run build` - ok.
+
 ## 2026-05-23 - Health refresh wiring
 
 ### Что исправлено

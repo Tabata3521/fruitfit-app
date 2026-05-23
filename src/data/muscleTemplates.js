@@ -30,6 +30,7 @@ function rawMuscleLabelForExercise(exercise = {}) {
   if (normalizeTemplateText(rawLabel) === "лфк") {
     if (nameKey.includes("плеч")) return "Ротаторная манжета плеча";
     if (nameKey.includes("присед")) return "Квадрицепс / ягодицы";
+    if (nameKey.includes("латераль") || nameKey.includes("боков")) return "Квадратная мышца поясницы";
     if (nameKey.includes("вытяж")) return "Разгибатели позвоночника";
   }
 
