@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Activity,
   ArrowDown,
@@ -18,7 +18,6 @@ import {
   RefreshCcw,
   SlidersHorizontal,
   Utensils,
-  X,
 } from "lucide-react";
 import NeutralPreview from "./NeutralPreview";
 import { useHealth, formatSleepDuration } from "../data/healthStore";
@@ -28,8 +27,57 @@ import { dietTypeToRation } from "../data/profileStore";
 import { getMealPlan, useNutritionData } from "../data/useNutritionData";
 
 const widgetStorageKey = "fruitfit.widgets";
+const lectureProgressKey = "fruitfit.lectureProgress.v1";
 
 const lecture = lectures[0];
+
+function readLectureProgress() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(lectureProgressKey) || "null");
+    const completedIds = Array.isArray(saved?.completedIds) ? saved.completedIds.filter(Boolean) : [];
+    const currentIndex = Math.max(0, Math.min(lectures.length - 1, Number(saved?.currentIndex || 0)));
+    return { currentIndex, completedIds };
+  } catch (_) {
+    return { currentIndex: 0, completedIds: [] };
+  }
+}
+
+function saveLectureProgress(next) {
+  localStorage.setItem(lectureProgressKey, JSON.stringify(next));
+  window.dispatchEvent(new CustomEvent("fruitfit:lecture-progress", { detail: next }));
+}
+
+function useLectureProgress() {
+  const [progress, setProgress] = useState(readLectureProgress);
+  useEffect(() => {
+    function sync(event) {
+      setProgress(event?.detail || readLectureProgress());
+    }
+    window.addEventListener("fruitfit:lecture-progress", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("fruitfit:lecture-progress", sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+  return [progress, setProgress];
+}
+
+function writeLectureProgress(update) {
+  const previous = readLectureProgress();
+  const next = typeof update === "function" ? update(previous) : update;
+  const normalized = {
+    currentIndex: Math.max(0, Math.min(lectures.length - 1, Number(next.currentIndex || 0))),
+    completedIds: Array.from(new Set(next.completedIds || [])).filter(Boolean),
+  };
+  saveLectureProgress(normalized);
+  return normalized;
+}
+
+function progressForLectureState(progress) {
+  const completedCount = progress.completedIds.length;
+  return Math.min(100, Math.round((completedCount / Math.max(1, lectures.length)) * 100));
+}
 
 function buildLectureEmbedUrl(item, autoplay = false) {
   const params = new URLSearchParams({
@@ -380,22 +428,35 @@ function NutritionWidget({ profile, onOpen }) {
 }
 
 function MiniLectureWidget({ onOpen }) {
+  const [progress] = useLectureProgress();
+  const currentLecture = lectures[progress.currentIndex] || lecture;
+  const completed = progress.completedIds.length >= lectures.length;
+  const percent = progressForLectureState(progress);
+  const cta = completed ? "Пересмотреть" : progress.completedIds.length ? "Продолжить" : "Начать";
   return (
     <motion.button
       type="button"
       onClick={onOpen}
       whileTap={{ scale: 0.985 }}
-      className="col-span-2 grid grid-cols-[1fr_104px] gap-3 rounded-[22px] border border-appBorder bg-appCard/90 p-3 text-left shadow-sm"
+      className="col-span-2 grid grid-cols-[1fr_112px] gap-3 rounded-[22px] border border-appBorder bg-appCard/90 p-3 text-left shadow-sm"
     >
       <div className="min-w-0">
         <span className="inline-flex items-center gap-2 text-[12px] font-bold text-appMuted">
-          <BookOpen size={14} /> Мини-лекция
+          <BookOpen size={14} /> Лекция {progress.currentIndex + 1} из {lectures.length}
         </span>
-        <h3 className="mt-2 line-clamp-2 text-[15px] font-black leading-tight text-appText">{lecture.shortTitle || lecture.title}</h3>
-        <p className="mt-2 text-[11px] text-appMuted">{lecture.subtitle}</p>
+        <h3 className="mt-2 line-clamp-2 text-[15px] font-black leading-tight text-appText">{currentLecture.shortTitle || currentLecture.title}</h3>
+        <p className="mt-2 text-[11px] text-appMuted">{completed ? "Все лекции пройдены" : currentLecture.subtitle}</p>
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-appBg">
+          <span className="block h-full rounded-full bg-appGreen" style={{ width: `${percent}%` }} />
+        </div>
+        <p className="mt-2 text-[11px] font-black text-appGreen">{cta} · {percent}%</p>
       </div>
-      <div className="relative overflow-hidden rounded-[18px] bg-appDark">
-        <NeutralPreview className="h-[78px] w-full rounded-[18px] opacity-80" compact />
+      <div className="relative grid h-[86px] place-items-center overflow-hidden rounded-[18px] bg-appDark">
+        {currentLecture.thumbnailUrl ? (
+          <img src={currentLecture.thumbnailUrl} alt="" className="h-full w-full object-contain" loading="lazy" />
+        ) : (
+          <NeutralPreview className="h-full w-full rounded-[18px] opacity-80" compact />
+        )}
         <span className="absolute inset-0 grid place-items-center text-white">
           <span className="grid h-9 w-9 place-items-center rounded-full bg-black/42 backdrop-blur">
             <Play size={17} fill="currentColor" />
@@ -687,47 +748,44 @@ function Sparkline({ values = [], color }) {
   );
 }
 
-function AppModal({ title, onClose, children }) {
-  return (
-    <AnimatePresence>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/36 px-2">
-        <motion.section
-          initial={{ y: 34 }}
-          animate={{ y: 0 }}
-          exit={{ y: 34 }}
-          className="max-h-[88vh] w-full max-w-[393px] overflow-y-auto rounded-t-[30px] border border-appBorder bg-appCard p-4 pb-[max(20px,env(safe-area-inset-bottom))] shadow-soft"
-        >
-          <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-appBorder" />
-          <div className="sticky top-0 z-10 -mx-1 flex items-center justify-between bg-appCard/94 px-1 pb-3 backdrop-blur">
-            <h2 className="text-[25px] font-black tracking-[-0.02em] text-appText">{title}</h2>
-            <button type="button" onClick={onClose} className="grid h-10 w-10 place-items-center rounded-full bg-appBg text-appText">
-              <X size={18} />
-            </button>
-          </div>
-          {children}
-        </motion.section>
-      </motion.div>
-    </AnimatePresence>
-  );
-}
-
-function LectureModal({ onClose }) {
-  const [index, setIndex] = useState(0);
+export function LectureDetailScreen({ onBack }) {
+  const [progress, setProgress] = useLectureProgress();
+  const [index, setIndex] = useState(progress.currentIndex || 0);
   const [textOpen, setTextOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
   const activeLecture = lectures[index] || lectures[0];
   const activeLectureText = lectureTextFor(activeLecture?.id);
   const [meta, setMeta] = useState({ title: activeLecture.title, thumbnailUrl: activeLecture.thumbnailUrl, error: "" });
   const hasSelectel = Boolean(activeLecture?.selectelUrl);
+  const completed = progress.completedIds.includes(activeLecture.id);
+  const totalPercent = progressForLectureState(progress);
 
   function openFullVideo() {
     openExternalVideo(lecturePlaybackUrl(activeLecture));
   }
 
   function move(direction) {
-    setIndex((value) => (value + direction + lectures.length) % lectures.length);
+    setIndex((value) => {
+      const nextIndex = (value + direction + lectures.length) % lectures.length;
+      writeLectureProgress((state) => ({ ...state, currentIndex: nextIndex }));
+      return nextIndex;
+    });
     setTextOpen(false);
     setCopyStatus("");
+  }
+
+  function markComplete() {
+    const isLast = index >= lectures.length - 1;
+    const next = writeLectureProgress((state) => ({
+      currentIndex: isLast ? index : index + 1,
+      completedIds: [...state.completedIds, activeLecture.id],
+    }));
+    setProgress(next);
+    if (!isLast) {
+      setIndex(index + 1);
+      setTextOpen(false);
+      setCopyStatus("");
+    }
   }
 
   async function copyLectureText() {
@@ -782,38 +840,59 @@ function LectureModal({ onClose }) {
   }, [activeLecture, hasSelectel]);
 
   return (
-    <AppModal title={activeLecture.shortTitle || activeLecture.title} onClose={onClose}>
-      <p className="text-[13px] font-semibold text-appMuted">{activeLecture.subtitle}</p>
-      <div className="mt-4 overflow-hidden rounded-[24px] bg-appDark shadow-card">
-        <LectureVideoPlayer item={activeLecture} title={meta.title || activeLecture.title} thumbnailUrl={meta.thumbnailUrl} />
-        <div className="border-t border-white/10 px-4 py-3">
-          <button type="button" onClick={openFullVideo} className="text-[12px] font-bold text-appGreen">
-            {hasSelectel ? "Открыть видео в отдельном окне" : "Если плеер не открылся внутри, открыть видео в YouTube"}
+    <main className="phone-shell min-h-screen px-5 pb-8 pt-[calc(env(safe-area-inset-top)+104px)]">
+      <header className="fixed left-1/2 top-0 z-50 flex w-[min(100vw,393px)] -translate-x-1/2 items-center gap-3 border-b border-appBorder bg-appBg/95 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+12px)] shadow-sm backdrop-blur">
+        <button type="button" onClick={onBack} className="grid h-11 w-11 place-items-center rounded-full bg-appCard text-appText shadow-sm" aria-label="Назад">
+          <ChevronLeft size={22} />
+        </button>
+        <div className="min-w-0">
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-appGreen">Лекция {index + 1} из {lectures.length}</p>
+          <h1 className="line-clamp-1 text-[23px] font-black leading-tight text-appText">{activeLecture.shortTitle || activeLecture.title}</h1>
+        </div>
+      </header>
+
+      <section className="overflow-hidden rounded-[28px] border border-appBorder bg-appCard/95 shadow-sm">
+        <div className="bg-appDark">
+          <LectureVideoPlayer item={activeLecture} title={meta.title || activeLecture.title} thumbnailUrl={meta.thumbnailUrl} />
+        </div>
+        <div className="p-4">
+          <p className="text-[12px] font-black uppercase tracking-wide text-appMuted">Прогресс курса: {totalPercent}%</p>
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-appBg">
+            <span className="block h-full rounded-full bg-appGreen" style={{ width: `${totalPercent}%` }} />
+          </div>
+          <h2 className="mt-4 text-[22px] font-black leading-tight text-appText">{activeLecture.title}</h2>
+          <p className="mt-2 text-[13px] font-semibold leading-5 text-appMuted">{activeLecture.subtitle}</p>
+          <p className="mt-3 rounded-2xl bg-appBg px-3 py-3 text-[12px] leading-5 text-appMuted">
+            {hasSelectel ? "Видео загружается из Selectel через HTML5-плеер." : meta.error ? "Если YouTube-метаданные не загрузились, видео всё равно можно открыть полностью." : "Нажмите Play, чтобы открыть плеер внутри приложения."}
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => move(-1)} className="flex h-11 items-center justify-center gap-2 rounded-full bg-appBg text-[13px] font-black text-appText">
+              <ChevronLeft size={17} /> Предыдущая
+            </button>
+            <button type="button" onClick={() => move(1)} className="flex h-11 items-center justify-center gap-2 rounded-full bg-appBg text-[13px] font-black text-appText">
+              Следующая <ChevronRight size={17} />
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={markComplete}
+            className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-appGreen text-[14px] font-black text-[#181F19]"
+          >
+            <CheckCircle2 size={18} /> {completed ? "Лекция отмечена" : "Отметить просмотренной"}
+          </button>
+          <button
+            type="button"
+            onClick={openFullVideo}
+            className="mt-3 flex h-12 w-full items-center justify-center rounded-full bg-appDark text-[14px] font-black text-appGreen"
+          >
+            Открыть полностью
           </button>
         </div>
-      </div>
-      <div className="mt-3 grid grid-cols-[44px_1fr_44px] items-center gap-2">
-        <button type="button" onClick={() => move(-1)} className="grid h-11 w-11 place-items-center rounded-full bg-appBg text-appText">
-          <ChevronLeft size={19} />
-        </button>
-        <div className="text-center">
-          <p className="text-[11px] font-black uppercase tracking-wide text-appMuted">лекция {index + 1} из {lectures.length}</p>
-          <p className="mt-1 line-clamp-1 text-[12px] font-bold text-appText">{activeLecture.title}</p>
-        </div>
-        <button type="button" onClick={() => move(1)} className="grid h-11 w-11 place-items-center rounded-full bg-appBg text-appText">
-          <ChevronRight size={19} />
-        </button>
-      </div>
-      <div className="mt-3 grid grid-cols-[78px_1fr] gap-3 rounded-[20px] bg-appBg p-3">
-        <img src={meta.thumbnailUrl} alt="" className="h-14 w-[78px] rounded-2xl object-cover" loading="lazy" />
-        <div className="min-w-0">
-          <p className="line-clamp-2 text-[12px] font-black leading-4 text-appText">{meta.title}</p>
-          <p className="mt-1 text-[11px] text-appMuted">{hasSelectel ? "Видео загружается из Selectel через HTML5-плеер." : meta.error ? "Нажмите Play в плеере выше. Метаданные YouTube могут не успеть загрузиться." : "Нажмите Play в плеере выше, видео откроется внутри поп-апа."}</p>
-        </div>
-      </div>
-      <section className="mt-3 overflow-hidden rounded-[20px] border border-appBorder bg-appBg">
-        <button type="button" onClick={() => setTextOpen((value) => !value)} className="flex min-h-12 w-full items-center justify-between px-4 text-left">
-          <span className="text-[13px] font-black text-appText">Текстовая версия лекции</span>
+      </section>
+
+      <section className="mt-4 overflow-hidden rounded-[24px] border border-appBorder bg-appCard">
+        <button type="button" onClick={() => setTextOpen((value) => !value)} className="flex min-h-[52px] w-full items-center justify-between px-4 py-3 text-left">
+          <span className="text-[14px] font-black text-appText">Текстовая версия лекции</span>
           <ChevronRight size={17} className={`text-appMuted transition ${textOpen ? "rotate-90" : ""}`} />
         </button>
         {textOpen && (
@@ -830,7 +909,7 @@ function LectureModal({ onClose }) {
                     <Copy size={14} /> {copyStatus || "Копировать"}
                   </button>
                 </div>
-                <div className="allow-select max-h-[42vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-appBorder bg-appCard px-3 py-3 text-[12px] leading-5 text-appText">
+                <div className="allow-select max-h-[52vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-appBorder bg-appBg px-3 py-3 text-[12px] leading-5 text-appText">
                   {activeLectureText}
                 </div>
               </>
@@ -840,14 +919,7 @@ function LectureModal({ onClose }) {
           </div>
         )}
       </section>
-      <button
-        type="button"
-        onClick={openFullVideo}
-        className="mt-3 flex h-12 w-full items-center justify-center rounded-full bg-appDark text-[14px] font-black text-appGreen"
-      >
-        Открыть полностью
-      </button>
-    </AppModal>
+    </main>
   );
 }
 
@@ -1273,11 +1345,6 @@ function WeeklyDetail({ health }) {
   );
 }
 
-function DetailRouter({ type, onClose }) {
-  if (type === "lecture") return <LectureModal onClose={onClose} />;
-  return null;
-}
-
 function openWidgetFromKeyboard(event, onOpen) {
   if (event.key !== "Enter" && event.key !== " ") return;
   event.preventDefault();
@@ -1370,7 +1437,6 @@ export default function WidgetGrid({ profile, onNavigate }) {
   const { health, requestConnection, syncNativeHealth } = useHealth();
   const { widgets, visible, commit, cycleAvailable } = useWidgetConfig(profile);
   const [editMode, setEditMode] = useState(false);
-  const [detail, setDetail] = useState("");
 
   function toggle(id) {
     if (id === "cycle" && !cycleAvailable) return;
@@ -1393,7 +1459,7 @@ export default function WidgetGrid({ profile, onNavigate }) {
   function render(widget) {
     switch (widget.type) {
       case "lecture":
-        return <MiniLectureWidget key={widget.id} onOpen={() => setDetail("lecture")} />;
+        return <MiniLectureWidget key={widget.id} onOpen={() => onNavigate?.("lecture")} />;
       case "nutrition":
         return <NutritionWidget key={widget.id} profile={profile} onOpen={() => onNavigate?.("food")} />;
       case "heart":
@@ -1455,8 +1521,6 @@ export default function WidgetGrid({ profile, onNavigate }) {
       <section className="mt-3 grid grid-cols-2 gap-3">
         {visible.map(render)}
       </section>
-
-      {detail && <DetailRouter type={detail} onClose={() => setDetail("")} />}
     </>
   );
 }

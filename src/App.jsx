@@ -14,7 +14,7 @@ import ProfileScreen from "./screens/ProfileScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import WorkoutScreen from "./screens/WorkoutScreen";
 import WorkoutsScreen from "./screens/WorkoutsScreen";
-import { HealthDetailScreen } from "./components/WidgetGrid";
+import { HealthDetailScreen, LectureDetailScreen } from "./components/WidgetGrid";
 
 const healthRoutes = {
   "health:heart": "#/health/heart-rate",
@@ -27,6 +27,7 @@ const healthRoutes = {
 };
 
 const appRoutes = {
+  lecture: "#/lectures",
   settings: "#/settings",
 };
 
@@ -99,6 +100,15 @@ function AppContent() {
     setScreen("home");
   }
 
+  function backFromLecture() {
+    if (window.history.state?.fruitfitScreen === "lecture") {
+      window.history.back();
+      return;
+    }
+    window.history.replaceState({ fruitfitScreen: "home" }, "", window.location.pathname + window.location.search);
+    setScreen("home");
+  }
+
   useEffect(() => {
     function handlePopState() {
       const nextHealthScreen = healthScreenFromHash();
@@ -115,6 +125,8 @@ function AppContent() {
         setScreen("home");
       } else if (screenRef.current === "settings") {
         setScreen("profile");
+      } else if (screenRef.current === "lecture") {
+        setScreen("home");
       }
     }
     window.addEventListener("popstate", handlePopState);
@@ -135,6 +147,11 @@ function AppContent() {
       if (screenRef.current === "settings") {
         window.history.replaceState({ fruitfitScreen: "profile" }, "", window.location.pathname + window.location.search);
         setScreen("profile");
+        return;
+      }
+      if (screenRef.current === "lecture") {
+        window.history.replaceState({ fruitfitScreen: "home" }, "", window.location.pathname + window.location.search);
+        setScreen("home");
         return;
       }
       if (canGoBack) {
@@ -313,6 +330,10 @@ function AppContent() {
 
   if (screen === "settings") {
     return <SettingsScreen theme={theme} onThemeChange={setTheme} onNavigate={navigate} />;
+  }
+
+  if (screen === "lecture") {
+    return <LectureDetailScreen onBack={backFromLecture} />;
   }
 
   return (

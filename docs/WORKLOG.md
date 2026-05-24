@@ -317,3 +317,13 @@ Notes:
   - Local browser check: Profile diagnostic `Обновить` / `Скопировать` / `Поделиться` did not show `.catch` errors.
   - Detail refresh timestamp remained visible after refresh.
 - Scope intentionally did not touch AI, admin, food DB, exercise media, or muscle maps.
+
+## 2026-05-24 - Lecture flow dedicated screen
+
+- Replaced the dashboard mini-lecture modal flow with a dedicated app screen at `#/lectures`.
+- Dashboard lecture widget now reads saved lecture progress and shows the active lecture title, thumbnail, progress bar and CTA (`Начать` / `Продолжить` / `Пересмотреть`).
+- Added local lecture progress storage under `fruitfit.lectureProgress.v1` with current lecture index and completed lecture ids.
+- Added `LectureDetailScreen` with sticky safe-area header, video player, title, summary/subtitle, course progress, previous/next controls, mark-complete action, external video button and selectable/copyable transcript.
+- Lecture navigation now uses the same screen/hash stack pattern as health/settings screens, so back returns to Dashboard instead of closing a modal overlay.
+- Removed the old lecture modal render path from `WidgetGrid`; general health widgets and other flows were not changed.
+- Validation: `npm run build` passed.
