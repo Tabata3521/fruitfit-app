@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Flame, Salad } from "lucide-react";
+import { ArrowLeft, ChevronDown, Flame, Salad } from "lucide-react";
 import { useMemo, useState } from "react";
 import BottomNavigation from "../components/BottomNavigation";
 import { dietTypeToRation } from "../data/profileStore";
@@ -127,7 +127,7 @@ function nutritionLabel(value) {
   }[value] || value;
 }
 
-export default function NutritionScreen({ onNavigate, profile }) {
+export default function NutritionScreen({ onNavigate, profile, showBack = false, onBack }) {
   const { loading, data } = useNutritionData();
   const [filters, setFilters] = useState(() => ({
     ...defaultFilters,
@@ -154,9 +154,14 @@ export default function NutritionScreen({ onNavigate, profile }) {
   }
 
   return (
-    <main className="phone-shell pb-[78px]">
-      <div className="px-4 pt-5">
+    <main className="phone-shell safe-tab-screen">
+      <div className="safe-top px-4">
         <header>
+          {showBack && (
+            <button type="button" onClick={onBack} className="mb-3 grid h-10 w-10 place-items-center rounded-full bg-appCard text-appText shadow-sm" aria-label="Назад">
+              <ArrowLeft size={18} />
+            </button>
+          )}
           <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#FFF0E0] text-appOrange">
             <Salad size={20} />
           </div>
@@ -164,7 +169,7 @@ export default function NutritionScreen({ onNavigate, profile }) {
           <p className="mt-2 text-[13px] text-appMuted">Нативный рацион из CSV: блюда, фото, КБЖУ и рецепты.</p>
         </header>
 
-        <section className="mt-5 rounded-[24px] border border-black/5 bg-[#FFF0E0] p-4 text-[#181F19] shadow-card">
+        <section className="mt-4 rounded-[24px] border border-black/5 bg-[#FFF0E0] p-4 text-[#181F19] shadow-card">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[12px] font-bold text-appOrange">{nutritionLabel(activeFilters.ration)}</p>

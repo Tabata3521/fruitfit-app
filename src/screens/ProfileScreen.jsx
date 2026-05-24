@@ -487,16 +487,16 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
   const stepSources = health?.steps?.sources || [];
 
   return (
-    <main className="phone-shell pb-[82px]">
-      <div className="px-4 pt-5">
+    <main className="phone-shell safe-tab-screen">
+      <div className="safe-top px-4">
         <header className="flex items-center justify-between">
           <h1 className="text-[26px] font-black text-appText">Профиль</h1>
-          <button type="button" onClick={() => onNavigate?.("settings")} className="grid h-10 w-10 place-items-center rounded-full bg-appCard shadow-sm">
+          <button type="button" onClick={() => onNavigate?.("settings")} className="grid h-11 w-11 place-items-center rounded-full border border-appBorder bg-appCard text-appText shadow-sm">
             <Settings size={18} />
           </button>
         </header>
 
-        <section className="mt-5 rounded-[26px] border border-appBorder bg-appCard p-4 shadow-card">
+        <section className="mt-4 rounded-[26px] border border-appBorder bg-appCard p-4 shadow-card">
           <div className="flex items-center gap-4">
             <label className="relative grid h-20 w-20 shrink-0 cursor-pointer place-items-center overflow-hidden rounded-full bg-appDark text-appGreen">
               {avatar ? <img src={avatar} alt="avatar" className="h-full w-full object-cover" /> : <Camera size={24} />}

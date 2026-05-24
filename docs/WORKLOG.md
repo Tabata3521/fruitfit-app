@@ -327,3 +327,21 @@ Notes:
 - Lecture navigation now uses the same screen/hash stack pattern as health/settings screens, so back returns to Dashboard instead of closing a modal overlay.
 - Removed the old lecture modal render path from `WidgetGrid`; general health widgets and other flows were not changed.
 - Validation: `npm run build` passed.
+
+## 2026-05-24 - Mobile back navigation and compact layout
+
+- Root cause: FruitFit used mixed navigation state. Health detail, lectures and settings wrote hash/history entries, but root tabs and workout/focus screens often only changed React `screen` state. On Android this left Capacitor `backButton` with no web history entry and allowed `minimizeApp` from internal screens.
+- Added route/history entries for `workouts`, `food`, `coach`, `profile`, `workout`, and `focus`, while keeping the existing health and lecture hash routes.
+- Updated the Capacitor `backButton` handler: internal screens pop FruitFit history first, fall back to `home` if opened directly, and only minimize on `home`.
+- Wired visible back arrows to real route back behavior for settings, health detail pages, lectures, workout, focus, and Nutrition when Nutrition is opened from a dashboard widget.
+- Kept bottom tab navigation intact and marked tab-origin navigation separately so root tabs do not show unnecessary iOS back arrows.
+- Improved profile/settings top safe-area spacing and made the profile settings gear larger, bordered, and readable below status bars/notches.
+- Added shared `safe-top` / `safe-tab-screen` layout helpers, reduced a few vertical gaps, compacted detail headers, and included safe-area bottom padding so bottom navigation/input bars do not cover content.
+- Browser QA:
+  - Profile -> Settings -> back arrow returned to Profile.
+  - Health Steps detail -> back arrow returned to Dashboard.
+  - Lecture route -> back arrow returned to Dashboard.
+  - Workout route -> back arrow returned to Dashboard.
+  - Dashboard Nutrition widget -> Nutrition showed a back arrow and returned to Dashboard.
+- Validation: `npm run build` passed.
+- Scope intentionally did not touch Health Connect logic, health refresh pipeline, AI backend, food DB, exercise media bindings, muscle maps, admin builder, payments/auth, or APK config.

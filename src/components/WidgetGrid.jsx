@@ -840,8 +840,8 @@ export function LectureDetailScreen({ onBack }) {
   }, [activeLecture, hasSelectel]);
 
   return (
-    <main className="phone-shell min-h-screen px-5 pb-8 pt-[calc(env(safe-area-inset-top)+104px)]">
-      <header className="fixed left-1/2 top-0 z-50 flex w-[min(100vw,393px)] -translate-x-1/2 items-center gap-3 border-b border-appBorder bg-appBg/95 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+12px)] shadow-sm backdrop-blur">
+    <main className="phone-shell min-h-screen px-5 pb-[calc(24px+env(safe-area-inset-bottom))] pt-[calc(env(safe-area-inset-top)+92px)]">
+      <header className="fixed left-1/2 top-0 z-50 flex w-[min(100vw,393px)] -translate-x-1/2 items-center gap-3 border-b border-appBorder bg-appBg/95 px-5 pb-2.5 pt-[calc(env(safe-area-inset-top)+10px)] shadow-sm backdrop-blur">
         <button type="button" onClick={onBack} className="grid h-11 w-11 place-items-center rounded-full bg-appCard text-appText shadow-sm" aria-label="Назад">
           <ChevronLeft size={22} />
         </button>
@@ -1395,8 +1395,8 @@ export function HealthDetailScreen({ type, onBack }) {
   }
 
   return (
-    <main className="phone-shell min-h-screen px-5 pb-8 pt-[calc(env(safe-area-inset-top)+104px)]">
-      <header className="fixed left-1/2 top-0 z-50 flex w-[min(100vw,393px)] -translate-x-1/2 items-center gap-3 border-b border-appBorder bg-appBg/95 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+12px)] shadow-sm backdrop-blur">
+    <main className="phone-shell min-h-screen px-5 pb-[calc(24px+env(safe-area-inset-bottom))] pt-[calc(env(safe-area-inset-top)+92px)]">
+      <header className="fixed left-1/2 top-0 z-50 flex w-[min(100vw,393px)] -translate-x-1/2 items-center gap-3 border-b border-appBorder bg-appBg/95 px-5 pb-2.5 pt-[calc(env(safe-area-inset-top)+10px)] shadow-sm backdrop-blur">
         <button type="button" onClick={onBack} className="grid h-11 w-11 place-items-center rounded-full bg-appCard text-appText shadow-sm" aria-label="Назад">
           <ChevronLeft size={22} />
         </button>

@@ -837,7 +837,7 @@ export default function WorkoutScreen({ program, workout, profile, selectedWorko
   if (mode === "focus") {
     return (
       <main className="phone-shell bg-[#10160F] text-white">
-        <div className="min-h-screen px-4 pb-6 pt-5">
+        <div className="min-h-screen px-4 pb-[calc(22px+env(safe-area-inset-bottom))] pt-[max(14px,env(safe-area-inset-top))]">
           <header className="flex items-center justify-between">
             <IconButton label="Закрыть" onClick={onBack} className="h-10 w-10 border-white/10 bg-white/10 text-white"><X size={20} /></IconButton>
             <div className="w-40 text-center">
@@ -860,15 +860,15 @@ export default function WorkoutScreen({ program, workout, profile, selectedWorko
   }
 
   return (
-    <main className="phone-shell pb-[78px]">
-      <div className="px-4 pb-5 pt-5">
+    <main className="phone-shell safe-tab-screen">
+      <div className="px-4 pb-4 pt-[max(14px,env(safe-area-inset-top))]">
         <header className="flex items-center justify-between">
           <IconButton label="Назад" onClick={onBack} className="h-10 w-10"><ChevronLeft size={22} /></IconButton>
           <h1 className="text-[18px] font-bold text-appText">Тренировка</h1>
           <IconButton label="Еще" className="h-10 w-10"><MoreHorizontal size={20} /></IconButton>
         </header>
 
-        <section className="mt-5">
+        <section className="mt-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h2 className="line-clamp-2 text-[26px] font-black leading-[1.08] text-appText">{workout.lesson.lesson_title}</h2>

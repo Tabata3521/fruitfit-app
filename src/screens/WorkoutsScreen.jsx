@@ -12,8 +12,8 @@ export default function WorkoutsScreen({ program, selectedWorkoutIndex, onOpenWo
   const completedUntil = Math.max(0, selectedWorkoutIndex - 1);
 
   return (
-    <main className="phone-shell pb-[78px]">
-      <div className="px-4 pt-5">
+    <main className="phone-shell safe-tab-screen">
+      <div className="safe-top px-4">
         <header>
           <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-appDark text-appGreen">
             <Dumbbell size={20} />
@@ -23,7 +23,7 @@ export default function WorkoutsScreen({ program, selectedWorkoutIndex, onOpenWo
           <div className="mt-4 h-1.5 rounded-full bg-[#E6E6DF]">
             <div className="h-full rounded-full bg-[#8BBE3D]" style={{ width: `${((selectedWorkoutIndex + 1) / program.workouts.length) * 100}%` }} />
           </div>
-          <div className="relative mt-4 h-[168px] overflow-hidden rounded-[24px] bg-[#070B07] shadow-card">
+          <div className="relative mt-3 h-[154px] overflow-hidden rounded-[24px] bg-[#070B07] shadow-card">
             <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_82%_18%,rgba(221,247,180,0.12),transparent_28%),linear-gradient(100deg,#050805_0%,#0A100B_58%,#182315_100%)]" />
             <div className="absolute inset-y-0 right-0 z-10 w-[58%] bg-gradient-to-l from-transparent via-transparent to-[#070B07]" />
             <img

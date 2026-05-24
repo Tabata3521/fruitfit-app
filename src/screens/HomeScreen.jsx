@@ -16,15 +16,15 @@ export default function HomeScreen({ program, workout, profile, authUser, onStar
   ];
 
   return (
-    <main className="phone-shell pb-[82px]">
-      <div className="px-4 pt-5">
+    <main className="phone-shell safe-tab-screen">
+      <div className="safe-top px-4">
         <header className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-1 text-[25px] font-black tracking-[-0.02em] text-appText">
               fruitfit <Leaf size={17} className="text-[#8BBE3D]" fill="currentColor" />
             </div>
             {userName && <p className="mt-2 text-[13px] font-bold text-appMuted">Привет, {userName}</p>}
-            <div className="relative mt-5">
+            <div className="relative mt-4">
               <button type="button" onClick={() => setTodayOpen((value) => !value)} className="inline-flex items-center gap-1 text-[25px] font-bold text-appText">
                 Сегодня <ChevronDown size={18} className={`transition ${todayOpen ? "rotate-180" : ""}`} />
               </button>
@@ -50,7 +50,7 @@ export default function HomeScreen({ program, workout, profile, authUser, onStar
           </button>
         </header>
 
-        <div className="mt-4">
+        <div className="mt-3.5">
           <HeroWorkoutCard program={program} workout={workout} onStart={onStartWorkout} />
         </div>
 

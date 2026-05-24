@@ -42,17 +42,17 @@ function PlaceholderCard({ icon: Icon, title, text, badge = "готовится"
   );
 }
 
-export default function SettingsScreen({ theme, onThemeChange, onNavigate }) {
+export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBack }) {
   function logout() {
     saveAuthUser(null);
     window.location.reload();
   }
 
   return (
-    <main className="phone-shell pb-[82px]">
-      <div className="px-4 pt-[max(20px,env(safe-area-inset-top))]">
-        <header className="sticky top-0 z-20 -mx-4 flex items-center gap-3 bg-appBg/92 px-4 py-3 backdrop-blur">
-          <button type="button" onClick={() => onNavigate("profile")} className="grid h-10 w-10 place-items-center rounded-full bg-appCard text-appText shadow-sm">
+    <main className="phone-shell safe-tab-screen">
+      <div className="px-4 pt-[max(14px,env(safe-area-inset-top))]">
+        <header className="sticky top-0 z-20 -mx-4 flex items-center gap-3 bg-appBg/92 px-4 py-2.5 backdrop-blur">
+          <button type="button" onClick={onBack || (() => onNavigate("profile"))} className="grid h-10 w-10 place-items-center rounded-full bg-appCard text-appText shadow-sm">
             <ArrowLeft size={18} />
           </button>
           <div>
@@ -61,7 +61,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate }) {
           </div>
         </header>
 
-        <div className="mt-3 space-y-4">
+        <div className="mt-2.5 space-y-3">
           <section className="rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">
             <h2 className="text-[16px] font-black text-appText">Вход и аккаунт</h2>
             <p className="mt-1 text-[12px] leading-5 text-appMuted">UI подготовлен под будущую авторизацию. Backend-логика будет подключаться отдельно.</p>

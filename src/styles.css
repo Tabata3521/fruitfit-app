@@ -101,6 +101,14 @@ input {
   padding-right: env(safe-area-inset-right);
 }
 
+.safe-top {
+  padding-top: max(14px, env(safe-area-inset-top));
+}
+
+.safe-tab-screen {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+}
+
 @media (orientation: landscape) and (max-height: 520px) {
   .portrait-lock body::before {
     content: "Поверните телефон вертикально";

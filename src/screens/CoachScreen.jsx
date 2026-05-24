@@ -123,8 +123,8 @@ export default function CoachScreen({ program, workout, profile, onNavigate }) {
   }
 
   return (
-    <main className="phone-shell flex min-h-screen flex-col pb-[142px]">
-      <div className="px-4 pt-5">
+    <main className="phone-shell flex min-h-screen flex-col pb-[calc(134px+env(safe-area-inset-bottom))]">
+      <div className="safe-top px-4">
         <header className="flex items-start justify-between">
           <div>
             <div className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-appDark text-appGreen">
@@ -156,7 +156,7 @@ export default function CoachScreen({ program, workout, profile, onNavigate }) {
         {loading && <ThinkingDots />}
       </section>
 
-      <div className="fixed bottom-[76px] left-1/2 z-30 w-full max-w-[393px] -translate-x-1/2 px-4">
+      <div className="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] left-1/2 z-30 w-full max-w-[393px] -translate-x-1/2 px-4">
         <form onSubmit={(event) => { event.preventDefault(); send(); }} className="flex gap-2 rounded-full border border-appBorder bg-appCard p-2 shadow-card">
           <input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Спроси tagirfruit..." className="min-w-0 flex-1 bg-transparent px-3 text-[14px] text-appText outline-none" />
           <button type="submit" disabled={loading} className="grid h-10 w-10 place-items-center rounded-full bg-appDark text-appGreen disabled:opacity-55">

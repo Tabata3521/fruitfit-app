@@ -27,9 +27,17 @@ const healthRoutes = {
 };
 
 const appRoutes = {
+  workouts: "#/workouts",
+  food: "#/nutrition",
+  coach: "#/coach",
+  profile: "#/profile",
+  workout: "#/workout",
+  focus: "#/workout/focus",
   lecture: "#/lectures",
   settings: "#/settings",
 };
+
+const routeableScreens = new Set(["home", ...Object.keys(appRoutes), ...Object.keys(healthRoutes)]);
 
 function healthScreenFromHash(hash = window.location.hash) {
   const normalized = String(hash || "").replace(/^#/, "");
@@ -41,6 +49,16 @@ function appScreenFromHash(hash = window.location.hash) {
   const normalized = String(hash || "").replace(/^#/, "");
   const match = Object.entries(appRoutes).find(([, route]) => route.replace(/^#/, "") === normalized);
   return match?.[0] || null;
+}
+
+function screenFromLocation() {
+  return healthScreenFromHash() || appScreenFromHash() || "home";
+}
+
+function urlForScreen(screen) {
+  if (healthRoutes[screen]) return healthRoutes[screen];
+  if (appRoutes[screen]) return appRoutes[screen];
+  return window.location.pathname + window.location.search;
 }
 
 function LoadingScreen({ error }) {
@@ -71,63 +89,47 @@ function AppContent() {
   const [quizOpen, setQuizOpen] = useState(() => !loadProfile().onboardingCompleted);
   const [authPromptOpen, setAuthPromptOpen] = useState(() => loadProfile().onboardingCompleted && !loadAuthUser());
   const screenRef = useRef(screen);
+  const routeMetaRef = useRef(window.history.state || {});
 
   useEffect(() => {
     screenRef.current = screen;
   }, [screen]);
 
-  function navigate(nextScreen) {
+  function writeRoute(nextScreen, { replace = false, source = "screen" } = {}) {
+    if (!routeableScreens.has(nextScreen)) return;
+    const nextState = { fruitfitScreen: nextScreen, fruitfitSource: source };
+    const method = replace ? "replaceState" : "pushState";
+    window.history[method](nextState, "", urlForScreen(nextScreen));
+    routeMetaRef.current = nextState;
+  }
+
+  function navigate(nextScreen, options = {}) {
     setScreen((current) => {
-      if (typeof nextScreen === "string" && nextScreen.startsWith("health:") && current !== nextScreen) {
-        window.history.pushState({ fruitfitScreen: nextScreen }, "", healthRoutes[nextScreen] || `#/${nextScreen.replace(":", "/")}`);
-      }
-      if (typeof nextScreen === "string" && appRoutes[nextScreen] && current !== nextScreen) {
-        window.history.pushState({ fruitfitScreen: nextScreen }, "", appRoutes[nextScreen]);
-      }
-      if (nextScreen === "profile" && current === "settings") {
-        window.history.replaceState({ fruitfitScreen: "profile" }, "", window.location.pathname + window.location.search);
+      if (typeof nextScreen === "string" && current !== nextScreen) {
+        writeRoute(nextScreen, options);
       }
       return nextScreen;
     });
   }
 
-  function backFromHealth() {
-    if (window.history.state?.fruitfitScreen === screenRef.current) {
-      window.history.back();
-      return;
-    }
-    window.history.replaceState({ fruitfitScreen: "home" }, "", window.location.pathname + window.location.search);
-    setScreen("home");
+  function canPopCurrentRoute() {
+    const state = window.history.state || {};
+    return state.fruitfitScreen === screenRef.current && state.fruitfitSource !== "initial";
   }
 
-  function backFromLecture() {
-    if (window.history.state?.fruitfitScreen === "lecture") {
+  function goBack(fallback = "home") {
+    if (canPopCurrentRoute()) {
       window.history.back();
       return;
     }
-    window.history.replaceState({ fruitfitScreen: "home" }, "", window.location.pathname + window.location.search);
-    setScreen("home");
+    writeRoute(fallback, { replace: true, source: "back-fallback" });
+    setScreen(fallback);
   }
 
   useEffect(() => {
     function handlePopState() {
-      const nextHealthScreen = healthScreenFromHash();
-      if (nextHealthScreen) {
-        setScreen(nextHealthScreen);
-        return;
-      }
-      const nextAppScreen = appScreenFromHash();
-      if (nextAppScreen) {
-        setScreen(nextAppScreen);
-        return;
-      }
-      if (screenRef.current?.startsWith?.("health:")) {
-        setScreen("home");
-      } else if (screenRef.current === "settings") {
-        setScreen("profile");
-      } else if (screenRef.current === "lecture") {
-        setScreen("home");
-      }
+      routeMetaRef.current = window.history.state || {};
+      setScreen(screenFromLocation());
     }
     window.addEventListener("popstate", handlePopState);
     window.addEventListener("hashchange", handlePopState);
@@ -138,24 +140,27 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
+    if (!window.location.hash.includes("auth_token=")) {
+      const initialScreen = screenFromLocation();
+      const currentState = window.history.state || {};
+      if (currentState.fruitfitScreen !== initialScreen) {
+        writeRoute(initialScreen, { replace: true, source: "initial" });
+      } else {
+        routeMetaRef.current = currentState;
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     let listener;
-    CapacitorApp.addListener("backButton", ({ canGoBack }) => {
-      if (screenRef.current?.startsWith?.("health:")) {
-        backFromHealth();
-        return;
-      }
-      if (screenRef.current === "settings") {
-        window.history.replaceState({ fruitfitScreen: "profile" }, "", window.location.pathname + window.location.search);
-        setScreen("profile");
-        return;
-      }
-      if (screenRef.current === "lecture") {
-        window.history.replaceState({ fruitfitScreen: "home" }, "", window.location.pathname + window.location.search);
-        setScreen("home");
-        return;
-      }
-      if (canGoBack) {
+    CapacitorApp.addListener("backButton", () => {
+      if (screenRef.current !== "home" && canPopCurrentRoute()) {
         window.history.back();
+        return;
+      }
+      if (screenRef.current !== "home") {
+        writeRoute("home", { replace: true, source: "android-back-fallback" });
+        setScreen("home");
         return;
       }
       CapacitorApp.minimizeApp?.();
@@ -272,7 +277,7 @@ function AppContent() {
   }
 
   if (screen.startsWith("health:")) {
-    return <HealthDetailScreen type={screen.split(":")[1]} onBack={backFromHealth} />;
+    return <HealthDetailScreen type={screen.split(":")[1]} onBack={() => goBack("home")} />;
   }
 
   if (screen === "focus") {
@@ -283,7 +288,7 @@ function AppContent() {
         workout={workout}
         selectedWorkoutIndex={selectedWorkoutIndex}
         onSelectWorkout={setSelectedWorkoutIndex}
-        onBack={() => navigate("workout")}
+        onBack={() => goBack("workout")}
         onNavigate={navigate}
         profile={profile}
       />
@@ -297,7 +302,7 @@ function AppContent() {
         workout={workout}
         selectedWorkoutIndex={selectedWorkoutIndex}
         onSelectWorkout={setSelectedWorkoutIndex}
-        onBack={() => navigate("home")}
+        onBack={() => goBack("home")}
         onNavigate={navigate}
         profile={profile}
       />
@@ -317,7 +322,7 @@ function AppContent() {
   }
 
   if (screen === "food") {
-    return <NutritionScreen onNavigate={navigate} profile={profile} />;
+    return <NutritionScreen onNavigate={navigate} profile={profile} showBack={routeMetaRef.current?.fruitfitSource === "screen"} onBack={() => goBack("home")} />;
   }
 
   if (screen === "coach") {
@@ -329,11 +334,11 @@ function AppContent() {
   }
 
   if (screen === "settings") {
-    return <SettingsScreen theme={theme} onThemeChange={setTheme} onNavigate={navigate} />;
+    return <SettingsScreen theme={theme} onThemeChange={setTheme} onNavigate={navigate} onBack={() => goBack("profile")} />;
   }
 
   if (screen === "lecture") {
-    return <LectureDetailScreen onBack={backFromLecture} />;
+    return <LectureDetailScreen onBack={() => goBack("home")} />;
   }
 
   return (
