@@ -34,6 +34,7 @@ const defaultHeart = {
   avgWorkout: null,
   dayRange: [null, null],
   hourly: [],
+  weekRaw: [],
   condition: "нет",
   dataSource: null,
   status: "no_data",
@@ -48,6 +49,7 @@ const defaultSleep = {
   notes: "",
   week: [],
   month: [],
+  weekRaw: [],
   stages: [],
   dataSource: null,
   status: "no_data",
@@ -95,6 +97,8 @@ function emptyMetric(goal) {
     hourly: [],
     week: [],
     month: [],
+    weekRaw: [],
+    monthRaw: [],
     dataSource: null,
     status: "no_data",
   };
@@ -275,6 +279,24 @@ function buildSeriesFromSamples(samples = [], range = "week", valueKey = "value"
     if (index >= 0 && index < length) series[index] += Number(sample[valueKey] || 0);
   });
   return series;
+}
+
+function buildAverageSeriesFromSamples(samples = [], range = "week", valueKey = "value") {
+  const length = range === "month" ? 30 : 7;
+  const totals = Array.from({ length }, () => 0);
+  const counts = Array.from({ length }, () => 0);
+  const today = new Date();
+  samples.forEach((sample) => {
+    const value = Number(sample[valueKey] || 0);
+    if (!Number.isFinite(value) || value <= 0) return;
+    const date = new Date(sample.start || sample.time || Date.now());
+    const diffDays = Math.floor((new Date(today.toDateString()) - new Date(date.toDateString())) / 86400000);
+    const index = length - 1 - diffDays;
+    if (index < 0 || index >= length) return;
+    totals[index] += value;
+    counts[index] += 1;
+  });
+  return totals.map((total, index) => (counts[index] ? round(total / counts[index]) : 0));
 }
 
 function canReadNativeData(state) {
@@ -578,11 +600,15 @@ async function readNativeHealthSnapshot(previous) {
   const stepSamplesToday = samplesForSelectedSource(stepsToday, stepSelectionToday);
   const stepSamplesWeek = samplesForSelectedSource(stepsWeek, stepSelectionWeek);
   const stepSamplesMonth = samplesForSelectedSource(stepsMonth, stepSelectionMonth);
-  const stepWeek = buildSeriesFromSamples(stepSamplesWeek, "week");
-  const stepMonth = buildSeriesFromSamples(stepSamplesMonth, "month");
-  const caloriesWeekRaw = buildSeriesFromSamples(caloriesWeek.samples || [], "week");
-  const caloriesMonthRaw = buildSeriesFromSamples(caloriesMonth.samples || [], "month");
+  const stepsWeekRaw = stepSamplesWeek.length ? buildSeriesFromSamples(stepSamplesWeek, "week") : [];
+  const stepsMonthRaw = stepSamplesMonth.length ? buildSeriesFromSamples(stepSamplesMonth, "month") : [];
+  const caloriesWeekRaw = (caloriesWeek.samples || []).length ? buildSeriesFromSamples(caloriesWeek.samples || [], "week") : [];
+  const caloriesMonthRaw = (caloriesMonth.samples || []).length ? buildSeriesFromSamples(caloriesMonth.samples || [], "month") : [];
+  const heartRateWeekRaw = (heartWeek.samples || []).length ? buildAverageSeriesFromSamples(heartWeek.samples || [], "week") : [];
   const sleepSessions = mainSleepSessions(sleepWeek);
+  const sleepWeekRaw = sleepSessions.length ? buildSleepWeek(sleepSessions).map((item) => round(item.minutes)) : [];
+  const stepWeek = stepsWeekRaw.length ? stepsWeekRaw : Array.from({ length: 7 }, () => 0);
+  const stepMonth = stepsMonthRaw.length ? stepsMonthRaw : Array.from({ length: 30 }, () => 0);
   const allSleepSessions = sleepWeek.sessions || [];
   const sleepToday = sleepSessions[sleepSessions.length - 1] || sleepWeek.latestSleep || allSleepSessions[allSleepSessions.length - 1] || null;
   const recentHeartSample = latestHeartSampleFromResults([heartRecent, heartToday, heart24h, heartWeek], preferredPackage);
@@ -603,9 +629,15 @@ async function readNativeHealthSnapshot(previous) {
   });
   const calorieSplit = splitCalorieValues({ caloriesResult: caloriesToday, estimatedActive: estimatedCalories, profile: calorieProfile });
   const caloriesTodayValue = calorieSplit.activeCalories;
-  const estimatedCaloriesWeek = caloriesWeekRaw.map((value, index) => round(
-    normalizeCaloriesValue(value) || estimateActiveCalories({
+  const estimatedCaloriesWeek = Array.from({ length: 7 }, (_, index) => round(
+    normalizeCaloriesValue(caloriesWeekRaw[index]) || estimateActiveCalories({
       steps: stepWeek[index] || 0,
+      weightKg: calorieProfile.weight || previous.profileWeightKg || previous.weightKg || 75,
+    }),
+  ));
+  const estimatedCaloriesMonth = Array.from({ length: 30 }, (_, index) => round(
+    normalizeCaloriesValue(caloriesMonthRaw[index]) || estimateActiveCalories({
+      steps: stepMonth[index] || 0,
       weightKg: calorieProfile.weight || previous.profileWeightKg || previous.weightKg || 75,
     }),
   ));
@@ -624,7 +656,7 @@ async function readNativeHealthSnapshot(previous) {
   const resolvedStepWeek = hasPositiveSeries(stepWeek) ? stepWeek.map(round) : historyStepWeek;
   const resolvedStepMonth = hasPositiveSeries(stepMonth) ? stepMonth.map(round) : historyStepMonth;
   const resolvedCaloriesWeek = hasPositiveSeries(estimatedCaloriesWeek) ? estimatedCaloriesWeek.map(round) : historyCaloriesWeek;
-  const resolvedCaloriesMonth = hasPositiveSeries(caloriesMonthRaw) ? caloriesMonthRaw.map(round) : historyCaloriesMonth;
+  const resolvedCaloriesMonth = hasPositiveSeries(estimatedCaloriesMonth) ? estimatedCaloriesMonth.map(round) : historyCaloriesMonth;
   const hasCalories = caloriesToday.state === healthProviderStates.CONNECTED
     || caloriesTodayValue > 0
     || (caloriesToday.samples || []).length > 0
@@ -665,6 +697,8 @@ async function readNativeHealthSnapshot(previous) {
       hourly: buildSeriesFromSamples(stepSamplesToday, "today"),
       week: resolvedStepWeek,
       month: resolvedStepMonth,
+      weekRaw: stepsWeekRaw,
+      monthRaw: stepsMonthRaw,
       sourceName: stepSelectionToday.selectedSourceName,
       sourcePackage: stepSelectionToday.selectedSourcePackage || null,
       selectedSourceReason: stepSelectionToday.selectedSourceReason,
@@ -683,6 +717,8 @@ async function readNativeHealthSnapshot(previous) {
       hourly: buildSeriesFromSamples(caloriesToday.samples, "today"),
       week: resolvedCaloriesWeek,
       month: resolvedCaloriesMonth,
+      weekRaw: caloriesWeekRaw,
+      monthRaw: caloriesMonthRaw,
       sourceName: caloriesEstimated ? "Оценка активности" : dataSourceName(caloriesToday),
       selectedSourceReason: caloriesEstimated
         ? "active calories missing, estimated from steps/distance/workouts; total = resting BMR + active"
@@ -701,6 +737,7 @@ async function readNativeHealthSnapshot(previous) {
       avgWorkout: hasHeartToday ? heartToday.avg : previous.heart_rate.avgWorkout,
       dayRange: hasHeartToday ? [heartToday.min, heartToday.max] : previous.heart_rate.dayRange,
       hourly: heartValues,
+      weekRaw: heartRateWeekRaw,
       sourceName: sourceLabel(recentHeartSample || (hasRecentHeart ? heartRecent : heartToday)),
       sourcePackage: recentHeartSample?.sourcePackage || heartRecent.latestSourcePackage || heartToday.latestSourcePackage || heart24h.latestSourcePackage || null,
       latestTimestamp: heartLatestTimestamp,
@@ -724,6 +761,7 @@ async function readNativeHealthSnapshot(previous) {
       minutes: hasSleep ? round(sleepToday?.minutes || sleepWeek.minutes || 0) : previous.sleep.minutes,
       quality: hasSleep ? 4 : previous.sleep.quality,
       week: hasSleep ? buildSleepWeek(sleepSessions) : previous.sleep.week,
+      weekRaw: sleepWeekRaw,
       stages: sleepToday?.stages || previous.sleep.stages,
       fragments: sleepWeek.fragments || [],
       sourceName: dataSourceName(sleepWeek),
@@ -813,7 +851,7 @@ export function HealthProvider({ children }) {
         lastHealthSyncError: message,
       }));
       return { state: healthProviderStates.ERROR, source: "Health Connect", message };
-    })().finally(() => {
+    }).finally(() => {
       if (commitSeq === nativeCommitSeqRef.current) {
         setSyncing(false);
         syncPromiseRef.current = null;

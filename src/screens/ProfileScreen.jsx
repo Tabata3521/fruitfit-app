@@ -453,31 +453,35 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
   }
 
   async function copyHealthDebug() {
-    const report = healthDebug || await buildHealthDebugReport?.();
-    if (!report) return;
-    await navigator.clipboard?.writeText(JSON.stringify(report, null, 2));
-    setHealthDebug(report);
-    setHealthDebugStatus("JSON скопирован");
+    try {
+      const report = healthDebug || await buildHealthDebugReport?.();
+      if (!report) return;
+      await Promise.resolve(navigator.clipboard?.writeText(JSON.stringify(report, null, 2)));
+      setHealthDebug(report);
+      setHealthDebugStatus("JSON скопирован");
+    } catch (_) {
+      setHealthDebugStatus("Не удалось скопировать JSON");
+    }
   }
 
   async function shareHealthDebug() {
-    const report = healthDebug || await buildHealthDebugReport?.();
-    if (!report) return;
-    const json = JSON.stringify(report, null, 2);
-    const fileName = report.fileName || "fruitfit_health_debug.json";
-    setHealthDebug(report);
     try {
+      const report = healthDebug || await buildHealthDebugReport?.();
+      if (!report) return;
+      const json = JSON.stringify(report, null, 2);
+      const fileName = report.fileName || "fruitfit_health_debug.json";
+      setHealthDebug(report);
       if (navigator.share && window.File) {
         const file = new File([json], fileName, { type: "application/json" });
         await navigator.share({ title: "FruitFit health debug", files: [file] });
         setHealthDebugStatus("Отчёт передан в системное меню");
         return;
       }
+      await Promise.resolve(navigator.clipboard?.writeText(json));
+      setHealthDebugStatus("Share недоступен, JSON скопирован");
     } catch (_) {
-      // Fall back to clipboard below.
+      setHealthDebugStatus("Не удалось поделиться JSON");
     }
-    await navigator.clipboard?.writeText(json);
-    setHealthDebugStatus("Share недоступен, JSON скопирован");
   }
 
   const stepSources = health?.steps?.sources || [];

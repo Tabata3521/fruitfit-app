@@ -303,3 +303,17 @@ Notes:
 
 - APK rebuild is not required for this server-side prompt/nutrition iteration.
 - Public DNS check for `tagirfruit-mini.duckdns.org` did not resolve from the local machine during this run; VDS-local API checks passed on `127.0.0.1:8787`.
+
+## 2026-05-24 - Health detail runtime regression fix
+
+- Fixed the Profile tracker diagnostics runtime crash caused by an extra invocation in the Health Connect refresh promise chain: `catch(handler)().finally(...)` now correctly continues as `catch(handler).finally(...)`.
+- Split native raw health series by metric type with safe empty-array fallbacks: `stepsWeekRaw`, `caloriesWeekRaw`, `heartRateWeekRaw`, and `sleepWeekRaw`.
+- Stored raw week/month series on the matching metric only, so the Steps detail page no longer depends on calorie raw series.
+- Hardened Profile diagnostic copy/share handlers so clipboard/share failures show a controlled status instead of surfacing raw JS errors.
+- Verification:
+  - `npm run build` passed.
+  - Local browser check: Steps detail opened without `caloriesWeekRaw`/runtime errors.
+  - Local browser check: Heart detail opened without runtime errors.
+  - Local browser check: Profile diagnostic `Обновить` / `Скопировать` / `Поделиться` did not show `.catch` errors.
+  - Detail refresh timestamp remained visible after refresh.
+- Scope intentionally did not touch AI, admin, food DB, exercise media, or muscle maps.

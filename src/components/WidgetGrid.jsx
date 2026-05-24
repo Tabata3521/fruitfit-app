@@ -855,15 +855,25 @@ function MetricDetail({ type, health }) {
   const [period, setPeriod] = useState("today");
   const [activeIndex, setActiveIndex] = useState(null);
   const isSteps = type === "steps";
-  const metric = isSteps ? health.steps : health.calories;
+  const metricByType = {
+    steps: health.steps || {},
+    calories: health.calories || {},
+  };
+  const metric = metricByType[type] || {};
   const color = isSteps ? "#8BBE3D" : "#FF7A2F";
   const title = isSteps ? "Шаги" : "Активные калории";
   const unit = isSteps ? "шагов" : "ккал";
   const sourceAvailable = Boolean(metric?.dataSource);
 
-  const values = period === "today" ? (metric.hourly || []) : period === "week" ? (metric.week || []) : (metric.month || []);
-  const value = period === "today" ? metric.today : sum(values);
-  const target = period === "today" ? metric.goal : metric.goal * (period === "week" ? 7 : 30);
+  const rawWeek = Array.isArray(metric.weekRaw) ? metric.weekRaw : [];
+  const rawMonth = Array.isArray(metric.monthRaw) ? metric.monthRaw : [];
+  const values = period === "today"
+    ? (metric.hourly || [])
+    : period === "week"
+      ? (rawWeek.length ? rawWeek : (metric.week || []))
+      : (rawMonth.length ? rawMonth : (metric.month || []));
+  const value = period === "today" ? Number(metric.today || 0) : sum(values);
+  const target = period === "today" ? Number(metric.goal || 0) : Number(metric.goal || 0) * (period === "week" ? 7 : 30);
   const labels = period === "today" ? ["00", "06", "12", "18", "24"] : period === "week" ? ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"] : ["1", "10", "20", "30"];
   const activeValue = activeIndex === null ? null : values[Math.min(activeIndex, values.length - 1)];
   const activeLabel = activeIndex === null ? "" : (period === "today" ? `${activeIndex}:00` : labels[Math.min(activeIndex, labels.length - 1)] || `#${activeIndex + 1}`);
