@@ -5,7 +5,7 @@ import BottomNavigation from "../components/BottomNavigation";
 import CustomSelect from "../components/CustomSelect";
 import { useHealth } from "../data/healthStore";
 import { normalizeProfile, profileOptions, profileSummary, saveProfile, validateProfile } from "../data/profileStore";
-import { healthProviderLabels, healthProviderStates, healthSourceShortcuts, openHealthSource } from "../services/health/healthProvider";
+import { healthProviderStates, healthSourceShortcuts, openHealthSource } from "../services/health/healthProvider";
 
 const MEASUREMENTS_KEY = "fruitfit.measurements";
 
@@ -21,12 +21,12 @@ const permissionItems = [
 
 function healthPermissionSummary(availability) {
   const state = availability?.state || healthProviderStates.NOT_SUPPORTED;
-  if (state === healthProviderStates.CONNECTED) return "Health Connect подключён";
-  if (state === healthProviderStates.PARTIALLY_GRANTED) return "Часть разрешений выдана";
-  if (state === healthProviderStates.PERMISSIONS_REQUIRED) return "Разрешение не выдано";
-  if (state === healthProviderStates.NOT_INSTALLED) return "Health Connect не установлен";
-  if (state === healthProviderStates.NO_DATA) return "Нет данных";
-  return healthProviderLabels[state] || "Трекер не подключён";
+  if (state === healthProviderStates.CONNECTED) return "Активность подключена";
+  if (state === healthProviderStates.PARTIALLY_GRANTED) return "Можно расширить доступ для точности";
+  if (state === healthProviderStates.PERMISSIONS_REQUIRED) return "Настройте доступ к показателям";
+  if (state === healthProviderStates.NOT_INSTALLED) return "Health Connect можно установить для синхронизации";
+  if (state === healthProviderStates.NO_DATA) return "Ждём первую синхронизацию";
+  return "Подключите трекер для персонализации";
 }
 
 function permissionLine(item, availability, active) {
@@ -34,10 +34,20 @@ function permissionLine(item, availability, active) {
   if (item.id === "cycle") return "Данные цикла вводятся вручную";
   if (!item.permissionKey) return healthPermissionSummary(availability);
   const granted = Boolean(availability?.permissionStatus?.[item.permissionKey]);
-  if (granted) return "Разрешение выдано";
-  if (availability?.state === healthProviderStates.NOT_INSTALLED) return "Health Connect не установлен";
-  if (availability?.state === healthProviderStates.NOT_SUPPORTED) return "Доступно в Android APK";
-  return "Разрешение не выдано";
+  if (granted) return "Учитывается в рекомендациях";
+  if (availability?.state === healthProviderStates.NOT_INSTALLED) return "Появится после настройки Health Connect";
+  if (availability?.state === healthProviderStates.NOT_SUPPORTED) return "Доступно в приложении на Android";
+  return "Можно включить для более точной аналитики";
+}
+
+function healthConnectionHint(availability, syncing) {
+  if (syncing) return "Обновляем показатели. Обычно это занимает несколько секунд.";
+  const state = availability?.state || healthProviderStates.NOT_SUPPORTED;
+  if (state === healthProviderStates.CONNECTED) return "FruitFit использует активность, сон и пульс, чтобы точнее подбирать нагрузку.";
+  if (state === healthProviderStates.PARTIALLY_GRANTED) return "Часть данных уже подключена. Сон и пульс сделают восстановление точнее.";
+  if (state === healthProviderStates.PERMISSIONS_REQUIRED) return "Разрешите доступ к активности, сну и пульсу. Данные не передаются третьим лицам.";
+  if (state === healthProviderStates.NOT_INSTALLED) return "Установите или откройте Health Connect, чтобы синхронизировать данные часов.";
+  return "Подключите Health Connect, чтобы FruitFit мог учитывать вашу активность и восстановление.";
 }
 
 function FieldError({ error }) {
@@ -340,6 +350,7 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
   const [errors, setErrors] = useState({});
   const [saved, setSaved] = useState(false);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [healthDebug, setHealthDebug] = useState(null);
   const [healthDebugStatus, setHealthDebugStatus] = useState("");
   const [pendingSourceScan, setPendingSourceScan] = useState(false);
@@ -508,7 +519,7 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
             </div>
           </div>
           <div className="mt-4 rounded-[20px] border border-appBorder bg-appBg px-4 py-3 text-[12px] leading-5 text-appMuted">
-            {"Health Connect / Apple Health \u0431\u0443\u0434\u0443\u0442 \u0437\u0430\u043f\u0440\u0430\u0448\u0438\u0432\u0430\u0442\u044c\u0441\u044f \u0442\u043e\u043b\u044c\u043a\u043e \u0432 native build. \u0412 web/PWA \u0434\u0430\u043d\u043d\u044b\u0435 \u0442\u0440\u0435\u043a\u0435\u0440\u0430 \u043d\u0435 \u0441\u0438\u043c\u0443\u043b\u0438\u0440\u0443\u044e\u0442\u0441\u044f."}
+            Подключите Health Connect, чтобы FruitFit учитывал активность, сон и пульс в рекомендациях. Данные используются для персонализации внутри приложения.
           </div>
           <button type="button" onClick={onRestartQuiz} className="mt-2 h-11 w-full rounded-full border border-appBorder bg-appBg text-[13px] font-black text-appText">
             Повторить квиз
@@ -547,9 +558,9 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
             <span className="flex min-w-0 items-center gap-2">
               <Watch size={18} className="shrink-0 text-appOrange" />
               <span className="min-w-0">
-                <span className="block text-[16px] font-black text-appText">Подключения и разрешения</span>
+                <span className="block text-[16px] font-black text-appText">Здоровье и активность</span>
                 <span className="mt-0.5 block text-[12px] font-semibold text-appMuted">
-                  {healthPermissionSummary(availability)} · источник: {availability?.source || "Health Connect"}
+                  {healthPermissionSummary(availability)}
                 </span>
               </span>
             </span>
@@ -567,13 +578,13 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
               >
                 <div className="space-y-2 p-4 pt-3">
                   <div className="rounded-[18px] border border-appBorder bg-appBg p-3">
-                    <p className="text-[12px] font-black text-appText">{availability?.source || "Health Connect"}</p>
-                    <p className="mt-1 text-[11px] leading-4 text-appMuted">{syncing ? "Запрашиваю данные трекера..." : availability?.message || "Нажмите кнопку ниже, чтобы выдать доступ к данным."}</p>
+                    <p className="text-[12px] font-black text-appText">Health Connect</p>
+                    <p className="mt-1 text-[11px] leading-4 text-appMuted">{healthConnectionHint(availability, syncing)}</p>
                     <p className="mt-2 text-[11px] leading-4 text-appMuted">
-                      Если ваш трекер не передаёт данные напрямую в Health Connect, подключите его приложение к Google Fit, а Google Fit — к Health Connect.
+                      FruitFit не продаёт и не передаёт эти данные третьим лицам. Они нужны, чтобы точнее оценивать восстановление и дневную активность.
                     </p>
                     <button type="button" onClick={refreshHealthData} className="mt-3 h-10 w-full rounded-full bg-appGreen text-[12px] font-black text-[#181F19]">
-                      {syncing ? "Обновляю..." : "Обновить данные"}
+                      {syncing ? "Обновляем..." : "Подключить или обновить"}
                     </button>
                     <div className="mt-3 grid grid-cols-2 gap-2">
                       {healthSourceShortcuts.map((source) => (
@@ -590,7 +601,7 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
                     </div>
                     {stepSources.length > 1 && (
                       <div className="mt-3 rounded-[16px] border border-appBorder bg-appCard/70 p-2">
-                        <p className="px-1 text-[11px] font-black uppercase tracking-[0.08em] text-appMuted">Источник шагов</p>
+                        <p className="px-1 text-[11px] font-black uppercase tracking-[0.08em] text-appMuted">Данные шагов</p>
                         <div className="mt-2 space-y-1">
                           <button
                             type="button"
@@ -598,7 +609,7 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
                             className={`flex min-h-9 w-full items-center justify-between rounded-xl px-3 text-left text-[11px] font-bold transition ${!preferredSourcePackage ? "bg-appGreen text-[#181F19]" : "bg-appBg text-appText"}`}
                           >
                             <span>Автоматически</span>
-                            <span>{health?.steps?.selectedSourceReason || "auto"}</span>
+                            <span>рекомендуется</span>
                           </button>
                           {stepSources.map((source) => (
                             <button
@@ -607,7 +618,7 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
                               onClick={() => setPreferredSourcePackage(source.sourcePackage || "")}
                               className={`flex min-h-9 w-full items-center justify-between gap-2 rounded-xl px-3 text-left text-[11px] font-bold transition ${preferredSourcePackage === source.sourcePackage ? "bg-appGreen text-[#181F19]" : "bg-appBg text-appText"}`}
                             >
-                              <span className="min-w-0 truncate">{source.sourceName || source.sourcePackage || "Health Connect aggregate"}</span>
+                              <span className="min-w-0 truncate">{source.sourceName || "Health Connect"}</span>
                               <span className="shrink-0">{Number(source.total || 0).toLocaleString("ru-RU")}</span>
                             </button>
                           ))}
@@ -616,45 +627,52 @@ export default function ProfileScreen({ profile, onProfileChange, theme, onTheme
                     )}
                     {health?.steps?.selectedSourceReason && (
                       <p className="mt-2 rounded-2xl bg-appCard px-3 py-2 text-[11px] font-semibold text-appMuted">
-                        Источник: {health.steps.sourceName || "Health Connect"} · Причина: {health.steps.selectedSourceReason}
+                        FruitFit автоматически выбрал самый полный источник шагов.
                       </p>
                     )}
                   </div>
                   <div className="rounded-[18px] border border-appBorder bg-appBg p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-[12px] font-black text-appText">Диагностика трекера</p>
+                        <p className="text-[12px] font-black text-appText">Расширенная диагностика</p>
                         <p className="mt-1 text-[11px] leading-4 text-appMuted">
-                          Технический JSON без ФИО, токенов и медицинских диагнозов: permissions, источники, пульс, шаги, сон и ошибки Health Connect.
+                          Только если нужно отправить техническую информацию в поддержку. В обычном использовании этот блок не нужен.
                         </p>
                       </div>
                       {healthDebug?.fileName && <span className="shrink-0 rounded-full bg-appCard px-2 py-1 text-[10px] font-bold text-appMuted">JSON</span>}
                     </div>
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      <button type="button" onClick={refreshHealthDebug} className="min-h-10 rounded-2xl border border-appBorder bg-appCard px-2 text-[11px] font-black text-appText">
-                        Обновить
-                      </button>
-                      <button type="button" onClick={copyHealthDebug} className="min-h-10 rounded-2xl border border-appBorder bg-appCard px-2 text-[11px] font-black text-appText">
-                        Скопировать
-                      </button>
-                      <button type="button" onClick={shareHealthDebug} className="min-h-10 rounded-2xl bg-appGreen px-2 text-[11px] font-black text-[#181F19]">
-                        Поделиться
-                      </button>
-                    </div>
-                    {healthDebugStatus && <p className="mt-2 text-[11px] font-bold text-appMuted">{healthDebugStatus}</p>}
-                    {healthDebug && (
-                      <pre className="mt-3 max-h-36 overflow-auto rounded-2xl bg-black/10 p-3 text-[10px] leading-4 text-appMuted">
-                        {JSON.stringify({
-                          fileName: healthDebug.fileName,
-                          status: healthDebug.healthConnect?.healthConnectSdkStatus,
-                          heartRate: healthDebug.heartRate,
-                          steps: {
-                            aggregateToday: healthDebug.steps?.aggregateToday,
-                            selectedSource: healthDebug.steps?.selectedSource,
-                            sourcesToday: healthDebug.steps?.sourcesToday,
-                          },
-                        }, null, 2)}
-                      </pre>
+                    <button type="button" onClick={() => setDiagnosticsOpen((value) => !value)} className="mt-3 h-10 w-full rounded-full border border-appBorder bg-appCard text-[12px] font-black text-appText">
+                      {diagnosticsOpen ? "Скрыть диагностику" : "Открыть диагностику"}
+                    </button>
+                    {diagnosticsOpen && (
+                      <>
+                        <div className="mt-3 grid grid-cols-3 gap-2">
+                          <button type="button" onClick={refreshHealthDebug} className="min-h-10 rounded-2xl border border-appBorder bg-appCard px-2 text-[11px] font-black text-appText">
+                            Обновить
+                          </button>
+                          <button type="button" onClick={copyHealthDebug} className="min-h-10 rounded-2xl border border-appBorder bg-appCard px-2 text-[11px] font-black text-appText">
+                            Скопировать
+                          </button>
+                          <button type="button" onClick={shareHealthDebug} className="min-h-10 rounded-2xl bg-appGreen px-2 text-[11px] font-black text-[#181F19]">
+                            Поделиться
+                          </button>
+                        </div>
+                        {healthDebugStatus && <p className="mt-2 text-[11px] font-bold text-appMuted">{healthDebugStatus}</p>}
+                        {healthDebug && (
+                          <pre className="mt-3 max-h-36 overflow-auto rounded-2xl bg-black/10 p-3 text-[10px] leading-4 text-appMuted">
+                            {JSON.stringify({
+                              fileName: healthDebug.fileName,
+                              status: healthDebug.healthConnect?.healthConnectSdkStatus,
+                              heartRate: healthDebug.heartRate,
+                              steps: {
+                                aggregateToday: healthDebug.steps?.aggregateToday,
+                                selectedSource: healthDebug.steps?.selectedSource,
+                                sourcesToday: healthDebug.steps?.sourcesToday,
+                              },
+                            }, null, 2)}
+                          </pre>
+                        )}
+                      </>
                     )}
                   </div>
                   {permissionItems.filter((item) => draft.gender !== "male" || item.id !== "cycle").map((item) => {

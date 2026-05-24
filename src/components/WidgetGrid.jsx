@@ -526,9 +526,7 @@ function HeartWidget({ health, onOpen, onConnect, onRefresh }) {
   );
   const displayedBpm = heart.latestBpm || heart.current;
   if (!hasHeartData) {
-    const permissionMissing = heart.status === "permission_required";
-    const stale = heart.status === "stale";
-    const hasLast = Boolean(heart.latestBpm);
+    const copy = friendlyEmptyCopy("heart", heart.status);
     return (
       <EmptyHealthWidget
         title="Пульс"
@@ -537,9 +535,9 @@ function HeartWidget({ health, onOpen, onConnect, onRefresh }) {
         onOpen={onOpen}
         onConnect={onConnect}
         onRefresh={onRefresh}
-        headline={permissionMissing ? "Разрешение не выдано" : hasLast ? `Последний пульс: ${heart.latestBpm}` : stale ? "Нет актуальных данных" : "Нет данных пульса"}
-        description={permissionMissing ? "Разрешите FruitFit читать пульс в Health Connect." : hasLast ? `Обновлено ${heart.updatedAgoText || "давно"}. Не показываю это как live HR.` : stale ? "Есть старые записи, но за последние 15 минут источник не передал пульс." : "Источник не передал данные пульса. Проверьте синхронизацию часов с Health Connect."}
-        actionLabel={permissionMissing ? "Выдать доступ" : "Обновить"}
+        headline={copy.headline}
+        description={copy.description}
+        actionLabel={copy.actionLabel}
       />
     );
   }
@@ -547,14 +545,75 @@ function HeartWidget({ health, onOpen, onConnect, onRefresh }) {
     <motion.div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(event) => openWidgetFromKeyboard(event, onOpen)} whileTap={{ scale: 0.985 }} className="cursor-pointer rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
       <div className="flex items-center justify-between gap-2">
         <span className="inline-flex items-center gap-2 text-[13px] font-bold text-appText"><Heart size={15} className="text-red-500" fill="currentColor" /> Пульс</span>
-        <span className="ml-auto rounded-full bg-red-50 px-2 py-1 text-[10px] font-bold text-red-500">{heart.freshness === "fresh" ? "live" : heart.freshness || "data"}</span>
+        <span className="ml-auto rounded-full bg-red-50 px-2 py-1 text-[10px] font-bold text-red-500">{friendlyHealthBadge(heart.freshness)}</span>
         <DashboardRefreshButton onRefresh={onRefresh} />
       </div>
       <p className="mt-3 text-[26px] font-black text-appText">{displayedBpm || "—"} <span className="text-[12px] font-medium text-appMuted">уд/мин</span></p>
       <Sparkline values={(heart.hourly || []).slice(-9)} color="#EF4444" />
-      <p className="mt-2 text-[11px] text-appMuted">обновлено {heart.updatedAgoText || "только что"} · {heart.sourceName || "Health Connect"}</p>
+      <p className="mt-2 text-[11px] text-appMuted">{friendlyHeartHint(heart)}</p>
     </motion.div>
   );
+}
+
+function friendlyHealthBadge(status) {
+  if (status === "fresh") return "актуально";
+  if (status === "aging") return "обновляется";
+  if (status === "stale") return "ждём синхронизацию";
+  return "измерение";
+}
+
+function friendlyHeartHint(heart = {}) {
+  if (heart.freshness === "fresh") return `Обновлено ${heart.updatedAgoText || "только что"}`;
+  if (heart.latestBpm) return `Пульс недавно не обновлялся. Последняя запись: ${heart.updatedAgoText || "некоторое время назад"}.`;
+  return "Откройте приложение часов, чтобы синхронизировать пульс.";
+}
+
+function friendlySourceHint(metric = {}, type = "metric") {
+  if (metric.isEstimated || metric.status === "estimated") {
+    return "Часть показателей рассчитана автоматически на основе активности.";
+  }
+  if (!metric.dataSource) {
+    return type === "sleep"
+      ? "Добавьте данные сна или подключите трекер для более точной аналитики."
+      : "Подключите трекер для более точной аналитики.";
+  }
+  return "Данные обновляются автоматически при синхронизации трекера.";
+}
+
+function friendlyEmptyCopy(kind, status, hasPartialData = false) {
+  if (status === "permission_required") {
+    return {
+      headline: "Подключите доступ к показателям",
+      description: "FruitFit сможет учитывать активность, сон и пульс в рекомендациях. Данные используются только внутри приложения.",
+      actionLabel: "Настроить доступ",
+    };
+  }
+  if (kind === "heart") {
+    return {
+      headline: "Ждём синхронизацию пульса",
+      description: "Откройте приложение часов или обновите Health Connect, чтобы FruitFit увидел последние измерения.",
+      actionLabel: "Обновить",
+    };
+  }
+  if (kind === "sleep") {
+    return {
+      headline: "Добавьте данные сна",
+      description: "Сон помогает точнее оценивать восстановление и подбирать нагрузку на день.",
+      actionLabel: "Обновить",
+    };
+  }
+  if (kind === "recovery" && hasPartialData) {
+    return {
+      headline: "Оценка станет точнее после синхронизации",
+      description: "Часть показателей уже есть. Добавьте сон и свежий пульс, чтобы восстановление считалось увереннее.",
+      actionLabel: "Посмотреть",
+    };
+  }
+  return {
+    headline: "Подключите трекер",
+    description: "Health Connect поможет FruitFit анализировать активность и мягко адаптировать рекомендации.",
+    actionLabel: "Подключить",
+  };
 }
 
 function hasChartData(values = []) {
@@ -596,7 +655,7 @@ function AggregateProgress({ value, target, color, unit, note }) {
 
 function MetricWidget({ title, icon: Icon, value, target, color, suffix, sourceNote, onOpen, onConnect, onRefresh }) {
   if (value == null || value === 0) {
-    return <EmptyHealthWidget title={title} icon={Icon} color={color} onOpen={onOpen} onConnect={onConnect} onRefresh={onRefresh} actionLabel="Обновить" />;
+    return <EmptyHealthWidget title={title} icon={Icon} color={color} onOpen={onOpen} onConnect={onConnect} onRefresh={onRefresh} headline="Данные скоро появятся" description="Подключите трекер или обновите синхронизацию, чтобы увидеть динамику." actionLabel="Обновить" />;
   }
   const percent = formatPercent(value, target);
   return (
@@ -620,7 +679,8 @@ function SleepWidget({ health, onOpen, onConnect, onRefresh }) {
   const sleep = health.sleep || {};
   const hasSleepData = Boolean(sleep.dataSource || sleep.minutes > 0 || (sleep.week || []).some((item) => Number(item.minutes || 0) > 0));
   if (!hasSleepData) {
-    return <EmptyHealthWidget title="Сон" icon={Moon} color="#60A5FA" onOpen={onOpen} onConnect={onConnect} onRefresh={onRefresh} actionLabel="Обновить" />;
+    const copy = friendlyEmptyCopy("sleep", sleep.status);
+    return <EmptyHealthWidget title="Сон" icon={Moon} color="#60A5FA" onOpen={onOpen} onConnect={onConnect} onRefresh={onRefresh} headline={copy.headline} description={copy.description} actionLabel={copy.actionLabel} />;
   }
   return (
     <motion.div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(event) => openWidgetFromKeyboard(event, onOpen)} whileTap={{ scale: 0.985 }} className="cursor-pointer rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
@@ -630,6 +690,7 @@ function SleepWidget({ health, onOpen, onConnect, onRefresh }) {
       </div>
       <p className="mt-3 text-[24px] font-black text-appText">{formatSleepDuration(health.sleep.minutes)}</p>
       <p className="text-[11px] text-appMuted">качество: {health.sleep.quality}/5</p>
+      <p className="mt-1 text-[11px] leading-4 text-appMuted">{friendlySourceHint(sleep, "sleep")}</p>
       <Sparkline values={health.sleep.week.map((item) => item.minutes)} color="#60A5FA" />
     </motion.div>
   );
@@ -639,7 +700,8 @@ function RecoveryWidget({ health, onOpen, onConnect, onRefresh }) {
   const score = health.readiness.score;
   if (score == null) {
     const hasPartialData = Boolean(health.heart_rate?.latestBpm || health.sleep?.minutes || health.steps?.today);
-    return <EmptyHealthWidget title="Восстановление" icon={Activity} color="#8BBE3D" onOpen={onOpen} onConnect={onConnect} onRefresh={onRefresh} headline={hasPartialData ? "Недостаточно данных" : undefined} description={hasPartialData ? "Часть данных уже есть. Откройте детали, чтобы посмотреть, чего не хватает для точной оценки." : undefined} actionLabel={hasPartialData ? "Посмотреть" : "Обновить"} />;
+    const copy = friendlyEmptyCopy("recovery", health.readiness?.status, hasPartialData);
+    return <EmptyHealthWidget title="Восстановление" icon={Activity} color="#8BBE3D" onOpen={onOpen} onConnect={onConnect} onRefresh={onRefresh} headline={copy.headline} description={copy.description} actionLabel={copy.actionLabel} />;
   }
   return (
     <motion.div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(event) => openWidgetFromKeyboard(event, onOpen)} whileTap={{ scale: 0.985 }} className="cursor-pointer rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
@@ -653,6 +715,7 @@ function RecoveryWidget({ health, onOpen, onConnect, onRefresh }) {
         </Ring>
         <p className="line-clamp-3 text-[11px] leading-4 text-appMuted">{health.readiness.recommendation}</p>
       </div>
+      <p className="mt-3 text-[11px] leading-4 text-appMuted">Сон, пульс и активность учитываются вместе. Чем регулярнее синхронизация, тем точнее оценка.</p>
     </motion.div>
   );
 }
@@ -684,8 +747,8 @@ function WeeklyWidget({ health, onOpen, onConnect }) {
         <h3 className="text-[15px] font-black text-appText">Активность за неделю</h3>
           <ChevronRight size={17} className="text-appMuted" />
         </div>
-        <p className="mt-3 text-[18px] font-black text-appText">Трекер не подключён</p>
-        <p className="mt-1 text-[12px] leading-5 text-appMuted">Шаги и активные калории появятся после подключения Health Connect или Apple Health.</p>
+        <p className="mt-3 text-[18px] font-black text-appText">Подключите активность</p>
+        <p className="mt-1 text-[12px] leading-5 text-appMuted">FruitFit сможет видеть недельный ритм и мягче подбирать нагрузку.</p>
         <span
           role="button"
           tabIndex={0}
@@ -702,7 +765,7 @@ function WeeklyWidget({ health, onOpen, onConnect }) {
           }}
           className="mt-3 inline-flex h-8 items-center rounded-full bg-appGreen px-3 text-[11px] font-black text-[#181F19]"
         >
-          Подключить трекер
+          Подключить
         </span>
       </motion.button>
     );
@@ -974,9 +1037,7 @@ function MetricDetail({ type, health }) {
         <p className="text-[12px] font-bold uppercase tracking-wide text-appMuted">{title}</p>
         <p className="mt-1 text-[44px] font-black leading-none text-appText">{value.toLocaleString("ru-RU")}</p>
         <p className="mt-2 text-[13px] text-appMuted">Цель: {target.toLocaleString("ru-RU")} {unit} • {formatPercent(value, target)}%</p>
-        <p className="mt-1 text-[12px] font-semibold text-appMuted">
-          Источник: {metric.sourceName || "Health Connect"}{metric.selectedSourceReason ? ` · Причина: ${metric.selectedSourceReason}` : ""}
-        </p>
+        <p className="mt-1 text-[12px] font-semibold text-appMuted">{friendlySourceHint(metric, type)}</p>
       </div>
       {!isSteps && (
         <div className="mt-4 grid grid-cols-1 gap-2">
@@ -995,8 +1056,8 @@ function MetricDetail({ type, health }) {
             color={color}
             unit={unit}
             note={isSteps
-              ? "Health Connect отдал итог за день без почасовой детализации. История будет накапливаться после ежедневных обновлений."
-              : "Оценка активности по шагам, дистанции и тренировкам. История активных калорий будет накапливаться после обновлений."}
+              ? "Сегодня доступен общий итог. Детальная динамика появится после следующих синхронизаций."
+              : "Часть калорий рассчитана автоматически на основе шагов, дистанции и тренировок."}
           />
         ) : chartHasData ? (
           <div
@@ -1028,7 +1089,7 @@ function MetricDetail({ type, health }) {
         title={isSteps ? "Что это и как использовать?" : "Как считаются калории?"}
         items={isSteps
           ? ["Шаги показывают бытовую активность и помогают видеть, сколько движения есть вне тренировок.", "Смотри тренд за неделю: один слабый день не страшен, важнее общий ритм."]
-          : ["Активные калории — расход на движение, шаги и тренировки.", "Калории покоя считаются отдельно по профилю. Общий расход за день = BMR + активные калории, если Health Connect не отдаёт total напрямую."]}
+          : ["Активные калории — это энергия на движение, шаги и тренировки.", "Если трекер не передаёт полный дневной расход, FruitFit аккуратно дополняет оценку по профилю и активности."]}
       />
     </>
   );
@@ -1043,18 +1104,16 @@ function HeartDetail({ health, setHeartCondition }) {
         ? <LineChart values={heart.hourly} color="#EF4444" />
         : <ChartEmptyState>Пока нет серии измерений для графика. Последний пульс и статистика ниже уже доступны.</ChartEmptyState>}
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <StatPill label="Сейчас" value={heart.current ? `${heart.current} уд/мин` : "нет актуальных данных"} accent />
-        <StatPill label="Последний пульс" value={heart.latestBpm ? `${heart.latestBpm} уд/мин` : "нет данных"} />
-        <StatPill label="Покой" value={heart.resting ? `${heart.resting} уд/мин` : "нет данных"} />
-        <StatPill label="Тренировка" value={heart.avgWorkout ? `${heart.avgWorkout} уд/мин` : "нет данных"} />
-        <StatPill label="Обновлено" value={heart.updatedAgoText || "нет данных"} />
+        <StatPill label="Сейчас" value={heart.current ? `${heart.current} уд/мин` : "ждём синхронизацию"} accent />
+        <StatPill label="Последний пульс" value={heart.latestBpm ? `${heart.latestBpm} уд/мин` : "пока нет измерений"} />
+        <StatPill label="Покой" value={heart.resting ? `${heart.resting} уд/мин` : "появится позже"} />
+        <StatPill label="Тренировка" value={heart.avgWorkout ? `${heart.avgWorkout} уд/мин` : "после тренировки"} />
+        <StatPill label="Обновлено" value={heart.updatedAgoText || "скоро"} />
       </div>
       <div className="mt-3 rounded-[18px] border border-appBorder bg-appBg/70 p-3 text-[11px] leading-5 text-appMuted">
-        <p><span className="font-black text-appText">Источник:</span> {heart.sourceName || "Health Connect"}</p>
-        <p><span className="font-black text-appText">Последняя запись:</span> {heart.latestTimestamp ? new Date(heart.latestTimestamp).toLocaleString("ru-RU") : "нет данных"}</p>
-        <p><span className="font-black text-appText">Свежесть:</span> {heart.freshness || "no_data"} · {heart.updatedAgoText || "нет данных"}</p>
-        <p><span className="font-black text-appText">Записи:</span> сегодня {heart.recordsToday || 0}, 24ч {heart.records24h || 0}, 7д {heart.records7d || 0}</p>
-        {heart.message && <p>{heart.message}</p>}
+        <p><span className="font-black text-appText">Статус:</span> {friendlyHealthBadge(heart.freshness)}</p>
+        <p><span className="font-black text-appText">Последняя синхронизация:</span> {heart.latestTimestamp ? new Date(heart.latestTimestamp).toLocaleString("ru-RU") : "данные скоро обновятся"}</p>
+        <p>{friendlyHeartHint(heart)}</p>
       </div>
       <div className="mt-4 rounded-[22px] border border-appBorder bg-appBg/70 p-3">
         <p className="text-[12px] font-black text-appText">Известные особенности сердца</p>
@@ -1225,11 +1284,11 @@ function RecoveryDetail({ health }) {
   if (readiness.score == null) {
     return (
       <div className="rounded-[24px] bg-appBg p-4">
-        <p className="text-[18px] font-black text-appText">Недостаточно данных для точной оценки</p>
+        <p className="text-[18px] font-black text-appText">Восстановление станет точнее после синхронизации</p>
         <p className="mt-2 text-[13px] leading-5 text-appMuted">
-          Пульс: {health.heart_rate?.latestBpm ? `${health.heart_rate.latestBpm} уд/мин` : "нет данных"}. Сон: {health.sleep?.minutes ? formatSleepDuration(health.sleep.minutes) : "нет данных"}. Шаги: {(health.steps?.today || 0).toLocaleString("ru-RU")}.
+          Пульс: {health.heart_rate?.latestBpm ? `${health.heart_rate.latestBpm} уд/мин` : "ждём данные"}. Сон: {health.sleep?.minutes ? formatSleepDuration(health.sleep.minutes) : "можно добавить вручную"}. Шаги: {(health.steps?.today || 0).toLocaleString("ru-RU")}.
         </p>
-        <p className="mt-3 text-[12px] leading-5 text-appMuted">Для точной оценки нужны стабильные данные сна и пульса за период. Пока показываем частичное состояние, а не пустой экран.</p>
+        <p className="mt-3 text-[12px] leading-5 text-appMuted">Добавьте сон или синхронизируйте часы, чтобы FruitFit увереннее оценивал готовность к нагрузке.</p>
       </div>
     );
   }
@@ -1240,7 +1299,7 @@ function RecoveryDetail({ health }) {
           <Ring value={readiness.score} size={112}>
             <div className="text-center">
               <p className="text-[28px] font-black leading-none text-appText">{readiness.score}%</p>
-              <p className="mt-1 text-[10px] font-bold uppercase text-appMuted">battery</p>
+              <p className="mt-1 text-[10px] font-bold uppercase text-appMuted">готовность</p>
             </div>
           </Ring>
           <div className="min-w-0">
@@ -1316,8 +1375,8 @@ function WeeklyDetail({ health }) {
   if (!hasData) {
     return (
       <div className="rounded-[22px] bg-appBg p-4">
-        <p className="text-[18px] font-black text-appText">Трекер не подключён</p>
-        <p className="mt-2 text-[13px] leading-5 text-appMuted">Данные активности появятся после подключения Health Connect или Apple Health.</p>
+        <p className="text-[18px] font-black text-appText">Подключите активность</p>
+        <p className="mt-2 text-[13px] leading-5 text-appMuted">После подключения Health Connect FruitFit сможет видеть недельный ритм и давать более точные рекомендации.</p>
       </div>
     );
   }
@@ -1391,7 +1450,7 @@ export function HealthDetailScreen({ type, onBack }) {
   async function handleRefresh() {
     setRefreshNote("");
     const result = await syncNativeHealth?.({ force: true, reason: `detail-${type}` });
-    setRefreshNote(result?.message || "Health Connect проверен.");
+    setRefreshNote(result?.message ? "Данные скоро обновятся" : "Синхронизация проверена");
   }
 
   return (
@@ -1417,10 +1476,10 @@ export function HealthDetailScreen({ type, onBack }) {
 
       <section className="rounded-[28px] border border-appBorder bg-appCard/95 p-4 shadow-sm">
         <p className="mb-3 rounded-2xl bg-appBg/70 px-3 py-2 text-[11px] font-semibold text-appMuted">
-          FruitFit обновил данные: {health.lastFruitFitRefreshAt ? new Date(health.lastFruitFitRefreshAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }) : "ещё нет"}
+          Синхронизация: {health.lastFruitFitRefreshAt ? new Date(health.lastFruitFitRefreshAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }) : "данные скоро появятся"}
           {refreshNote ? ` · ${refreshNote}` : ""}
         </p>
-        {syncError && <p className="mb-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] font-bold text-red-500">{syncError}</p>}
+        {syncError && <p className="mb-3 rounded-2xl border border-appBorder bg-appBg/80 px-3 py-2 text-[11px] font-bold text-appMuted">Данные скоро обновятся. Проверьте, что трекер синхронизировался с Health Connect.</p>}
         {type === "heart" && <HeartDetail health={health} setHeartCondition={setHeartCondition} />}
         {type === "steps" && <MetricDetail type="steps" health={health} />}
         {type === "calories" && <MetricDetail type="calories" health={health} />}
@@ -1465,9 +1524,9 @@ export default function WidgetGrid({ profile, onNavigate }) {
       case "heart":
         return <HeartWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:heart")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-heart" })} />;
       case "steps":
-        return <MetricWidget key={widget.id} title="Шаги" icon={Footprints} value={health.steps.today} target={health.steps.goal} color="#8BBE3D" suffix="шагов" sourceNote={health.steps?.sourceName ? `${health.steps.sourceName}` : ""} onOpen={() => onNavigate?.("health:steps")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-steps" })} />;
+        return <MetricWidget key={widget.id} title="Шаги" icon={Footprints} value={health.steps.today} target={health.steps.goal} color="#8BBE3D" suffix="шагов" sourceNote={friendlySourceHint(health.steps, "steps")} onOpen={() => onNavigate?.("health:steps")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-steps" })} />;
       case "calories":
-        return <MetricWidget key={widget.id} title="Калории" icon={Flame} value={health.calories.today} target={health.calories.goal} color="#FF7A2F" suffix="ккал" sourceNote={health.calories?.isEstimated ? "Оценка активности" : health.calories?.sourceName || ""} onOpen={() => onNavigate?.("health:calories")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-calories" })} />;
+        return <MetricWidget key={widget.id} title="Калории" icon={Flame} value={health.calories.today} target={health.calories.goal} color="#FF7A2F" suffix="ккал" sourceNote={friendlySourceHint(health.calories, "calories")} onOpen={() => onNavigate?.("health:calories")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-calories" })} />;
       case "sleep":
         return <SleepWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:sleep")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-sleep" })} />;
       case "recovery":

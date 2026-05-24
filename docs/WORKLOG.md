@@ -345,3 +345,21 @@ Notes:
   - Dashboard Nutrition widget -> Nutrition showed a back arrow and returned to Dashboard.
 - Validation: `npm run build` passed.
 - Scope intentionally did not touch Health Connect logic, health refresh pipeline, AI backend, food DB, exercise media bindings, muscle maps, admin builder, payments/auth, or APK config.
+
+## 2026-05-24 - Health widget UX and onboarding copy polish
+
+- Replaced technical health widget wording with calm consumer-facing copy:
+  - `stale` / `aging` style badges now render as "ждём синхронизацию" / "обновляется".
+  - Heart widget now says "Откройте приложение часов, чтобы синхронизировать пульс" instead of source/debug language.
+  - Calories estimate copy now says that part of the values is calculated automatically from activity.
+  - Empty sleep/recovery states explain what to add next instead of presenting an error-like "no data" state.
+- Added contextual hints in dashboard widgets and health detail pages for sleep, heart freshness, calories, weekly activity, and recovery accuracy.
+- Removed ordinary UI exposure of source reasons, `Health Connect aggregate`, raw freshness names, and technical sync errors.
+- Profile health connection copy now explains why Health Connect is useful, that data is used for personalization, and that it is not shared with third parties.
+- Moved tracker diagnostics behind an explicit "Открыть диагностику" control so normal users do not see JSON/debug wording by default.
+- Added onboarding hint on the final quiz step explaining Health Connect benefit and privacy before the user enters the app.
+- Browser QA:
+  - Dashboard health widgets did not expose `stale`, `partial_data`, `no_data`, `estimated`, `aging`, `live HR`, or `Health Connect aggregate`.
+  - Profile visible copy did not expose raw source reason/debug wording.
+- Validation: `npm run build` passed.
+- Scope intentionally did not change health logic, recovery calculations, source priority, AI backend, routing, nutrition, admin, or payments/auth.

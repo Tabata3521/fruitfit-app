@@ -98,6 +98,11 @@ export default function OnboardingQuiz({ initialProfile = profileDefaults, onCom
 
       <section className="mt-6 flex-1">
         <h2 className="text-[28px] font-black leading-tight text-appText">{step.title}</h2>
+        {index === steps.length - 1 && (
+          <div className="mt-4 rounded-[20px] border border-appBorder bg-appCard px-4 py-3 text-[12px] leading-5 text-appMuted shadow-sm">
+            После квиза можно подключить Health Connect. Это поможет FruitFit учитывать сон, пульс и активность в рекомендациях. Данные нужны только для персонализации и не передаются третьим лицам.
+          </div>
+        )}
         <div className="mt-5 space-y-3">
           {options.map((option) => {
             const active = selected === option.value;
