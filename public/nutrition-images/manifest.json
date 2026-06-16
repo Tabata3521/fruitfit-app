@@ -1,0 +1,1490 @@
+{
+  "generatedAt": "2026-06-07T14:45:16.097Z",
+  "images": {
+    "https://static.tildacdn.com/stor3963-3064-4565-b133-613965333837/94629715.png": {
+      "localPath": "/nutrition-images/fd30aec058b5729b.webp",
+      "bytes": 74430,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3663-6432-4638-b737-353563333162/94771431.png": {
+      "localPath": "/nutrition-images/6609e63ad37c8541.webp",
+      "bytes": 99064,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6361-3162-4034-b364-303132326265/39280742.png": {
+      "localPath": "/nutrition-images/07572afe00de8f4f.webp",
+      "bytes": 64100,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3366-3430-4366-b732-663734623931/76645517.png": {
+      "localPath": "/nutrition-images/8bc4aff82a58491c.webp",
+      "bytes": 47714,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3364-6565-4734-b230-653235343535/52712564.png": {
+      "localPath": "/nutrition-images/f39c219b39fe1bb3.webp",
+      "bytes": 118446,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3833-3230-4632-b565-643664643765/46944297.png": {
+      "localPath": "/nutrition-images/49128479909cf61e.webp",
+      "bytes": 118698,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3331-3535-4236-b030-353033323134/91327066.png": {
+      "localPath": "/nutrition-images/e164eb25f940e41f.webp",
+      "bytes": 105868,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6362-3562-4238-b833-643737636433/25040651.png": {
+      "localPath": "/nutrition-images/d8b0f0ea1bddf1d0.webp",
+      "bytes": 92742,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3065-6262-4638-a536-353062653537/67688497.png": {
+      "localPath": "/nutrition-images/8c5b0611c908db84.webp",
+      "bytes": 111972,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3534-3562-4936-a562-623834383937/35467624.png": {
+      "localPath": "/nutrition-images/e3298506f4d75309.webp",
+      "bytes": 122832,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3030-3737-4236-b732-636631633635/73810238.png": {
+      "localPath": "/nutrition-images/6a16b54485caabdf.webp",
+      "bytes": 109074,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6237-3165-4164-a438-363338326236/97386260.png": {
+      "localPath": "/nutrition-images/c6a89fc14cd78027.webp",
+      "bytes": 116554,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3366-3337-4161-b834-366631343333/45184987.png": {
+      "localPath": "/nutrition-images/047faf0607567c44.webp",
+      "bytes": 121834,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3866-6664-4663-a364-656466663364/72130771.png": {
+      "localPath": "/nutrition-images/dbc76d20c4f62e14.webp",
+      "bytes": 89014,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3565-3836-4261-b961-316433303761/68713041.png": {
+      "localPath": "/nutrition-images/6a73bd958d1431ed.webp",
+      "bytes": 78994,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3531-3735-4436-a537-623136346630/37196485.png": {
+      "localPath": "/nutrition-images/cf39f79810a38534.webp",
+      "bytes": 106016,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3761-6433-4233-b931-646439363035/14625709.png": {
+      "localPath": "/nutrition-images/656eae216d6f2883.webp",
+      "bytes": 119682,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3537-3138-4834-b136-383234333831/60712898.png": {
+      "localPath": "/nutrition-images/49ed4e0e2d53f18e.webp",
+      "bytes": 111794,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3965-3734-4865-a566-306161383539/41031815.png": {
+      "localPath": "/nutrition-images/27892e85c03a0a79.webp",
+      "bytes": 122728,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3637-3566-4538-b636-343533363365/90255230.png": {
+      "localPath": "/nutrition-images/7ddc59f619ad57af.webp",
+      "bytes": 86004,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3462-6631-4138-b130-373730646631/93175901.png": {
+      "localPath": "/nutrition-images/3d020ab793856fd6.webp",
+      "bytes": 75390,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6437-6236-4138-a532-333332653165/72554300.png": {
+      "localPath": "/nutrition-images/8f819b0d144c8f0e.webp",
+      "bytes": 39946,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3530-3435-4731-b936-653135363137/32045583.png": {
+      "localPath": "/nutrition-images/e0b77276e3c90b9e.webp",
+      "bytes": 53400,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6438-3133-4436-b738-333765396135/95927816.png": {
+      "localPath": "/nutrition-images/9da4e1bbf08ca7b0.webp",
+      "bytes": 74664,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3431-3035-4434-a230-383531313331/45741594.png": {
+      "localPath": "/nutrition-images/743a05b598b2135c.webp",
+      "bytes": 65852,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3231-6331-4461-a531-363934356261/21545128.jpg": {
+      "localPath": "/nutrition-images/f7b2c35d6cc04aa4.webp",
+      "bytes": 53028,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3632-3263-4830-b365-613061353832/25863924.png": {
+      "localPath": "/nutrition-images/c3719d1706093efa.webp",
+      "bytes": 59274,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3032-3331-4866-b333-373163663361/72871067.png": {
+      "localPath": "/nutrition-images/eec9b61c6f9bbc01.webp",
+      "bytes": 66952,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3933-3164-4461-a663-316662356461/54067887.png": {
+      "localPath": "/nutrition-images/39e6f0bf8c9ff252.webp",
+      "bytes": 66842,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6338-3865-4430-a434-376433363332/15609999.png": {
+      "localPath": "/nutrition-images/447e935fcb0aed53.webp",
+      "bytes": 50808,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3562-6637-4232-b438-363166623461/43501638.png": {
+      "localPath": "/nutrition-images/730c1220956f6609.webp",
+      "bytes": 59470,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6262-6539-4630-a361-343666626266/77055521.png": {
+      "localPath": "/nutrition-images/b58d2f4c7ed20796.webp",
+      "bytes": 72212,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3562-6333-4363-a665-313566363236/35950549.png": {
+      "localPath": "/nutrition-images/59c6e58d8eb71abd.webp",
+      "bytes": 86356,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3038-3639-4333-a134-613065616230/20220210.png": {
+      "localPath": "/nutrition-images/e712bdd83b4e6093.webp",
+      "bytes": 74764,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3561-3963-4464-b537-663766333432/49449557.png": {
+      "localPath": "/nutrition-images/e50de99b301b2098.webp",
+      "bytes": 76810,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3632-3964-4166-b933-393335326432/55311937.png": {
+      "localPath": "/nutrition-images/c034a1cb98d6debe.webp",
+      "bytes": 51616,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6532-3635-4735-a134-323363616534/11709659.png": {
+      "localPath": "/nutrition-images/1b61af000a6cdf68.webp",
+      "bytes": 82186,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3863-6331-4534-b630-633263613731/53607518.png": {
+      "localPath": "/nutrition-images/0a63e94d8bd27c9e.webp",
+      "bytes": 77696,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3066-3239-4434-b165-323264343230/86871992.png": {
+      "localPath": "/nutrition-images/a58ed69931702a3b.webp",
+      "bytes": 73274,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3434-3361-4130-b732-323434353164/63361574.png": {
+      "localPath": "/nutrition-images/795f04b782246111.webp",
+      "bytes": 63764,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3934-3637-4033-a665-643037306435/53526724.png": {
+      "localPath": "/nutrition-images/21df62368b7b0f6f.webp",
+      "bytes": 57672,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3133-3435-4338-a464-363730646537/83257344.png": {
+      "localPath": "/nutrition-images/6724956f1aa2f6ac.webp",
+      "bytes": 68864,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6566-6134-4364-a439-633136663262/80225097.png": {
+      "localPath": "/nutrition-images/535fd1ef4260a568.webp",
+      "bytes": 60904,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3264-3866-4166-b636-616463336365/57855216.png": {
+      "localPath": "/nutrition-images/f02983c33a69bb14.webp",
+      "bytes": 68476,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3931-3630-4132-b366-373932343735/41572916.png": {
+      "localPath": "/nutrition-images/b9018a6293bc72f5.webp",
+      "bytes": 88864,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3362-6432-4137-a465-616433346436/25144222.png": {
+      "localPath": "/nutrition-images/c00c2ff54811d263.webp",
+      "bytes": 43138,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6464-3039-4637-b436-613163373134/72804076.png": {
+      "localPath": "/nutrition-images/7843dde0fd92098a.webp",
+      "bytes": 49724,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6365-3339-4738-a364-326161393461/43710538.png": {
+      "localPath": "/nutrition-images/58298ceebf5bf22c.webp",
+      "bytes": 58316,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3064-6530-4434-b236-353765353332/20387822.png": {
+      "localPath": "/nutrition-images/a29db1467342a5fa.webp",
+      "bytes": 72938,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3231-3537-4164-b930-613737356136/88333863.png": {
+      "localPath": "/nutrition-images/065d5d471a738ead.webp",
+      "bytes": 45174,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6164-3362-4664-a536-326562363763/39627551.png": {
+      "localPath": "/nutrition-images/1e5fd7610b42374c.webp",
+      "bytes": 36328,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3832-3164-4533-b362-353138356535/20483657.png": {
+      "localPath": "/nutrition-images/b609350e8a8060df.webp",
+      "bytes": 40556,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6538-6430-4234-a336-356130643239/62294542.png": {
+      "localPath": "/nutrition-images/f76250a12761eac7.webp",
+      "bytes": 46014,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6638-6262-4764-a133-326336333930/68435298.png": {
+      "localPath": "/nutrition-images/c282b438223db165.webp",
+      "bytes": 56720,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3331-6661-4462-a539-393835383936/20787628.png": {
+      "localPath": "/nutrition-images/798c5cfcdfe8bf03.webp",
+      "bytes": 66536,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6333-6433-4464-a161-633735303462/24367291.png": {
+      "localPath": "/nutrition-images/59af2d76441659c3.webp",
+      "bytes": 41472,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6235-3962-4235-a331-333665356162/57765309.png": {
+      "localPath": "/nutrition-images/801f75b2b62352e6.webp",
+      "bytes": 64240,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6432-3465-4136-b637-333165306632/29007343.png": {
+      "localPath": "/nutrition-images/2ab54b029fc82958.webp",
+      "bytes": 62886,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3632-3065-4166-b062-353832666331/74105736.png": {
+      "localPath": "/nutrition-images/dee825eeb440343d.webp",
+      "bytes": 60530,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3537-3434-4563-b862-333165313938/74115320.png": {
+      "localPath": "/nutrition-images/16e1bbfdb7a49cb7.webp",
+      "bytes": 41724,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3039-3832-4161-b065-363264623538/47456276.png": {
+      "localPath": "/nutrition-images/8e3022043ef99ce8.webp",
+      "bytes": 72086,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3438-3662-4333-b331-333462636666/83965884.png": {
+      "localPath": "/nutrition-images/6713f2abec55a21a.webp",
+      "bytes": 42884,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3739-6430-4034-a338-363132353839/52684387.png": {
+      "localPath": "/nutrition-images/b45557a74bdd052d.webp",
+      "bytes": 62618,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6636-3062-4330-a135-313933336262/43941568.png": {
+      "localPath": "/nutrition-images/4db85ad4ceba2679.webp",
+      "bytes": 69858,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6532-3136-4532-a439-646331316565/77831086.png": {
+      "localPath": "/nutrition-images/b77b15ab204753cc.webp",
+      "bytes": 39660,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3634-6334-4536-a436-623833326265/72903647.png": {
+      "localPath": "/nutrition-images/9ca56c832b8c2126.webp",
+      "bytes": 61898,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3662-3932-4934-b937-643063326630/14325768.png": {
+      "localPath": "/nutrition-images/83f74f4cb7c21711.webp",
+      "bytes": 23910,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3362-6438-4937-a230-363134616233/24605160.png": {
+      "localPath": "/nutrition-images/2e9f80e2d2a8308f.webp",
+      "bytes": 37738,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3134-3135-4832-a666-316564346465/15119547.png": {
+      "localPath": "/nutrition-images/bb837fc124a61a99.webp",
+      "bytes": 28420,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3730-6532-4137-a537-666665616436/38652713.png": {
+      "localPath": "/nutrition-images/d4c6b22ad8917205.webp",
+      "bytes": 31082,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6262-6332-4530-a332-306238306434/56920111.png": {
+      "localPath": "/nutrition-images/1a1dd4570df971e2.webp",
+      "bytes": 50850,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6238-6464-4333-a131-373534373862/10570689.png": {
+      "localPath": "/nutrition-images/7773ba6bdbf93034.webp",
+      "bytes": 32414,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3332-3032-4264-b537-613635656236/72212430.png": {
+      "localPath": "/nutrition-images/aa26f8998db0d0a7.webp",
+      "bytes": 59458,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6663-3464-4939-a564-646431373336/98615217.png": {
+      "localPath": "/nutrition-images/8e077b15dea62ebd.webp",
+      "bytes": 41616,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6638-6631-4966-b766-303236343038/26157073.png": {
+      "localPath": "/nutrition-images/79b302210e007777.webp",
+      "bytes": 47120,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3930-3162-4636-a432-306136363162/37550623.png": {
+      "localPath": "/nutrition-images/e00610b642b3e880.webp",
+      "bytes": 40648,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3833-3632-4934-b838-653064393636/68823649.png": {
+      "localPath": "/nutrition-images/3369f9162aef3200.webp",
+      "bytes": 51528,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6562-3263-4431-a430-313238626562/12378071.png": {
+      "localPath": "/nutrition-images/3111bed3ff1ed68b.webp",
+      "bytes": 35168,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3639-3664-4162-a232-613463643835/21218056.png": {
+      "localPath": "/nutrition-images/536687246189b5bc.webp",
+      "bytes": 51474,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3131-6233-4632-a535-353765663539/57377197.png": {
+      "localPath": "/nutrition-images/f3a422ac9cc5cdd2.webp",
+      "bytes": 41168,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3337-3433-4230-b461-643834376362/73779826.png": {
+      "localPath": "/nutrition-images/c33bacb23c2a1811.webp",
+      "bytes": 52948,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3762-3438-4431-b462-616539666365/54408212.png": {
+      "localPath": "/nutrition-images/d362cce79f752290.webp",
+      "bytes": 60434,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3330-3137-4835-b366-373530303365/49426977.png": {
+      "localPath": "/nutrition-images/1b105b395f0e1a98.webp",
+      "bytes": 71072,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6266-3534-4138-b765-353064373032/48196782.png": {
+      "localPath": "/nutrition-images/d94dd6ccb86f1a2c.webp",
+      "bytes": 81860,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3261-3462-4438-b039-386233653931/44709659.png": {
+      "localPath": "/nutrition-images/0b64897ca9491c74.webp",
+      "bytes": 84840,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3132-6239-4532-a139-356434303939/97931164.png": {
+      "localPath": "/nutrition-images/45ce4c8c3af9e8bc.webp",
+      "bytes": 59928,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3631-6137-4566-b932-356366356234/38502206.png": {
+      "localPath": "/nutrition-images/87d492aa512f35b3.webp",
+      "bytes": 51406,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3639-6665-4263-b166-373865323730/38182665.png": {
+      "localPath": "/nutrition-images/64e321ea24dff52e.webp",
+      "bytes": 58530,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3738-3533-4131-b530-653564386538/51980767.png": {
+      "localPath": "/nutrition-images/0517799eb208c806.webp",
+      "bytes": 54218,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3161-6634-4437-a263-356161643861/95330452.png": {
+      "localPath": "/nutrition-images/c47527c26d3ebe1c.webp",
+      "bytes": 52608,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3031-6333-4134-b233-353566383830/98069970.png": {
+      "localPath": "/nutrition-images/e292c0f621ed7426.webp",
+      "bytes": 61956,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6133-3739-4235-b962-316135363064/68389856.png": {
+      "localPath": "/nutrition-images/7bdc3acc8104fdc2.webp",
+      "bytes": 39116,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6338-3963-4161-b264-633934666636/85739918.png": {
+      "localPath": "/nutrition-images/31bf1259efe35b46.webp",
+      "bytes": 31336,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3462-6266-4263-b035-303330333437/82514002.png": {
+      "localPath": "/nutrition-images/956423808d667c9a.webp",
+      "bytes": 35136,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6563-3739-4538-b366-666431376232/13575344.png": {
+      "localPath": "/nutrition-images/b447a4f451da154d.webp",
+      "bytes": 17754,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3964-3266-4263-b737-343532333166/90032240.png": {
+      "localPath": "/nutrition-images/be0dcfda0a1c42dc.webp",
+      "bytes": 44548,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3738-3634-4636-b232-643331636339/53094347.png": {
+      "localPath": "/nutrition-images/625d1db77d355b4a.webp",
+      "bytes": 42752,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3730-6133-4431-b463-326239613065/19638106.jpg": {
+      "localPath": "/nutrition-images/1dad2c3723ac184c.webp",
+      "bytes": 98770,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3733-6463-4964-a666-333730613130/15844716.png": {
+      "localPath": "/nutrition-images/23c04b52e1f69c80.webp",
+      "bytes": 66588,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3832-6437-4762-b733-346239613665/50920352.png": {
+      "localPath": "/nutrition-images/3e96b8ded76a8f10.webp",
+      "bytes": 44946,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3066-3734-4463-b961-323838656566/19116712.png": {
+      "localPath": "/nutrition-images/3089414a7f1584a4.webp",
+      "bytes": 76722,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3435-6164-4436-b264-623464653064/80994573.png": {
+      "localPath": "/nutrition-images/4b04d3b47eaed531.webp",
+      "bytes": 66776,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6263-6634-4332-b432-333762396638/58027138.png": {
+      "localPath": "/nutrition-images/e49d968b7a8fe32d.webp",
+      "bytes": 46326,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3666-3766-4562-a631-333034613137/16266042.png": {
+      "localPath": "/nutrition-images/f3b654b10f8494bf.webp",
+      "bytes": 65742,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3462-6238-4562-b638-323662353530/42925585.png": {
+      "localPath": "/nutrition-images/6db160c0fc910599.webp",
+      "bytes": 33646,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6338-6661-4637-b830-643763633366/46593000.png": {
+      "localPath": "/nutrition-images/b5038726ccd6a1ec.webp",
+      "bytes": 69554,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6634-3261-4238-a336-663736653264/75536189.png": {
+      "localPath": "/nutrition-images/5a680e470610be19.webp",
+      "bytes": 69634,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3531-3539-4338-b863-313832383034/58185577.png": {
+      "localPath": "/nutrition-images/4eeac1d206a0e2dc.webp",
+      "bytes": 40924,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6364-6537-4366-b134-636530356237/69520514.png": {
+      "localPath": "/nutrition-images/c3adbc960d247ef5.webp",
+      "bytes": 81188,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3931-3461-4665-a165-363434373335/52584357.png": {
+      "localPath": "/nutrition-images/f4e4663cac1ced9d.webp",
+      "bytes": 90634,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6433-3465-4263-a231-303262666438/81005956.png": {
+      "localPath": "/nutrition-images/94b228062f92bdc6.webp",
+      "bytes": 67144,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3965-6330-4535-a533-306363326566/26892829.png": {
+      "localPath": "/nutrition-images/e7fd01385aa361ef.webp",
+      "bytes": 79410,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3038-3636-4532-a561-623237393238/85083119.png": {
+      "localPath": "/nutrition-images/e417c08b52c70b26.webp",
+      "bytes": 77942,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3038-3436-4737-b031-303034303664/24230871.png": {
+      "localPath": "/nutrition-images/4960cc3b9096358e.webp",
+      "bytes": 98274,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3334-6531-4134-b833-346534653165/95532688.png": {
+      "localPath": "/nutrition-images/34e06af398871248.webp",
+      "bytes": 80856,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3237-3562-4238-a365-613537343463/59524827.png": {
+      "localPath": "/nutrition-images/a7c8e328b44254ab.webp",
+      "bytes": 83136,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3834-3461-4462-b437-323764306363/30913696.png": {
+      "localPath": "/nutrition-images/3591f8b3b5b06ce2.webp",
+      "bytes": 56944,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6136-6436-4130-b130-303562303166/61414317.png": {
+      "localPath": "/nutrition-images/f027db4fdcf4f195.webp",
+      "bytes": 65854,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6530-3931-4535-b139-666430653364/87054443.png": {
+      "localPath": "/nutrition-images/d34c072cbc85e0cc.webp",
+      "bytes": 81318,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3532-6265-4665-b233-336630616639/79459995.png": {
+      "localPath": "/nutrition-images/dfc09363dc6b039a.webp",
+      "bytes": 35656,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3730-6630-4637-a466-333930356636/85896450.png": {
+      "localPath": "/nutrition-images/685dbd0ed1840bd7.webp",
+      "bytes": 60262,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3333-6433-4637-b164-303933373066/56165593.png": {
+      "localPath": "/nutrition-images/821aa936a2c13bf1.webp",
+      "bytes": 45242,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3163-3564-4734-b564-316431323061/94539320.png": {
+      "localPath": "/nutrition-images/a523959611ed96cb.webp",
+      "bytes": 29050,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6334-3065-4339-a262-623837376662/28751064.png": {
+      "localPath": "/nutrition-images/52cf9e33461efcf5.webp",
+      "bytes": 35688,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6637-3861-4538-a462-303737396163/28210074.png": {
+      "localPath": "/nutrition-images/7654f094fa1c55a6.webp",
+      "bytes": 45402,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3335-3833-4766-a137-346138663939/10400980.png": {
+      "localPath": "/nutrition-images/35159f6bd34263a9.webp",
+      "bytes": 37932,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6561-3635-4664-b137-636431313937/38437871.png": {
+      "localPath": "/nutrition-images/a0edf52ee31586fb.webp",
+      "bytes": 31182,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3765-3533-4665-a139-623631316263/94902750.png": {
+      "localPath": "/nutrition-images/d393368585c5d34c.webp",
+      "bytes": 37902,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6565-6233-4535-a532-643464313635/57496112.png": {
+      "localPath": "/nutrition-images/5ade9a250332acfb.webp",
+      "bytes": 44652,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3534-3363-4335-b563-656561306435/94161610.png": {
+      "localPath": "/nutrition-images/f2a172bd544fe584.webp",
+      "bytes": 26708,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6364-3237-4333-a136-366337396565/79195872.png": {
+      "localPath": "/nutrition-images/eb5e230c0ed8aabc.webp",
+      "bytes": 27578,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6634-3466-4361-b634-313939656361/28627648.png": {
+      "localPath": "/nutrition-images/867ec166d27d0359.webp",
+      "bytes": 69134,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3964-3965-4365-b236-363035343631/44583142.png": {
+      "localPath": "/nutrition-images/c5d06741a09a0e6e.webp",
+      "bytes": 55810,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3339-3839-4036-b236-623365353238/30003014.png": {
+      "localPath": "/nutrition-images/eb3e072f08a1ff0f.webp",
+      "bytes": 76630,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3038-6437-4631-b862-316262386366/42425644.png": {
+      "localPath": "/nutrition-images/759235e1f5976fa8.webp",
+      "bytes": 40050,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3331-3963-4234-b239-376437366462/59848707.png": {
+      "localPath": "/nutrition-images/e4c55622b6aa2988.webp",
+      "bytes": 59094,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3534-3735-4232-a238-333564343539/82899990.png": {
+      "localPath": "/nutrition-images/76670adea46cde0b.webp",
+      "bytes": 55212,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6438-3030-4461-a438-333730353563/79803372.png": {
+      "localPath": "/nutrition-images/b9b80a38c2dccf41.webp",
+      "bytes": 76920,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3662-3564-4562-b732-323835663864/69732205.png": {
+      "localPath": "/nutrition-images/04cf7c999ceb797a.webp",
+      "bytes": 28232,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3566-3439-4834-b135-643233666261/91579546.png": {
+      "localPath": "/nutrition-images/99a7a750a41f6acd.webp",
+      "bytes": 60906,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6638-3233-4163-a435-376536666230/48318675.png": {
+      "localPath": "/nutrition-images/4a0139947bf3ceeb.webp",
+      "bytes": 81096,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3330-3632-4833-b230-323162383833/85260183.png": {
+      "localPath": "/nutrition-images/5a3d05daf9dd8d33.webp",
+      "bytes": 15378,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3464-3732-4037-b066-396463633163/62002973.png": {
+      "localPath": "/nutrition-images/d1e09e8fdfd575e0.webp",
+      "bytes": 40744,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3466-3134-4632-b138-343061366266/26789190.png": {
+      "localPath": "/nutrition-images/115b0b0ca4ce87dd.webp",
+      "bytes": 40052,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3332-3436-4461-b335-633234636637/87037971.png": {
+      "localPath": "/nutrition-images/876e3e1970ba3d2f.webp",
+      "bytes": 59618,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3631-3662-4462-b531-323762393866/30899921.png": {
+      "localPath": "/nutrition-images/a1274bb098cb832b.webp",
+      "bytes": 30614,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor3231-6632-4364-a164-373264333633/15648528.png": {
+      "localPath": "/nutrition-images/cb78372ac6416b7a.webp",
+      "bytes": 36812,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    },
+    "https://static.tildacdn.com/stor6439-6233-4663-a335-616531343830/60247653.png": {
+      "localPath": "/nutrition-images/686dcbf57a2faec5.webp",
+      "bytes": 31854,
+      "contentType": "image/webp",
+      "optimized": {
+        "format": "webp",
+        "maxSize": 720,
+        "quality": 76
+      }
+    }
+  },
+  "failures": [],
+  "optimizedAt": "2026-06-07T14:47:42.262Z",
+  "imageFormat": "webp",
+  "maxImageSize": 720,
+  "webpQuality": 76
+}

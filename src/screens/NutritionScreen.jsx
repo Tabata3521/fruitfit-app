@@ -12,6 +12,26 @@ const defaultFilters = {
   mealType: "",
 };
 
+const weekdayOrder = [
+  "Понедельник",
+  "Вторник",
+  "Среда",
+  "Четверг",
+  "Пятница",
+  "Суббота",
+  "Воскресенье",
+];
+
+function sortNutritionDays(days = []) {
+  const order = new Map(weekdayOrder.map((day, index) => [day, index]));
+  return [...new Set(days.filter(Boolean))].sort((a, b) => {
+    const aIndex = order.has(a) ? order.get(a) : Number.MAX_SAFE_INTEGER;
+    const bIndex = order.has(b) ? order.get(b) : Number.MAX_SAFE_INTEGER;
+    if (aIndex !== bIndex) return aIndex - bIndex;
+    return String(a).localeCompare(String(b), "ru");
+  });
+}
+
 function SelectPill({ value, options, onChange }) {
   const labelFor = (option) => ({
     "Без ограничений": "Обычное питание",
@@ -127,7 +147,29 @@ function nutritionLabel(value) {
   }[value] || value;
 }
 
-export default function NutritionScreen({ onNavigate, profile, showBack = false, onBack }) {
+function nearestCaloriesTarget(targets = [], preferred = 1800) {
+  const cleanTargets = targets.map(Number).filter(Number.isFinite).sort((a, b) => a - b);
+  const target = Number(preferred) || 1800;
+  if (!cleanTargets.length) return target;
+  return cleanTargets.reduce((best, current) => (
+    Math.abs(current - target) < Math.abs(best - target) ? current : best
+  ), cleanTargets[0]);
+}
+
+function allowedCaloriesTargets(targets = [], preferred = 1800) {
+  const base = nearestCaloriesTarget(targets, preferred);
+  const targetSet = new Set(targets.map(Number).filter(Number.isFinite));
+  const options = [base - 200, base, base + 200].filter((value) => targetSet.has(value));
+  return options.length ? options : [base];
+}
+
+function hasUnrestrictedNutritionAccess(access) {
+  const status = String(access?.status || access?.plan || access?.role || "").toLowerCase();
+  const role = String(access?.role || "").toLowerCase();
+  return Boolean(access?.isAdmin || access?.isTrainer || status === "admin" || status === "trainer" || role === "admin" || role === "trainer");
+}
+
+export default function NutritionScreen({ onNavigate, profile, access, showBack = false, onBack }) {
   const { loading, data } = useNutritionData();
   const [filters, setFilters] = useState(() => ({
     ...defaultFilters,
@@ -135,21 +177,41 @@ export default function NutritionScreen({ onNavigate, profile, showBack = false,
     caloriesTarget: profile?.recommendedCaloriesTarget || defaultFilters.caloriesTarget,
   }));
   const mealTypeOptions = useMemo(() => ["", ...(data?.filters?.mealTypes || [])], [data]);
+  const dayOptions = useMemo(() => sortNutritionDays(data?.filters?.days || []), [data]);
+  const unrestrictedNutrition = hasUnrestrictedNutritionAccess(access);
+  const lockedRation = useMemo(() => {
+    const rations = data?.filters?.rations || [];
+    const preferred = dietTypeToRation[profile?.dietType] || defaultFilters.ration;
+    return rations.includes(preferred) ? preferred : preferred;
+  }, [data, profile?.dietType]);
+  const allowedCalories = useMemo(() => (
+    allowedCaloriesTargets(data?.filters?.caloriesTargets || [], profile?.recommendedCaloriesTarget || profile?.calculatedCalories || defaultFilters.caloriesTarget)
+  ), [data, profile?.recommendedCaloriesTarget, profile?.calculatedCalories]);
   const activeFilters = useMemo(() => {
     const rations = data?.filters?.rations || [];
     const calorieTargets = data?.filters?.caloriesTargets || [];
-    const days = data?.filters?.days || [];
+    const days = dayOptions;
     const mealTypes = data?.filters?.mealTypes || [];
+    const selectedCalories = Number(filters.caloriesTarget);
+    if (unrestrictedNutrition) {
+      return {
+        ration: rations.includes(filters.ration) ? filters.ration : (rations[0] || filters.ration || defaultFilters.ration),
+        caloriesTarget: calorieTargets.includes(selectedCalories) ? selectedCalories : (calorieTargets.includes(1800) ? 1800 : calorieTargets[0] || defaultFilters.caloriesTarget),
+        day: days.includes(filters.day) ? filters.day : (days.includes("Понедельник") ? "Понедельник" : days[0] || filters.day),
+        mealType: !filters.mealType || mealTypes.includes(filters.mealType) ? filters.mealType : "",
+      };
+    }
     return {
-      ration: rations.includes(filters.ration) ? filters.ration : (rations.includes("Рыбоеды") ? "Рыбоеды" : rations[0] || filters.ration),
-      caloriesTarget: calorieTargets.includes(Number(filters.caloriesTarget)) ? Number(filters.caloriesTarget) : (calorieTargets.includes(1800) ? 1800 : calorieTargets[0] || filters.caloriesTarget),
+      ration: lockedRation,
+      caloriesTarget: allowedCalories.includes(selectedCalories) ? selectedCalories : (allowedCalories[1] || allowedCalories[0] || nearestCaloriesTarget(calorieTargets, defaultFilters.caloriesTarget)),
       day: days.includes(filters.day) ? filters.day : (days.includes("Понедельник") ? "Понедельник" : days[0] || filters.day),
       mealType: !filters.mealType || mealTypes.includes(filters.mealType) ? filters.mealType : "",
     };
-  }, [data, filters]);
+  }, [data, filters, lockedRation, allowedCalories, unrestrictedNutrition, dayOptions]);
   const plan = useMemo(() => getMealPlan(data, activeFilters), [data, activeFilters]);
 
   function update(key, value) {
+    if (key === "ration" && !unrestrictedNutrition) return;
     setFilters((current) => ({ ...current, [key]: key === "caloriesTarget" ? Number(value) : value }));
   }
 
@@ -166,7 +228,7 @@ export default function NutritionScreen({ onNavigate, profile, showBack = false,
             <Salad size={20} />
           </div>
           <h1 className="mt-4 text-[26px] font-black text-appText">Питание</h1>
-          <p className="mt-2 text-[13px] text-appMuted">Нативный рацион из CSV: блюда, фото, КБЖУ и рецепты.</p>
+          <p className="mt-2 text-[13px] text-appMuted">Рацион на день, калорийность, КБЖУ и блюда под вашу цель.</p>
         </header>
 
         <section className="mt-4 rounded-[24px] border border-black/5 bg-[#FFF0E0] p-4 text-[#181F19] shadow-card">
@@ -185,9 +247,9 @@ export default function NutritionScreen({ onNavigate, profile, showBack = false,
         </section>
 
         <section className="mt-4 space-y-4 rounded-[24px] border border-appBorder bg-appCard/80 p-4 shadow-sm">
-          <ChoiceChips label="Тип питания" value={activeFilters.ration} options={data?.filters?.rations || [activeFilters.ration]} onChange={(value) => update("ration", value)} />
-          <ChoiceChips label="Калорийность плана" value={activeFilters.caloriesTarget} options={data?.filters?.caloriesTargets || [activeFilters.caloriesTarget]} onChange={(value) => update("caloriesTarget", value)} />
-          <ChoiceChips label="День" value={activeFilters.day} options={data?.filters?.days || [activeFilters.day]} onChange={(value) => update("day", value)} />
+          <ChoiceChips label="Тип питания" value={activeFilters.ration} options={unrestrictedNutrition ? data?.filters?.rations || [activeFilters.ration] : [activeFilters.ration]} onChange={(value) => update("ration", value)} />
+          <ChoiceChips label="Калорийность плана" value={activeFilters.caloriesTarget} options={unrestrictedNutrition ? data?.filters?.caloriesTargets || [activeFilters.caloriesTarget] : allowedCalories} onChange={(value) => update("caloriesTarget", value)} />
+          <ChoiceChips label="День" value={activeFilters.day} options={dayOptions.length ? dayOptions : [activeFilters.day]} onChange={(value) => update("day", value)} />
           <ChoiceChips label="Прием пищи" value={activeFilters.mealType} options={mealTypeOptions} onChange={(value) => update("mealType", value)} />
         </section>
 

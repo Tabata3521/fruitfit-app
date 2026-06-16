@@ -1,4 +1,4 @@
-const CACHE_NAME = "fruitfit-v2";
+const CACHE_NAME = "fruitfit-v3";
 const CORE_ASSETS = ["/data/nutrition.json", "/data/courses.json", "/data/lessons.json", "/data/exercises.json"];
 
 self.addEventListener("install", (event) => {

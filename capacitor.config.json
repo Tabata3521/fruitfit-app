@@ -5,6 +5,12 @@
   "bundledWebRuntime": false,
   "server": {
     "androidScheme": "https",
-    "hostname": "fruitfit.pages.dev"
+    "hostname": "client.tagirfruit.ru"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_fruitfit_orange",
+      "iconColor": "#FF7A2F"
+    }
   }
 }

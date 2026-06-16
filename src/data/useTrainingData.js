@@ -163,7 +163,12 @@ function scoreCourse(course, profile) {
   return score;
 }
 
-function selectCourse(data, profileInput = {}) {
+function selectCourse(data, profileInput = {}, assignedProgramId = "") {
+  if (assignedProgramId) {
+    const assigned = data.courses.find((course) => String(course.course_id || course.id) === String(assignedProgramId));
+    if (assigned) return assigned;
+  }
+
   const profile = { ...profileDefaults, ...profileInput };
   const selection = profileSelection(profile);
   const exact = data.courses.find((course) => {
@@ -260,10 +265,10 @@ export function buildWorkoutView(data, courseIndex = 0, lessonIndex = 0) {
   };
 }
 
-export function buildProgramView(data, lessonIndex = 0, profile = profileDefaults) {
+export function buildProgramView(data, lessonIndex = 0, profile = profileDefaults, assignedProgramId = "") {
   if (!data) return null;
 
-  const course = selectCourse(data, profile);
+  const course = selectCourse(data, profile, assignedProgramId);
   const lessons = data.lessons
     .filter((lesson) => lesson.course_id === course.course_id)
     .sort((a, b) => Number(a.lesson_number) - Number(b.lesson_number));
@@ -305,6 +310,7 @@ export function buildProgramView(data, lessonIndex = 0, profile = profileDefault
 
   return {
     course,
+    assignment: assignedProgramId ? { programId: assignedProgramId, active: String(course.course_id || course.id) === String(assignedProgramId) } : null,
     workouts,
     selectedWorkout: workouts[safeIndex],
     selectedWorkoutIndex: safeIndex,

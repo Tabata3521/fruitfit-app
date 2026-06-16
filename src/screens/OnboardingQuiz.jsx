@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronDown, X } from "lucide-react";
 import { normalizeProfile, profileDefaults, saveProfile } from "../data/profileStore";
 
 const steps = [
@@ -54,6 +54,7 @@ export default function OnboardingQuiz({ initialProfile = profileDefaults, onCom
   const [index, setIndex] = useState(0);
   const [draft, setDraft] = useState(() => normalizeProfile(initialProfile));
   const step = steps[index];
+  const showDietScrollHint = step.key === "dietType";
   const progress = Math.round(((index + 1) / steps.length) * 100);
   const options = useMemo(() => step.options.map((option) => optionParts(option, step.labels)), [step]);
   const selected = draft[step.key];
@@ -124,6 +125,13 @@ export default function OnboardingQuiz({ initialProfile = profileDefaults, onCom
           })}
         </div>
       </section>
+
+      {showDietScrollHint && (
+        <div className="pointer-events-none fixed bottom-[calc(86px+env(safe-area-inset-bottom))] left-1/2 z-30 flex -translate-x-1/2 flex-col items-center rounded-full border border-appBorder bg-appCard/95 px-4 py-2 text-[11px] font-black text-appText shadow-card backdrop-blur">
+          <span>Ниже кнопка Далее</span>
+          <ChevronDown size={18} className="mt-0.5 animate-bounce text-appGreen" />
+        </div>
+      )}
 
       <footer className="flex items-center gap-3">
         <button

@@ -6,7 +6,7 @@ import { defineConfig } from "vite";
 const DEFAULT_MODEL = "gpt-5-nano";
 const OPENAI_ENDPOINT = "responses";
 const OPENAI_URL = "https://api.openai.com/v1/responses";
-const VDS_COACH_URL = "https://tagirfruit-mini.duckdns.org/api/coach";
+const VDS_COACH_URL = `${(process.env.VITE_FRUITFIT_API_URL || "https://api.tagirfruit.ru").replace(/\/$/, "")}/api/coach`;
 const SYSTEM_PROMPT = `Ты FruitFit Coach.
 Ты фитнес-ассистент внутри приложения FruitFit.
 

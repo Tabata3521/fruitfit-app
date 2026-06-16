@@ -1,6 +1,9 @@
 export const PROFILE_STORAGE_KEY = "fruitfit.profile";
 
 export const profileDefaults = {
+  firstName: "",
+  lastName: "",
+  avatar: "",
   gender: "female",
   age: "30",
   height: "170",
@@ -113,6 +116,9 @@ export function normalizeProfile(raw = {}) {
   return {
     ...profileDefaults,
     ...raw,
+    firstName: String(raw.firstName || raw.first_name || "").trim(),
+    lastName: String(raw.lastName || raw.last_name || "").trim(),
+    avatar: String(raw.avatar || raw.avatarDataUrl || raw.avatar_data_url || "").startsWith("data:image/") ? String(raw.avatar || raw.avatarDataUrl || raw.avatar_data_url) : "",
     gender: raw.gender === "male" ? "male" : raw.gender === "female" ? "female" : profileDefaults.gender,
     goal: profileOptions.goal.includes(legacyGoal) ? legacyGoal : profileDefaults.goal,
     experience: profileOptions.experience.includes(legacyExperience) ? legacyExperience : profileDefaults.experience,

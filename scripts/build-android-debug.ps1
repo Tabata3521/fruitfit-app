@@ -11,8 +11,7 @@ $env:Path = "$($jdk.Path)\bin;$($sdk.Path)\platform-tools;$env:Path"
 
 Push-Location $root
 try {
-  npm.cmd run build
-  npx cap sync android
+  powershell -ExecutionPolicy Bypass -File (Join-Path $root "scripts\sync-android.ps1")
   Push-Location (Join-Path $root "android")
   try {
     .\gradlew.bat assembleDebug

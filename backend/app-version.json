@@ -1,0 +1,26 @@
+{
+  "android": {
+    "latestVersion": "1.9",
+    "latestBuild": 10,
+    "minSupportedBuild": 1,
+    "updateRequired": false,
+    "apkUrl": "https://client.tagirfruit.ru/downloads/fruitfit-latest.apk",
+    "releaseNotes": [
+      "Payment success screen now returns to FruitFit.",
+      "Android app now handles fruitfit://payment-success and fruitfit://payment-fail links.",
+      "After returning from payment, access and program assignment refresh automatically."
+    ],
+    "publishedAt": "2026-06-14T09:30:00.000Z"
+  },
+  "android_admin": {
+    "latestVersion": "1.1",
+    "latestBuild": 2,
+    "minSupportedBuild": 1,
+    "updateRequired": false,
+    "apkUrl": null,
+    "releaseNotes": [
+      "Local admin build with update-check button."
+    ],
+    "publishedAt": "2026-06-08T22:03:41.350Z"
+  }
+}

@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
+import { registerPlugin } from "@capacitor/core";
 import { Dumbbell } from "lucide-react";
 import { HealthProvider } from "./data/healthStore";
-import { loadAuthUser, setAuthToken, fetchMe } from "./data/authStore";
-import { loadProfile } from "./data/profileStore";
+import { fetchAccess, fetchMe, fetchProfile, fetchProgramAssignment, fetchReferralInfo, loadAccessState, loadAuthUser, loadProgramAssignment, setAuthToken } from "./data/authStore";
+import { registerDevice } from "./data/deviceStore";
+import { loadProfile, saveProfile } from "./data/profileStore";
+import { isWorkoutUnlocked, LOCKED_WORKOUT_MESSAGE, unlockedWorkoutCount } from "./data/accessRules";
 import { buildProgramView, useTrainingData } from "./data/useTrainingData";
 import CoachScreen from "./screens/CoachScreen";
 import AuthPrompt from "./screens/AuthPrompt";
@@ -15,6 +18,9 @@ import SettingsScreen from "./screens/SettingsScreen";
 import WorkoutScreen from "./screens/WorkoutScreen";
 import WorkoutsScreen from "./screens/WorkoutsScreen";
 import { HealthDetailScreen, LectureDetailScreen } from "./components/WidgetGrid";
+
+const FruitFitOrientation = registerPlugin("FruitFitOrientation");
+const SKIP_AUTH_KEY = "fruitfit.authSkipped";
 
 const healthRoutes = {
   "health:heart": "#/health/heart-rate",
@@ -69,7 +75,7 @@ function LoadingScreen({ error }) {
           <Dumbbell size={24} />
         </div>
         <h1 className="mt-4 text-2xl font-black text-appText">fruitfit</h1>
-        <p className="mt-2 text-sm text-appMuted">{error || "Загружаю локальные программы тренировок"}</p>
+        <p className="mt-2 text-sm text-appMuted">{error || "Загрузка"}</p>
       </div>
     </main>
   );
@@ -79,15 +85,57 @@ function getInitialTheme() {
   return localStorage.getItem("fruitfit.theme") || "light";
 }
 
+function loadAuthSkipped() {
+  return localStorage.getItem(SKIP_AUTH_KEY) === "1";
+}
+
+function authTokenFromUrl(rawUrl) {
+  try {
+    const url = new URL(rawUrl);
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+    return url.searchParams.get("auth_token") || hashParams.get("auth_token") || "";
+  } catch (_) {
+    const hash = String(rawUrl || "").split("#")[1] || "";
+    return new URLSearchParams(hash).get("auth_token") || "";
+  }
+}
+
+function paymentReturnFromUrl(rawUrl) {
+  const normalized = String(rawUrl || "").toLowerCase();
+  try {
+    const url = new URL(rawUrl);
+    if (url.protocol === "fruitfit:" && url.hostname === "payment-success") return "success";
+    if (url.protocol === "fruitfit:" && url.hostname === "payment-fail") return "fail";
+    if (url.pathname.includes("/payment-success")) return "success";
+    if (url.pathname.includes("/payment-fail")) return "fail";
+  } catch (_) {
+    if (normalized.includes("payment-success")) return "success";
+    if (normalized.includes("payment-fail")) return "fail";
+  }
+  if (normalized.includes("payment-success")) return "success";
+  if (normalized.includes("payment-fail")) return "fail";
+  return "";
+}
+
+function emailAuthActionFromUrl(rawUrl) {
+  const normalized = String(rawUrl || "").toLowerCase();
+  return normalized.includes("/email/verify") || normalized.includes("/email/reset-password");
+}
+
 function AppContent() {
   const { loading, error, data } = useTrainingData();
+  const initialAuthActionUrl = emailAuthActionFromUrl(window.location.href) ? window.location.href : "";
   const [screen, setScreen] = useState(() => healthScreenFromHash() || appScreenFromHash() || "home");
   const [selectedWorkoutIndex, setSelectedWorkoutIndex] = useState(0);
   const [theme, setTheme] = useState(getInitialTheme);
   const [profile, setProfile] = useState(loadProfile);
   const [authUser, setAuthUser] = useState(loadAuthUser);
-  const [quizOpen, setQuizOpen] = useState(() => !loadProfile().onboardingCompleted);
-  const [authPromptOpen, setAuthPromptOpen] = useState(() => loadProfile().onboardingCompleted && !loadAuthUser());
+  const [accessState, setAccessState] = useState(loadAccessState);
+  const [programAssignment, setProgramAssignment] = useState(loadProgramAssignment);
+  const [authSkipped, setAuthSkipped] = useState(loadAuthSkipped);
+  const [authActionUrl, setAuthActionUrl] = useState(initialAuthActionUrl);
+  const [quizOpen, setQuizOpen] = useState(() => !initialAuthActionUrl && !loadProfile().onboardingCompleted);
+  const [authPromptOpen, setAuthPromptOpen] = useState(() => Boolean(initialAuthActionUrl) || (loadProfile().onboardingCompleted && !loadAuthUser() && !loadAuthSkipped()));
   const screenRef = useRef(screen);
   const routeMetaRef = useRef(window.history.state || {});
 
@@ -170,28 +218,110 @@ function AppContent() {
     return () => listener?.remove?.();
   }, []);
 
-  useEffect(() => {
-    // Check URL hash for token from OAuth/Telegram
-    if (window.location.hash.includes("auth_token=")) {
-      const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-      const token = params.get("auth_token");
-      if (token) {
-        setAuthToken(token);
-        // clean hash
-        window.history.replaceState(null, "", window.location.pathname + window.location.search);
-        fetchMe().then((user) => {
-          if (user) {
-            setAuthUser(user);
-            setAuthPromptOpen(false);
-          }
-        });
+  async function applyAuthToken(token, { cleanUrl = false } = {}) {
+    if (!token) return;
+    setAuthToken(token);
+    localStorage.removeItem(SKIP_AUTH_KEY);
+    setAuthSkipped(false);
+    registerDevice().catch(() => {});
+    if (cleanUrl) {
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+    const user = await fetchMe();
+    if (user) {
+      registerDevice().catch(() => {});
+      const [access, serverProfile, assignment] = await Promise.all([
+        fetchAccess(),
+        fetchProfile(),
+        fetchProgramAssignment()
+      ]);
+      if (serverProfile) {
+        const mergedProfile = saveProfile({ ...loadProfile(), ...serverProfile, onboardingCompleted: loadProfile().onboardingCompleted || serverProfile.onboardingCompleted });
+        setProfile(mergedProfile);
       }
+      setAuthUser(user);
+      setAccessState(access);
+      setProgramAssignment(assignment);
+      setAuthPromptOpen(false);
+      const pendingProvider = sessionStorage.getItem("fruitfit.pendingProviderLink") || "";
+      if (pendingProvider) {
+        window.dispatchEvent(new CustomEvent("fruitfit:auth-link-returned", { detail: { provider: pendingProvider } }));
+      }
+    } else {
+      setAuthPromptOpen(true);
+    }
+  }
+
+  async function refreshPaymentStateAfterReturn() {
+    const [access, assignment, referralInfo] = await Promise.all([fetchAccess(), fetchProgramAssignment(), fetchReferralInfo()]);
+    if (access) setAccessState(access);
+    setProgramAssignment(assignment);
+    window.dispatchEvent(new CustomEvent("fruitfit:referral-updated", { detail: referralInfo || null }));
+  }
+
+  useEffect(() => {
+    const paymentReturn = paymentReturnFromUrl(window.location.href);
+    if (paymentReturn) {
+      writeRoute("profile", { replace: true, source: `payment-${paymentReturn}` });
+      setScreen("profile");
+      if (loadAuthUser()) refreshPaymentStateAfterReturn().catch(() => {});
+      return;
+    }
+    if (emailAuthActionFromUrl(window.location.href)) {
+      setAuthActionUrl(window.location.href);
+      setQuizOpen(false);
+      setAuthPromptOpen(true);
+      return;
+    }
+    const token = authTokenFromUrl(window.location.href);
+    if (token) {
+      applyAuthToken(token, { cleanUrl: true }).catch(() => setAuthPromptOpen(true));
     } else if (loadAuthUser()) {
       // Validate session on load
-      fetchMe().then((user) => {
-        if (user) setAuthUser(user);
+      fetchMe().then(async (user) => {
+        if (user) {
+          registerDevice().catch(() => {});
+          const [access, serverProfile, assignment] = await Promise.all([
+            fetchAccess(),
+            fetchProfile(),
+            fetchProgramAssignment()
+          ]);
+          if (serverProfile) {
+            const mergedProfile = saveProfile({ ...loadProfile(), ...serverProfile, onboardingCompleted: loadProfile().onboardingCompleted || serverProfile.onboardingCompleted });
+            setProfile(mergedProfile);
+          }
+          setAuthUser(user);
+          setAccessState(access);
+          setProgramAssignment(assignment);
+        } else {
+          setAuthPromptOpen(true);
+        }
       });
     }
+  }, []);
+
+  useEffect(() => {
+    let listener;
+    CapacitorApp.addListener("appUrlOpen", ({ url }) => {
+      const paymentReturn = paymentReturnFromUrl(url);
+      if (paymentReturn) {
+        writeRoute("profile", { replace: true, source: `payment-${paymentReturn}` });
+        setScreen("profile");
+        if (loadAuthUser()) refreshPaymentStateAfterReturn().catch(() => {});
+        return;
+      }
+      if (emailAuthActionFromUrl(url)) {
+        setAuthActionUrl(url);
+        setQuizOpen(false);
+        setAuthPromptOpen(true);
+        return;
+      }
+      const token = authTokenFromUrl(url);
+      if (token) applyAuthToken(token).catch(() => setAuthPromptOpen(true));
+    }).then((handle) => {
+      listener = handle;
+    }).catch(() => {});
+    return () => listener?.remove?.();
   }, []);
 
   useEffect(() => {
@@ -203,14 +333,20 @@ function AppContent() {
   }, [theme]);
 
   useEffect(() => {
-    const lockPortrait = () => window.screen?.orientation?.lock?.("portrait").catch?.(() => {});
-    const unlockForFullscreenVideo = () => window.screen?.orientation?.unlock?.();
+    const lockPortrait = () => {
+      FruitFitOrientation.lockPortrait?.().catch?.(() => {});
+      window.screen?.orientation?.lock?.("portrait").catch?.(() => {});
+    };
+    const unlockForFullscreenVideo = () => {
+      FruitFitOrientation.unlock?.().catch?.(() => {});
+      window.screen?.orientation?.unlock?.();
+    };
     document.documentElement.classList.add("portrait-lock");
     lockPortrait();
     const onFullscreenChange = () => {
       const element = document.fullscreenElement || document.webkitFullscreenElement;
-      const isVideoFullscreen = element?.tagName?.toLowerCase?.() === "video";
-      if (isVideoFullscreen) unlockForFullscreenVideo();
+      const isFullscreenMedia = Boolean(element);
+      if (isFullscreenMedia) unlockForFullscreenVideo();
       else lockPortrait();
     };
     document.addEventListener("fullscreenchange", onFullscreenChange);
@@ -245,8 +381,67 @@ function AppContent() {
     };
   }, []);
 
-  const program = useMemo(() => buildProgramView(data, selectedWorkoutIndex, profile), [data, profile, selectedWorkoutIndex]);
+  useEffect(() => {
+    function syncAccess(event) {
+      setAccessState(event?.detail || loadAccessState());
+    }
+    window.addEventListener("fruitfit:access-updated", syncAccess);
+    window.addEventListener("storage", syncAccess);
+    return () => {
+      window.removeEventListener("fruitfit:access-updated", syncAccess);
+      window.removeEventListener("storage", syncAccess);
+    };
+  }, []);
+
+  useEffect(() => {
+    function syncProgramAssignment(event) {
+      setProgramAssignment(event?.detail || loadProgramAssignment());
+    }
+    window.addEventListener("fruitfit:program-assignment-updated", syncProgramAssignment);
+    window.addEventListener("storage", syncProgramAssignment);
+    return () => {
+      window.removeEventListener("fruitfit:program-assignment-updated", syncProgramAssignment);
+      window.removeEventListener("storage", syncProgramAssignment);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!authUser) return undefined;
+    let listener;
+    async function refreshServerState() {
+      const [access, assignment, referralInfo] = await Promise.all([fetchAccess(), fetchProgramAssignment(), fetchReferralInfo()]);
+      if (access) setAccessState(access);
+      setProgramAssignment(assignment);
+      window.dispatchEvent(new CustomEvent("fruitfit:referral-updated", { detail: referralInfo || null }));
+    }
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        refreshServerState().catch(() => {});
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    CapacitorApp.addListener("appStateChange", ({ isActive }) => {
+      if (isActive) refreshServerState().catch(() => {});
+    }).then((handle) => {
+      listener = handle;
+    }).catch(() => {});
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      listener?.remove?.();
+    };
+  }, [authUser]);
+
+  const assignedProgramId = programAssignment?.programId || programAssignment?.program_id || "";
+  const program = useMemo(() => buildProgramView(data, selectedWorkoutIndex, profile, assignedProgramId), [data, profile, selectedWorkoutIndex, assignedProgramId]);
   const workout = program?.selectedWorkout;
+
+  useEffect(() => {
+    if (!program?.workouts?.length) return;
+    const unlockedCount = unlockedWorkoutCount(program.workouts, accessState);
+    if (unlockedCount > 0 && selectedWorkoutIndex >= unlockedCount) {
+      setSelectedWorkoutIndex(unlockedCount - 1);
+    }
+  }, [accessState, program?.workouts, selectedWorkoutIndex]);
 
   if (loading || error || !program || !workout) return <LoadingScreen error={error} />;
 
@@ -260,19 +455,50 @@ function AppContent() {
           setProfile(savedProfile);
           setSelectedWorkoutIndex(0);
           setQuizOpen(false);
-          setAuthPromptOpen(!loadAuthUser());
+          setAuthPromptOpen(!loadAuthUser() && !loadAuthSkipped());
           navigate("home");
         }}
       />
     );
   }
 
-  if (authPromptOpen) {
-    return <AuthPrompt onComplete={(user) => { setAuthUser(user || loadAuthUser()); setAuthPromptOpen(false); }} />;
+  if (authPromptOpen || (!authUser && !authSkipped)) {
+    return (
+      <AuthPrompt
+        key={authActionUrl || "auth"}
+        initialUrl={authActionUrl || window.location.href}
+        onComplete={async (user, meta = {}) => {
+          if (meta.skipped) {
+            setAuthActionUrl("");
+            localStorage.setItem(SKIP_AUTH_KEY, "1");
+            setAuthSkipped(true);
+            setAuthUser(null);
+            setAccessState(null);
+            setProgramAssignment(null);
+            setAuthPromptOpen(false);
+            return;
+          }
+          setAuthActionUrl("");
+          localStorage.removeItem(SKIP_AUTH_KEY);
+          setAuthSkipped(false);
+          setAuthUser(user || loadAuthUser());
+          const [access, assignment] = await Promise.all([fetchAccess(), fetchProgramAssignment()]);
+          setAccessState(loadAccessState() || access);
+          setProgramAssignment(assignment);
+          setAuthPromptOpen(false);
+        }}
+      />
+    );
   }
 
   function openWorkout(index = selectedWorkoutIndex) {
-    setSelectedWorkoutIndex(index);
+    const total = program?.workouts?.length || 0;
+    const safeIndex = Math.max(0, Math.min(Number(index) || 0, Math.max(total - 1, 0)));
+    if (!isWorkoutUnlocked(safeIndex, program?.workouts || total, accessState)) {
+      window.alert(LOCKED_WORKOUT_MESSAGE);
+      return;
+    }
+    setSelectedWorkoutIndex(safeIndex);
     navigate("workout");
   }
 
@@ -291,6 +517,7 @@ function AppContent() {
         onBack={() => goBack("workout")}
         onNavigate={navigate}
         profile={profile}
+        access={accessState}
       />
     );
   }
@@ -305,6 +532,7 @@ function AppContent() {
         onBack={() => goBack("home")}
         onNavigate={navigate}
         profile={profile}
+        access={accessState}
       />
     );
   }
@@ -317,20 +545,21 @@ function AppContent() {
         onOpenWorkout={openWorkout}
         onNavigate={navigate}
         profile={profile}
+        access={accessState}
       />
     );
   }
 
   if (screen === "food") {
-    return <NutritionScreen onNavigate={navigate} profile={profile} showBack={routeMetaRef.current?.fruitfitSource === "screen"} onBack={() => goBack("home")} />;
+    return <NutritionScreen onNavigate={navigate} profile={profile} access={accessState} showBack={routeMetaRef.current?.fruitfitSource === "screen"} onBack={() => goBack("home")} />;
   }
 
   if (screen === "coach") {
-    return <CoachScreen program={program} workout={workout} profile={profile} onNavigate={navigate} />;
+    return <CoachScreen program={program} workout={workout} profile={profile} access={accessState} onNavigate={navigate} />;
   }
 
   if (screen === "profile") {
-    return <ProfileScreen profile={profile} onProfileChange={setProfile} theme={theme} onThemeChange={setTheme} onNavigate={navigate} onRestartQuiz={() => setQuizOpen(true)} />;
+    return <ProfileScreen profile={profile} access={accessState} onProfileChange={setProfile} theme={theme} onThemeChange={setTheme} onNavigate={navigate} onRestartQuiz={() => setQuizOpen(true)} onRequireAuth={() => setAuthPromptOpen(true)} />;
   }
 
   if (screen === "settings") {
@@ -338,7 +567,7 @@ function AppContent() {
   }
 
   if (screen === "lecture") {
-    return <LectureDetailScreen onBack={() => goBack("home")} />;
+    return <LectureDetailScreen onBack={() => goBack("home")} access={accessState} />;
   }
 
   return (
@@ -347,6 +576,7 @@ function AppContent() {
       workout={workout}
       profile={profile}
       authUser={authUser}
+      access={accessState}
       onStartWorkout={() => openWorkout(selectedWorkoutIndex)}
       onNavigate={navigate}
     />

@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Check, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Clock, Leaf, History, MoreHorizontal, Pause, Play, RotateCcw, User, Volume2, VolumeX, X } from "lucide-react";
+import { Activity, Check, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Clock, Leaf, History, Lock, MoreHorizontal, Pause, Play, RotateCcw, User, Volume2, VolumeX, X } from "lucide-react";
 import BottomNavigation from "../components/BottomNavigation";
 import ExerciseList from "../components/ExerciseList";
 import ExerciseMedia from "../components/ExerciseMedia";
 import IconButton from "../components/IconButton";
 import MuscleWorkBlock from "../components/MuscleWorkBlock";
+import { buildClientReportScores, ClientReportSliders, normalizeClientReportScores } from "../components/ClientReportSliders";
+import { submitTrainerReport } from "../data/authStore";
+import { isWorkoutUnlocked, LOCKED_WORKOUT_MESSAGE, visibleWorkoutsForAccess } from "../data/accessRules";
 import { getExerciseAlternatives } from "../data/exerciseAlternatives";
 import { assignMuscleTemplate } from "../data/muscleTemplates";
 import { getExerciseWeight, saveExerciseWeight } from "../utils/exerciseWeights";
@@ -31,12 +34,28 @@ function replacementKey(workoutId) {
   return `fruitfit.exerciseReplacements.${workoutId}`;
 }
 
+function workoutReportKey(workoutId) {
+  return `fruitfit.workoutReport.${workoutId}`;
+}
+
 function readReplacements(workoutId) {
   try {
     return JSON.parse(localStorage.getItem(replacementKey(workoutId)) || "{}");
   } catch (_) {
     return {};
   }
+}
+
+function readWorkoutReport(workoutId) {
+  try {
+    return JSON.parse(localStorage.getItem(workoutReportKey(workoutId)) || "null");
+  } catch (_) {
+    return null;
+  }
+}
+
+function saveWorkoutReport(workoutId, report) {
+  localStorage.setItem(workoutReportKey(workoutId), JSON.stringify(report));
 }
 
 function SetTimer({ seconds, active, onStart, onComplete }) {
@@ -200,6 +219,78 @@ function RestWheelPicker({ value, onChange }) {
   );
 }
 
+function WorkoutReport({ workoutId, workoutTitle }) {
+  const savedReport = readWorkoutReport(workoutId);
+  const [report, setReport] = useState(() => savedReport || {
+    selfFeeling: 7,
+    strength: 7,
+    sleepQuality: 7,
+    workoutFeeling: 7,
+  });
+  const [saved, setSaved] = useState(Boolean(savedReport));
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState("");
+  const normalizedScores = normalizeClientReportScores(report, 0);
+  const hasScores = Object.values(normalizedScores).some((value) => Number(value || 0) > 0);
+
+  function update(key, value) {
+    setSaved(false);
+    setStatus("");
+    setReport((current) => ({ ...current, [key]: value }));
+  }
+
+  async function submit() {
+    const scores = buildClientReportScores(report);
+    const payload = {
+      kind: "workout_checkin",
+      source: "post-workout",
+      submittedAt: new Date().toISOString(),
+      scores,
+      workout: {
+        id: workoutId,
+        title: workoutTitle || "",
+      },
+      noMedicalConclusions: true,
+    };
+    setSaving(true);
+    try {
+      const item = await submitTrainerReport(payload);
+      const localPayload = { ...payload, id: item?.id || null, saved_at: new Date().toISOString() };
+      saveWorkoutReport(workoutId, localPayload);
+      setReport(scores);
+      setSaved(true);
+      setStatus("Отчёт сохранён");
+    } catch (error) {
+      saveWorkoutReport(workoutId, { ...payload, saved_at: new Date().toISOString(), pendingSync: true });
+      setSaved(true);
+      setStatus(error?.message || "Отчёт сохранён на устройстве. Войдите в аккаунт для отправки тренеру.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="workout-report-card mt-4 rounded-[20px] border border-appBorder p-3 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[13px] font-black text-appText">Отчёт после тренировки</p>
+          <p className="text-[10px] font-bold text-appMuted">необязательно</p>
+        </div>
+        {saved && <span className="rounded-full bg-appGreen/35 px-2 py-1 text-[10px] font-black text-[#476B18]">Отчёт сохранён</span>}
+      </div>
+
+      <div className="mt-2">
+        <ClientReportSliders values={report} onChange={update} compact disabled={saving} />
+      </div>
+
+      <button type="button" onClick={submit} disabled={!hasScores || saving} className="mt-2 h-10 w-full rounded-full bg-appGreen text-[12px] font-black text-[#181F19] disabled:bg-appBorder disabled:text-appMuted">
+        {saving ? "Сохраняем..." : "Сохранить отчёт"}
+      </button>
+      {status && <p className="mt-2 rounded-2xl bg-appBg px-3 py-2 text-[11px] font-bold leading-4 text-appMuted">{status}</p>}
+    </section>
+  );
+}
+
 function WorkRestTimer({
   exercise,
   phase,
@@ -347,16 +438,16 @@ function SetsTable({ current, setRows, completedSets, currentSet }) {
   const initialWeight = current?.weight ? Number(String(current.weight).replace(/[^\d.]/g, "")) : "";
 
   return (
-    <section className="mt-4 rounded-[20px] border border-appBorder bg-appCard/82 p-3 shadow-sm">
+    <section className="sets-table-panel mt-4 rounded-[20px] border border-appBorder p-3 shadow-sm">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-[12px] font-bold uppercase tracking-wide text-appMuted">Подходы</h3>
         {saved?.lastWeight && <span className="inline-flex items-center gap-1 rounded-full bg-appGreen/50 px-2 py-1 text-[10px] font-bold text-[#181F19]"><History size={11} /> последний вес</span>}
       </div>
       <div className="space-y-1">
-        {setRows.map((set) => {
+        {setRows.map((set, index) => {
           const status = set <= completedSets ? "completed" : set === currentSet ? "current" : "upcoming";
           return (
-            <div key={set} className={`grid grid-cols-[74px_1fr_122px_24px] items-center gap-2 rounded-xl px-2 py-2 text-[13px] ${status === "current" ? "bg-appGreen/18" : ""}`}>
+            <div key={set} className={`sets-table-row grid grid-cols-[74px_1fr_122px_24px] items-center gap-2 rounded-xl px-2 py-2 text-[13px] ${index % 2 ? "sets-table-row-alt" : ""} ${status === "current" ? "sets-table-row-current" : ""}`}>
               <span className="font-semibold text-appText">Подход {set}</span>
               <span className="truncate text-appMuted">{current.reps ? `${current.reps} повторений` : current.raw_line}</span>
               <WeightInput exercise={current} setNumber={set} initialWeight={initialWeight} />
@@ -559,7 +650,7 @@ function WarmupBlock() {
   );
 }
 
-export default function WorkoutScreen({ program, workout, profile, selectedWorkoutIndex = 0, mode = "workout", onBack, onNavigate, onSelectWorkout }) {
+export default function WorkoutScreen({ program, workout, profile, access, selectedWorkoutIndex = 0, mode = "workout", onBack, onNavigate, onSelectWorkout }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completed, setCompleted] = useState(() => new Set());
   const [completedSets, setCompletedSets] = useState(0);
@@ -609,6 +700,9 @@ export default function WorkoutScreen({ program, workout, profile, selectedWorko
   const progress = displayExercises.length ? Math.round((completed.size / displayExercises.length) * 100) : 0;
   const day = workout.lesson?.lesson_number || selectedWorkoutIndex + 1;
   const total = program?.workouts?.length || workout.lessons?.length || 1;
+  const visibleWorkouts = useMemo(() => visibleWorkoutsForAccess(program?.workouts || [], access), [access, program?.workouts]);
+  const visibleTotal = Math.max(1, visibleWorkouts.length || total);
+  const visibleSelectedIndex = Math.min(selectedWorkoutIndex, visibleTotal - 1);
   const meta = exerciseMeta(current);
   const muscleMapGender = profile?.gender === "male" || String(workout.course?.gender || "").toLowerCase().includes("муж") ? "male" : "female";
   const setRows = useMemo(() => Array.from({ length: setTotal }, (_, index) => index + 1), [setTotal]);
@@ -623,6 +717,12 @@ export default function WorkoutScreen({ program, workout, profile, selectedWorko
       first_10_exercise_name: displayExercises.slice(0, 10).map((exercise) => exercise.exercise_name),
     }));
   }, [displayExercises, program, workout]);
+
+  useEffect(() => {
+    if (!visibleWorkouts.length) return;
+    if (visibleWorkouts.some((item) => item.workout_id === workout.workout_id)) return;
+    onSelectWorkout?.(visibleWorkouts.length - 1);
+  }, [onSelectWorkout, visibleWorkouts, workout.workout_id]);
 
   useEffect(() => {
     const staticMode = isStaticExercise(current);
@@ -807,7 +907,12 @@ export default function WorkoutScreen({ program, workout, profile, selectedWorko
   }
 
   function selectDay(index) {
-    onSelectWorkout?.(Math.max(0, Math.min(index, total - 1)));
+    const nextIndex = Math.max(0, Math.min(index, visibleTotal - 1));
+    if (!isWorkoutUnlocked(nextIndex, program?.workouts || total, access)) {
+      window.alert(LOCKED_WORKOUT_MESSAGE);
+      return;
+    }
+    onSelectWorkout?.(nextIndex);
   }
 
   const timerNode = (
@@ -874,7 +979,7 @@ export default function WorkoutScreen({ program, workout, profile, selectedWorko
               <h2 className="line-clamp-2 text-[26px] font-black leading-[1.08] text-appText">{workout.lesson.lesson_title}</h2>
               <p className="mt-2 line-clamp-1 text-[13px] text-appMuted">{workout.course.display_name}</p>
             </div>
-            <span className="shrink-0 rounded-full bg-appGreen/55 px-3 py-1.5 text-[12px] font-semibold text-[#181F19]">День {day}/{total}</span>
+            <span className="shrink-0 rounded-full bg-appGreen/55 px-3 py-1.5 text-[12px] font-semibold text-[#181F19]">День {Math.min(day, visibleTotal)}/{visibleTotal}</span>
           </div>
           <div className="mt-4 flex items-center gap-3">
             <span className="text-[13px] text-appMuted">Прогресс</span>
@@ -883,9 +988,15 @@ export default function WorkoutScreen({ program, workout, profile, selectedWorko
           </div>
           <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1">
             <button type="button" onClick={() => selectDay(selectedWorkoutIndex - 1)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-appCard text-appMuted shadow-sm"><ChevronLeft size={17} /></button>
-            {program.workouts.map((item, index) => (
-              <button key={item.workout_id} type="button" onClick={() => selectDay(index)} className={`h-9 shrink-0 rounded-full px-3 text-[12px] font-bold ${index === selectedWorkoutIndex ? "bg-appDark text-appGreen" : "bg-appCard text-appMuted"}`}>День {index + 1}</button>
-            ))}
+            {visibleWorkouts.map((item, index) => {
+              const locked = !isWorkoutUnlocked(index, program?.workouts || total, access);
+              return (
+                <button key={item.workout_id} type="button" onClick={() => selectDay(index)} className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-[12px] font-bold ${locked ? "bg-appCard/70 text-appMuted opacity-70" : index === visibleSelectedIndex ? "bg-appDark text-appGreen" : "bg-appCard text-appMuted"}`}>
+                  {locked && <Lock size={12} />}
+                  День {index + 1}
+                </button>
+              );
+            })}
             <button type="button" onClick={() => selectDay(selectedWorkoutIndex + 1)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-appCard text-appMuted shadow-sm"><ChevronRight size={17} /></button>
           </div>
         </section>
@@ -920,9 +1031,12 @@ export default function WorkoutScreen({ program, workout, profile, selectedWorko
         </motion.section>
 
         <section className="mt-3 rounded-[20px] border border-appBorder bg-appCard/86 p-3 shadow-sm">
-          <div className="grid grid-cols-2 gap-2">
-            {[["replace", "Заменить упражнение"], ["busy", "Тренажёр занят"], ["equipment", "Нет оборудования"], ["discomfort", "Дискомфорт/боль"]].map(([id, label]) => (
-              <button key={id} type="button" onClick={() => setAlternativeReason(id)} className="min-h-11 rounded-[16px] border border-appBorder bg-appBg px-3 text-[12px] font-black text-appText shadow-sm transition hover:border-appGreen/60 hover:bg-appGreen/10 active:scale-[0.98]">{label}</button>
+          <div className="grid grid-cols-1 gap-2">
+            {[["replace", "Заменить упражнение"]].map(([id, label]) => (
+              <button key={id} type="button" onClick={() => setAlternativeReason(id)} className="exercise-replace-button min-h-11 rounded-[16px] px-3 text-[12px] font-black transition active:scale-[0.98]">
+                <RotateCcw size={15} />
+                {label}
+              </button>
             ))}
           </div>
         </section>
@@ -930,6 +1044,7 @@ export default function WorkoutScreen({ program, workout, profile, selectedWorko
         <div className="mt-3">{timerNode}</div>
         <SetsTable current={current} setRows={setRows} completedSets={completedSets} currentSet={currentSet} />
         <ExerciseList exercises={displayExercises} currentIndex={currentIndex} superset={workout.hasSupersetData ? workout.superset : []} onExerciseClick={jumpToExercise} />
+        <WorkoutReport key={workout.workout_id} workoutId={workout.workout_id} workoutTitle={workout.lesson?.lesson_title} />
       </div>
       {alternativeReason && <AlternativesModal exercise={current} reason={alternativeReason} catalog={program.exerciseCatalog} profile={profile} onSelect={saveReplacement} onClose={() => setAlternativeReason("")} />}
       <BottomNavigation active="workouts" onNavigate={onNavigate} />

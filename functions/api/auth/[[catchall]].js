@@ -1,6 +1,6 @@
 export async function onRequest({ request, env }) {
   const url = new URL(request.url);
-  const backendBase = env.APP_BASE_URL || "https://tagirfruit-mini.duckdns.org";
+  const backendBase = env.APP_BASE_URL || "https://api.tagirfruit.ru";
   
   // Create a new URL that points to the VDS backend
   const targetUrl = new URL(url.pathname + url.search, backendBase);

@@ -13,14 +13,15 @@ export default function ExerciseCard({ exercise, state = "upcoming", index = 1, 
   const completed = state === "completed";
   const current = state === "current";
   const upcoming = state === "upcoming";
+  const toneClass = index % 2 === 0 ? "exercise-card-island-alt" : "exercise-card-island-base";
 
   return (
     <button
       type="button"
       onClick={onClick}
       className={[
-        "grid min-h-[76px] w-full grid-cols-[64px_1fr_32px] items-center gap-3 rounded-[18px] border px-3 py-2 text-left transition",
-        current ? "border-[#A9D95A] bg-appCard shadow-card" : "border-appBorder bg-appCard/82 shadow-sm",
+        "exercise-card-island grid min-h-[76px] w-full grid-cols-[64px_1fr_32px] items-center gap-3 rounded-[18px] border px-3 py-2 text-left transition",
+        current ? "exercise-card-island-current shadow-card" : completed ? "exercise-card-island-completed shadow-sm" : `${toneClass} shadow-sm`,
         upcoming ? "opacity-78" : "",
       ].join(" ")}
     >
