@@ -73,7 +73,7 @@ export default function OnboardingQuiz({ initialProfile = profileDefaults, onCom
   }
 
   return (
-    <main className="phone-shell flex min-h-screen flex-col bg-appBg px-4 pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
+    <main className="phone-shell flex min-h-screen flex-col bg-appBg px-4 pb-[var(--app-safe-bottom)] pt-[var(--app-safe-top)]">
       <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-[12px] font-black uppercase tracking-[0.16em] text-[#6FA62F]">fruitfit</p>
@@ -101,7 +101,7 @@ export default function OnboardingQuiz({ initialProfile = profileDefaults, onCom
         <h2 className="text-[28px] font-black leading-tight text-appText">{step.title}</h2>
         {index === steps.length - 1 && (
           <div className="mt-4 rounded-[20px] border border-appBorder bg-appCard px-4 py-3 text-[12px] leading-5 text-appMuted shadow-sm">
-            После квиза можно подключить Health Connect. Это поможет FruitFit учитывать сон, пульс и активность в рекомендациях. Данные нужны только для персонализации и не передаются третьим лицам.
+            После квиза можно подключить Apple Health. Это поможет FruitFit учитывать сон, пульс и активность в рекомендациях. Данные нужны только для персонализации и не передаются третьим лицам.
           </div>
         )}
         <div className="mt-5 space-y-3">
@@ -127,9 +127,11 @@ export default function OnboardingQuiz({ initialProfile = profileDefaults, onCom
       </section>
 
       {showDietScrollHint && (
-        <div className="pointer-events-none fixed bottom-[calc(86px+env(safe-area-inset-bottom))] left-1/2 z-30 flex -translate-x-1/2 flex-col items-center rounded-full border border-appBorder bg-appCard/95 px-4 py-2 text-[11px] font-black text-appText shadow-card backdrop-blur">
+        <div className="fixed-shell pointer-events-none fixed bottom-[calc(86px+env(safe-area-inset-bottom))] left-1/2 z-30 flex -translate-x-1/2 flex-col items-center px-4">
+          <div className="rounded-full border border-appBorder bg-appCard/95 px-4 py-2 text-center text-[11px] font-black text-appText shadow-card backdrop-blur">
           <span>Ниже кнопка Далее</span>
           <ChevronDown size={18} className="mt-0.5 animate-bounce text-appGreen" />
+          </div>
         </div>
       )}
 

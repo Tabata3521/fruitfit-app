@@ -57,7 +57,7 @@ export function SelectButton({ label, title, value, options, onChange, error }) 
               exit={{ y: 36 }}
               transition={{ type: "spring", stiffness: 360, damping: 32 }}
               onClick={(event) => event.stopPropagation()}
-              className="mb-[max(10px,env(safe-area-inset-bottom))] w-full max-w-[393px] rounded-[28px] border border-white/10 bg-[#101711] p-3 shadow-soft"
+              className="mb-[max(10px,env(safe-area-inset-bottom))] w-full max-w-[430px] rounded-[28px] border border-white/10 bg-[#101711] p-3 shadow-soft"
             >
               <div className="mb-3 flex items-center justify-between px-1">
                 <h3 className="text-[18px] font-black text-white">{title}</h3>

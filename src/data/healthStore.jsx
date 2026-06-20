@@ -87,6 +87,10 @@ const LEGACY_CANONICAL_STRATEGIES = new Set([
 
 const weekLabels = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
+function nativeHealthDisplayName(source = "") {
+  return String(source || "").toLowerCase().includes("apple") ? "Apple Health" : "Apple Health";
+}
+
 const defaultCycle = {
   lastPeriodStartDate: "",
   cycleLengthDays: 28,
@@ -3711,7 +3715,7 @@ export function HealthProvider({ children }) {
         providerState: permissionResult.state,
         providerSource: permissionResult.source,
         providerMessage: canReadNativeData(permissionResult.state)
-          ? "Health Connect подключён. Данные загружаются постепенно."
+          ? `${nativeHealthDisplayName(permissionResult.source)} подключён. Данные загружаются постепенно.`
           : permissionResult.message,
         healthRefresh: {
           ...defaultHealthRefresh,
@@ -3834,7 +3838,7 @@ export function HealthProvider({ children }) {
           message: "Health Connect rate limit reached; cached snapshot reused.",
         };
       }
-      const message = error?.message || "Не удалось подключить Health Connect.";
+      const message = error?.message || "Не удалось подключить Apple Health.";
       setSyncError(message);
       setHealth((current) => ({
         ...current,

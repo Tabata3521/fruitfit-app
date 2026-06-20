@@ -10,7 +10,7 @@ const items = [
 
 export default function BottomNavigation({ active = "home", onNavigate }) {
   return (
-    <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-[393px] -translate-x-1/2 border-t border-appBorder bg-appCard/92 px-4 pb-[max(10px,env(safe-area-inset-bottom))] pt-1.5 backdrop-blur-md">
+    <nav className="fixed-shell fixed bottom-0 left-1/2 z-40 -translate-x-1/2 border-t border-appBorder bg-appCard/92 px-4 pb-[max(10px,env(safe-area-inset-bottom))] pt-1.5 backdrop-blur-md">
       <div className="grid h-[58px] grid-cols-5 items-center">
         {items.map((item) => {
           const Icon = item.icon;

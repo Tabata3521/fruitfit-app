@@ -15,6 +15,16 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		7A1C00012F10000000000001 /* FruitFitAppIconPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C00002F10000000000001 /* FruitFitAppIconPlugin.swift */; };
+		7A1C00032F10000000000001 /* FruitFitBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C00022F10000000000001 /* FruitFitBridgeViewController.swift */; };
+		7A1C00052F10000000000001 /* FruitFitIconOrange@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C00042F10000000000001 /* FruitFitIconOrange@2x.png */; };
+		7A1C00072F10000000000001 /* FruitFitIconOrange@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C00062F10000000000001 /* FruitFitIconOrange@3x.png */; };
+		7A1C00092F10000000000001 /* FruitFitIconPear@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C00082F10000000000001 /* FruitFitIconPear@2x.png */; };
+		7A1C000B2F10000000000001 /* FruitFitIconPear@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C000A2F10000000000001 /* FruitFitIconPear@3x.png */; };
+		7A1C000D2F10000000000001 /* FruitFitIconApple@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C000C2F10000000000001 /* FruitFitIconApple@2x.png */; };
+		7A1C000F2F10000000000001 /* FruitFitIconApple@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C000E2F10000000000001 /* FruitFitIconApple@3x.png */; };
+		7A1C00112F10000000000001 /* FruitFitIconStrawberry@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C00102F10000000000001 /* FruitFitIconStrawberry@2x.png */; };
+		7A1C00132F10000000000001 /* FruitFitIconStrawberry@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C00122F10000000000001 /* FruitFitIconStrawberry@3x.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +37,16 @@
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
+		7A1C00002F10000000000001 /* FruitFitAppIconPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FruitFitAppIconPlugin.swift; sourceTree = "<group>"; };
+		7A1C00022F10000000000001 /* FruitFitBridgeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FruitFitBridgeViewController.swift; sourceTree = "<group>"; };
+		7A1C00042F10000000000001 /* FruitFitIconOrange@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "FruitFitIconOrange@2x.png"; sourceTree = "<group>"; };
+		7A1C00062F10000000000001 /* FruitFitIconOrange@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "FruitFitIconOrange@3x.png"; sourceTree = "<group>"; };
+		7A1C00082F10000000000001 /* FruitFitIconPear@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "FruitFitIconPear@2x.png"; sourceTree = "<group>"; };
+		7A1C000A2F10000000000001 /* FruitFitIconPear@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "FruitFitIconPear@3x.png"; sourceTree = "<group>"; };
+		7A1C000C2F10000000000001 /* FruitFitIconApple@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "FruitFitIconApple@2x.png"; sourceTree = "<group>"; };
+		7A1C000E2F10000000000001 /* FruitFitIconApple@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "FruitFitIconApple@3x.png"; sourceTree = "<group>"; };
+		7A1C00102F10000000000001 /* FruitFitIconStrawberry@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "FruitFitIconStrawberry@2x.png"; sourceTree = "<group>"; };
+		7A1C00122F10000000000001 /* FruitFitIconStrawberry@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "FruitFitIconStrawberry@3x.png"; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -64,10 +84,20 @@
 			children = (
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
+				7A1C00022F10000000000001 /* FruitFitBridgeViewController.swift */,
+				7A1C00002F10000000000001 /* FruitFitAppIconPlugin.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
 				504EC3131FED79650016851F /* Info.plist */,
+				7A1C00042F10000000000001 /* FruitFitIconOrange@2x.png */,
+				7A1C00062F10000000000001 /* FruitFitIconOrange@3x.png */,
+				7A1C00082F10000000000001 /* FruitFitIconPear@2x.png */,
+				7A1C000A2F10000000000001 /* FruitFitIconPear@3x.png */,
+				7A1C000C2F10000000000001 /* FruitFitIconApple@2x.png */,
+				7A1C000E2F10000000000001 /* FruitFitIconApple@3x.png */,
+				7A1C00102F10000000000001 /* FruitFitIconStrawberry@2x.png */,
+				7A1C00122F10000000000001 /* FruitFitIconStrawberry@3x.png */,
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
 			);
@@ -145,10 +175,18 @@
 			buildActionMask = 2147483647;
 			files = (
 				504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */,
+				7A1C000F2F10000000000001 /* FruitFitIconApple@3x.png in Resources */,
 				50B271D11FEDC1A000F3C39B /* public in Resources */,
+				7A1C000B2F10000000000001 /* FruitFitIconPear@3x.png in Resources */,
 				504EC30F1FED79650016851F /* Assets.xcassets in Resources */,
+				7A1C00072F10000000000001 /* FruitFitIconOrange@3x.png in Resources */,
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
+				7A1C000D2F10000000000001 /* FruitFitIconApple@2x.png in Resources */,
+				7A1C00132F10000000000001 /* FruitFitIconStrawberry@3x.png in Resources */,
+				7A1C00092F10000000000001 /* FruitFitIconPear@2x.png in Resources */,
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
+				7A1C00112F10000000000001 /* FruitFitIconStrawberry@2x.png in Resources */,
+				7A1C00052F10000000000001 /* FruitFitIconOrange@2x.png in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -160,6 +198,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7A1C00032F10000000000001 /* FruitFitBridgeViewController.swift in Sources */,
+				7A1C00012F10000000000001 /* FruitFitAppIconPlugin.swift in Sources */,
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -303,6 +343,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = GUBXHZ7W28;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -326,6 +367,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = GUBXHZ7W28;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (

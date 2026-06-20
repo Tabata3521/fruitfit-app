@@ -93,7 +93,7 @@ function healthPermissionSummary(availability) {
   if (state === healthProviderStates.CONNECTED) return "Активность подключена";
   if (state === healthProviderStates.PARTIALLY_GRANTED) return "Можно расширить доступ для точности";
   if (state === healthProviderStates.PERMISSIONS_REQUIRED) return "Настройте доступ к показателям";
-  if (state === healthProviderStates.NOT_INSTALLED) return "Health Connect можно установить для синхронизации";
+  if (state === healthProviderStates.NOT_INSTALLED) return "Apple Health недоступен на этом устройстве";
   if (state === healthProviderStates.NO_DATA) return "Ждём первую синхронизацию";
   return "Подключите трекер для персонализации";
 }
@@ -105,9 +105,9 @@ function permissionLine(item, availability, active) {
   if (!item.permissionKey) return healthPermissionSummary(availability);
   const granted = Boolean(availability?.permissionStatus?.[item.permissionKey]);
   if (granted) return "Подключено и учитывается";
-  if (availability?.state === healthProviderStates.NOT_INSTALLED) return "Появится после настройки Health Connect";
+  if (availability?.state === healthProviderStates.NOT_INSTALLED) return "Появится после настройки Apple Health";
   if (availability?.state === healthProviderStates.NOT_SUPPORTED) return "Доступно в приложении на Android";
-  return "Нужен доступ в Health Connect";
+  return "Нужен доступ в Apple Health";
 }
 
 function healthConnectionHint(availability, syncing) {
@@ -116,8 +116,8 @@ function healthConnectionHint(availability, syncing) {
   if (state === healthProviderStates.CONNECTED) return "FruitFit использует активность, сон и пульс, чтобы точнее подбирать нагрузку.";
   if (state === healthProviderStates.PARTIALLY_GRANTED) return "Часть данных уже подключена. Сон и пульс сделают восстановление точнее.";
   if (state === healthProviderStates.PERMISSIONS_REQUIRED) return "Разрешите доступ к активности, сну и пульсу. Данные не передаются третьим лицам.";
-  if (state === healthProviderStates.NOT_INSTALLED) return "Установите или откройте Health Connect, чтобы синхронизировать данные часов.";
-  return "Подключите Health Connect, чтобы FruitFit мог учитывать вашу активность и восстановление.";
+  if (state === healthProviderStates.NOT_INSTALLED) return "Откройте Apple Health и проверьте, что часы синхронизируют данные.";
+  return "Подключите Apple Health, чтобы FruitFit мог учитывать вашу активность и восстановление.";
 }
 
 function formatHealthSyncTime(value) {
@@ -217,7 +217,7 @@ function subscriptionLine(subscription = null, loaded = false) {
 }
 
 const stepSourceOptionsBase = [
-  { value: "", label: "Auto", hint: "Health Connect aggregate total" },
+  { value: "", label: "Auto", hint: "Apple Health aggregate total" },
   { value: "com.google.android.apps.fitness", label: "Google Fit", hint: "Use Google Fit when selected" },
   { value: "android", label: "Android / phone", hint: "Системный источник телефона" },
   { value: "com.xiaomi.wearable", label: "Mi Fitness", hint: "Использовать только если вы доверяете Mi Fitness" },
@@ -460,7 +460,7 @@ function MeasurementHistoryModal({ items, onClose, onDateChange }) {
   return (
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/36 px-2">
-        <motion.section initial={{ y: 34 }} animate={{ y: 0 }} exit={{ y: 34 }} className="max-h-[88vh] w-full max-w-[393px] overflow-y-auto rounded-t-[30px] border border-appBorder bg-appCard p-4 pb-[max(20px,env(safe-area-inset-bottom))] shadow-soft">
+        <motion.section initial={{ y: 34 }} animate={{ y: 0 }} exit={{ y: 34 }} className="max-h-[88vh] w-full max-w-[430px] overflow-y-auto rounded-t-[30px] border border-appBorder bg-appCard p-4 pb-[max(20px,env(safe-area-inset-bottom))] shadow-soft">
           <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-appBorder" />
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-[24px] font-black text-appText">История замеров</h2>
@@ -1460,7 +1460,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
                   <div className="rounded-[18px] border border-appBorder bg-appBg p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-[12px] font-black text-appText">Health Connect</p>
+                        <p className="text-[12px] font-black text-appText">Apple Health</p>
                         <p className="mt-1 text-[11px] leading-4 text-appMuted">{healthConnectionHint(availability, syncing)}</p>
                       </div>
                       <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black ${availability?.state === healthProviderStates.CONNECTED ? "accent-readable-shadow bg-appGreen/20 text-appGreen" : "bg-appCard text-appMuted"}`}>
@@ -1468,7 +1468,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
                       </span>
                     </div>
                     <p className="mt-2 text-[11px] leading-4 text-appMuted">
-                      FruitFit использует данные активности для расчёта восстановления и рекомендаций. Основной источник на Android — Health Connect.
+                      FruitFit использует данные активности для расчёта восстановления и рекомендаций. Основной источник на iPhone — Apple Health.
                     </p>
                     <p className="mt-2 rounded-2xl bg-appCard px-3 py-2 text-[11px] font-bold text-appMuted">
                       Последняя синхронизация: {formatHealthSyncTime(health?.lastFruitFitRefreshAt || health?.generatedAt)}
@@ -1572,7 +1572,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
                     )}
                   </div>
                   <p className="rounded-[18px] border border-appBorder bg-appBg px-3 py-2 text-[11px] font-semibold leading-4 text-appMuted">
-                    Тумблеры ниже управляют тем, какие подключённые данные FruitFit учитывает в рекомендациях. Разрешения на чтение меняются в самом Health Connect.
+                    Тумблеры ниже управляют тем, какие подключённые данные FruitFit учитывает в рекомендациях. Разрешения на чтение меняются в самом Apple Health.
                   </p>
                   {permissionItems.filter((item) => draft.gender !== "male" || item.id !== "cycle").map((item) => {
                     const disabled = item.id === "cycle" && draft.gender === "male";

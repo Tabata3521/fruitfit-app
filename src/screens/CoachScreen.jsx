@@ -7,6 +7,7 @@ import { readUserCoreField } from "../data/dataContainers";
 import { buildAiCoachClientContext, resetStaleWorkoutState, serverCurrentWorkoutFromAssignment } from "../data/dataAccess";
 import { profileFirstNameForGreeting } from "../data/profileStore";
 import { currentUserId } from "../data/userScopedCache";
+import { answerDirectNutritionQuestion } from "../services/nutritionCoach";
 import { askFruitFitCoach } from "../services/openai";
 
 const starters = [
@@ -272,6 +273,13 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
     setLoading(true);
 
     try {
+      const directNutritionAnswer = await answerDirectNutritionQuestion(content);
+      if (directNutritionAnswer) {
+        const assistantMessage = createCoachChatMessage("assistant", directNutritionAnswer, userId);
+        setMessages(saveCoachChatHistory([...next, assistantMessage], userId));
+        return;
+      }
+
       resetStaleWorkoutState({ userId, reason: "coach-send" });
       let freshAssignment = programAssignment;
       try {
@@ -337,8 +345,8 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
   }
 
   return (
-    <main className="phone-shell flex min-h-screen flex-col pb-[calc(134px+env(safe-area-inset-bottom))]">
-      <div className="safe-top px-4">
+    <main className="phone-shell flex min-h-screen flex-col overflow-hidden pb-[calc(134px+env(safe-area-inset-bottom))]">
+      <div className="coach-safe-top shrink-0 px-4">
         <header className="flex items-start justify-between">
           <div>
             <div className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-appDark text-appGreen">
@@ -361,7 +369,7 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
         </section>
       </div>
 
-      <section ref={listRef} className="mt-2 flex-1 space-y-3 overflow-y-auto px-4 pb-[calc(104px+env(safe-area-inset-bottom))]">
+      <section ref={listRef} className="mt-2 min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-[calc(104px+env(safe-area-inset-bottom))]">
         {displayMessages.map((message, index) => (
           <div key={message.id || index} className={`max-w-[86%] rounded-[20px] px-4 py-3 text-[13px] leading-5 shadow-sm ${message.role === "user" ? "ml-auto bg-appGreen text-[#181F19]" : "bg-appCard text-appText"}`}>
             {message.content}
@@ -371,7 +379,7 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
         <div ref={bottomRef} aria-hidden="true" className="h-px" />
       </section>
 
-      <div className="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] left-1/2 z-30 w-full max-w-[393px] -translate-x-1/2 px-4">
+      <div className="fixed-shell fixed bottom-[calc(72px+env(safe-area-inset-bottom))] left-1/2 z-30 -translate-x-1/2 px-4">
         <form onSubmit={(event) => { event.preventDefault(); send(); }} className="flex gap-2 rounded-full border border-appBorder bg-appCard p-2 shadow-card">
           <input value={input} onFocus={() => scrollChatToBottom("smooth")} onChange={(event) => setInput(event.target.value)} placeholder="Спроси AI Coach..." className="min-w-0 flex-1 bg-transparent px-3 text-[14px] text-appText outline-none" />
           <button type="submit" disabled={loading} className="grid h-10 w-10 place-items-center rounded-full bg-appDark text-appGreen disabled:opacity-55">

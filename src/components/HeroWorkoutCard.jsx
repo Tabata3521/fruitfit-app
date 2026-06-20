@@ -39,7 +39,7 @@ export default function HeroWorkoutCard({ program, workout, access, onStart }) {
         loading="lazy"
         decoding="async"
         draggable="false"
-        className="pointer-events-none absolute bottom-0 right-[-34px] z-20 h-[92%] w-[42%] object-contain object-bottom opacity-92 mix-blend-lighten drop-shadow-[0_18px_30px_rgba(0,0,0,0.62)]"
+        className="pointer-events-none absolute bottom-0 right-0 z-20 h-[92%] w-[42%] object-contain object-bottom opacity-92 mix-blend-lighten drop-shadow-[0_18px_30px_rgba(0,0,0,0.62)]"
         style={{
           WebkitMaskImage:
             "linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.18) 12%, rgba(0,0,0,0.72) 28%, #000 48%, #000 100%)",
@@ -81,7 +81,7 @@ export default function HeroWorkoutCard({ program, workout, access, onStart }) {
       <button
         type="button"
         onClick={onStart}
-        className="absolute bottom-4 left-4 z-50 flex h-12 w-[62%] max-w-[260px] items-center justify-between rounded-full bg-appGreen px-4 text-[13px] font-black text-[#181F19] shadow-glow"
+        className="absolute bottom-4 left-4 z-50 flex h-12 w-[72%] max-w-[260px] items-center justify-between rounded-full bg-appGreen px-4 text-[13px] font-black text-[#181F19] shadow-glow"
       >
         <span className="truncate">Начать тренировку</span>
         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#181F19] text-appGreen">

@@ -819,7 +819,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
     try {
       let reportHealth = health;
       if (syncNativeHealth) {
-        setReportStatus({ loading: true, message: "Обновляем Health Connect..." });
+        setReportStatus({ loading: true, message: "Обновляем Apple Health..." });
         try {
           await syncNativeHealth({ force: true, reason: "trainer-report-submit", queryMode: "history", bypassCooldown: true });
           await new Promise((resolve) => window.setTimeout(resolve, 60));
@@ -1032,7 +1032,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
                   </div>
                 </div>
                 <p className="mt-2 text-[11px] font-semibold leading-4 text-appMuted">
-                  Перед отправкой отчёта приложение попробует обновить Health Connect и приложит недельную активность.
+                  Перед отправкой отчёта приложение попробует обновить Apple Health и приложит недельную активность.
                 </p>
               </div>
 

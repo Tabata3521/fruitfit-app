@@ -251,7 +251,7 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
   }[mode] || "Войти";
 
   return (
-    <main className="phone-shell flex min-h-screen flex-col justify-between bg-appBg px-4 pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
+    <main className="phone-shell flex min-h-screen flex-col justify-between bg-appBg px-4 pb-[var(--app-safe-bottom)] pt-[var(--app-safe-top)]">
       <section>
         <p className="text-[12px] font-black uppercase tracking-[0.16em] text-[#6FA62F]">fruitfit</p>
         <h1 className="mt-4 text-[30px] font-black leading-tight text-appText">{title}</h1>

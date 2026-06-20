@@ -44,7 +44,7 @@ export default function WorkoutsScreen({ program, selectedWorkoutIndex, onOpenWo
               alt=""
               loading="lazy"
               decoding="async"
-              className="pointer-events-none absolute bottom-0 right-[-34px] z-20 h-[96%] w-[36%] object-contain object-bottom opacity-92 mix-blend-screen drop-shadow-[0_16px_26px_rgba(0,0,0,0.5)]"
+              className="pointer-events-none absolute bottom-0 right-0 z-20 h-[96%] w-[36%] object-contain object-bottom opacity-92 mix-blend-screen drop-shadow-[0_16px_26px_rgba(0,0,0,0.5)]"
               draggable="false"
             />
             <div className="relative z-30 flex h-full max-w-[84%] flex-col justify-end p-4 pr-16 text-white">
@@ -73,8 +73,8 @@ export default function WorkoutsScreen({ program, selectedWorkoutIndex, onOpenWo
                   {locked ? <Lock size={16} /> : completed ? <Check size={18} /> : index + 1}
                 </span>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h2 className="truncate text-[15px] font-bold text-appText">{workout.lesson.lesson_title}</h2>
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <h2 className="min-w-0 flex-1 text-[15px] font-bold leading-5 text-appText">{workout.lesson.lesson_title}</h2>
                     <span className="shrink-0 rounded-full bg-appBg px-2 py-1 text-[10px] text-appMuted">{status}</span>
                   </div>
                   <p className="mt-1 text-[12px] text-appMuted">{workout.exercises.length} упражнений</p>

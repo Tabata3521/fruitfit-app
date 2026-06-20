@@ -1,7 +1,9 @@
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { useEffect, useMemo, useState } from "react";
 import { defaultAppIconId, getAppIconById } from "../config/appIcons";
 
 const APP_ICON_KEY = "fruitfit.appIcon";
+const FruitFitAppIcon = registerPlugin("FruitFitAppIcon");
 
 export function readAppIconId() {
   if (typeof window === "undefined") return defaultAppIconId;
@@ -14,11 +16,13 @@ export function saveAppIconId(iconId) {
 }
 
 export async function applyNativeAppIcon(icon) {
-  const plugin = window.Capacitor?.Plugins?.FruitFitAppIcon;
-  if (!plugin?.setAlternateIcon) {
-    return { status: "web_only", message: "В web/PWA выбор сохранён локально. В Android APK ярлык меняется через native bridge." };
+  if (!Capacitor.isNativePlatform()) {
+    return { status: "web_only", message: "В web/PWA выбор сохранён локально." };
   }
-  return plugin.setAlternateIcon({
+  if (Capacitor.getPlatform() !== "ios") {
+    return { status: "unsupported", message: "Смена ярлыка сейчас подключена для iOS." };
+  }
+  return FruitFitAppIcon.setAlternateIcon({
     androidAlias: icon.androidAlias,
     iosAlternateName: icon.iosAlternateName,
   });
@@ -43,11 +47,20 @@ export function useAppIcon() {
 
   async function selectIcon(nextId) {
     const nextIcon = getAppIconById(nextId);
-    saveAppIconId(nextIcon.id);
-    setIconId(nextIcon.id);
-    const result = await applyNativeAppIcon(nextIcon);
-    setStatus(result?.message || "Иконка сохранена.");
-    return result;
+    setStatus("Меняю иконку...");
+    try {
+      const result = await applyNativeAppIcon(nextIcon);
+      if (result?.status !== "unsupported") {
+        saveAppIconId(nextIcon.id);
+        setIconId(nextIcon.id);
+      }
+      setStatus(result?.message || "Иконка приложения обновлена.");
+      return result;
+    } catch (error) {
+      const message = error?.message || "Не удалось поменять иконку приложения.";
+      setStatus(message);
+      return { status: "error", message };
+    }
   }
 
   return { iconId, icon, status, selectIcon };

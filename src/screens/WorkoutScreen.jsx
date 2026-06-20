@@ -7,7 +7,6 @@ import ExerciseMedia from "../components/ExerciseMedia";
 import IconButton from "../components/IconButton";
 import MuscleWorkBlock from "../components/MuscleWorkBlock";
 import { buildClientReportScores, ClientReportSliders, normalizeClientReportScores } from "../components/ClientReportSliders";
-import { submitTrainerReport } from "../data/authStore";
 import { isWorkoutUnlocked, LOCKED_WORKOUT_MESSAGE, originalWorkoutIndex, visibleWorkoutsForAccess } from "../data/accessRules";
 import { readWorkoutHistoryField, writeWorkoutHistoryField } from "../data/dataContainers";
 import { getExerciseAlternatives } from "../data/exerciseAlternatives";
@@ -270,16 +269,15 @@ function WorkoutReport({ workoutId, workoutTitle }) {
     };
     setSaving(true);
     try {
-      const item = await submitTrainerReport(payload);
-      const localPayload = { ...payload, id: item?.id || null, saved_at: new Date().toISOString() };
+      const localPayload = { ...payload, saved_at: new Date().toISOString() };
       saveWorkoutReport(workoutId, localPayload);
       setReport(scores);
       setSaved(true);
-      setStatus("Отчёт сохранён");
+      setStatus("Отчёт сохранён на устройстве");
     } catch (error) {
-      saveWorkoutReport(workoutId, { ...payload, saved_at: new Date().toISOString(), pendingSync: true });
+      saveWorkoutReport(workoutId, { ...payload, saved_at: new Date().toISOString() });
       setSaved(true);
-      setStatus(error?.message || "Отчёт сохранён на устройстве. Войдите в аккаунт для отправки тренеру.");
+      setStatus(error?.message || "Отчёт сохранён на устройстве");
     } finally {
       setSaving(false);
     }
@@ -1074,4 +1072,3 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
     </main>
   );
 }
-
