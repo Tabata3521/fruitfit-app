@@ -1,3 +1,7 @@
+import { readWorkoutHistoryField, writeWorkoutHistoryField } from "../data/dataContainers";
+
+const EXERCISE_WEIGHTS_FIELD = "exerciseWeights";
+
 export function normalizeExerciseKey(exercise) {
   return String(exercise?.exercise_id || exercise?.training_id || exercise?.exercise_name || "")
     .toLowerCase()
@@ -7,7 +11,8 @@ export function normalizeExerciseKey(exercise) {
 
 export function readExerciseWeights() {
   try {
-    return JSON.parse(localStorage.getItem("exerciseWeights") || "{}");
+    const weights = readWorkoutHistoryField(EXERCISE_WEIGHTS_FIELD, undefined, {});
+    return weights && typeof weights === "object" && !Array.isArray(weights) ? weights : {};
   } catch (_) {
     return {};
   }
@@ -44,6 +49,10 @@ export function saveExerciseWeight(exercise, value, setNumber = null) {
   };
 
   store[normalized] = entry;
-  localStorage.setItem("exerciseWeights", JSON.stringify(store));
+  writeExerciseWeights(store);
   return setKey ? setEntry : entry;
+}
+
+function writeExerciseWeights(store = {}) {
+  writeWorkoutHistoryField(EXERCISE_WEIGHTS_FIELD, store && typeof store === "object" ? store : {});
 }

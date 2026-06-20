@@ -4,6 +4,72 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#181F19" />
+    <script>
+      (() => {
+        const key = "fruitfit.theme";
+        let theme = "light";
+        try {
+          theme = localStorage.getItem(key) || "light";
+        } catch (_) {}
+        const systemDark = window.matchMedia?.("(prefers-color-scheme: dark)")?.matches;
+        const resolved = theme === "system" ? (systemDark ? "dark" : "light") : (theme === "dark" ? "dark" : "light");
+        const bg = resolved === "dark" ? "#111811" : "#F7F5EF";
+        const text = resolved === "dark" ? "#F6F8EF" : "#111827";
+        document.documentElement.dataset.theme = resolved;
+        document.documentElement.classList.add("fruitfit-preboot");
+        document.documentElement.style.colorScheme = resolved;
+        document.documentElement.style.backgroundColor = bg;
+        document.documentElement.style.setProperty("--preboot-bg", bg);
+        document.documentElement.style.setProperty("--preboot-text", text);
+        document.documentElement.style.setProperty("--boot-bg", bg);
+        document.documentElement.style.setProperty("--boot-text", text);
+        document.querySelector('meta[name="theme-color"]')?.setAttribute("content", bg);
+      })();
+    </script>
+    <style>
+      :root {
+        --preboot-bg: #f7f5ef;
+        --preboot-text: #111827;
+        --boot-bg: var(--preboot-bg);
+        --boot-text: var(--preboot-text);
+        color-scheme: light;
+      }
+
+      html,
+      body,
+      #root {
+        min-height: 100%;
+        background: var(--boot-bg);
+        color: var(--boot-text);
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+      }
+
+      html[data-theme="dark"],
+      html[data-theme="dark"] body,
+      html[data-theme="dark"] #root {
+        --boot-bg: #111811;
+        --boot-text: #f6f8ef;
+        color-scheme: dark;
+      }
+
+      html.fruitfit-preboot,
+      html.fruitfit-preboot body,
+      html.fruitfit-preboot #root {
+        background: var(--preboot-bg) !important;
+        color: var(--preboot-text) !important;
+      }
+
+      html.fruitfit-preboot *,
+      html.fruitfit-preboot *::before,
+      html.fruitfit-preboot *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    </style>
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>FruitFit</title>
   </head>

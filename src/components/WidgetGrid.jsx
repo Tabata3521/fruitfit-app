@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import NeutralPreview from "./NeutralPreview";
 import { useHealth, formatSleepDuration } from "../data/healthStore";
+import { readLecturesField, writeLecturesField } from "../data/dataContainers";
 import { lecturePlaybackUrl, lectures } from "../data/lectures";
 import { canOpenLecture, fetchLectureAccessPolicy, loadLectureAccessPolicy, visibleLecturesForAccess } from "../data/lectureAccess";
 import { lectureTextFor } from "../data/lectureTexts";
@@ -29,13 +30,12 @@ import { dietTypeToRation } from "../data/profileStore";
 import { getMealPlan, useNutritionData } from "../data/useNutritionData";
 
 const widgetStorageKey = "fruitfit.widgets";
-const lectureProgressKey = "fruitfit.lectureProgress.v1";
 
 const lecture = lectures[0];
 
 function readLectureProgress() {
   try {
-    const saved = JSON.parse(localStorage.getItem(lectureProgressKey) || "null");
+    const saved = readLecturesField("progress", undefined, null);
     const completedIds = Array.isArray(saved?.completedIds) ? saved.completedIds.filter(Boolean) : [];
     const currentIndex = Math.max(0, Math.min(lectures.length - 1, Number(saved?.currentIndex || 0)));
     return { currentIndex, completedIds };
@@ -45,7 +45,7 @@ function readLectureProgress() {
 }
 
 function saveLectureProgress(next) {
-  localStorage.setItem(lectureProgressKey, JSON.stringify(next));
+  writeLecturesField("progress", next);
   window.dispatchEvent(new CustomEvent("fruitfit:lecture-progress", { detail: next }));
 }
 
@@ -56,9 +56,11 @@ function useLectureProgress() {
       setProgress(event?.detail || readLectureProgress());
     }
     window.addEventListener("fruitfit:lecture-progress", sync);
+    window.addEventListener("fruitfit:auth-updated", sync);
     window.addEventListener("storage", sync);
     return () => {
       window.removeEventListener("fruitfit:lecture-progress", sync);
+      window.removeEventListener("fruitfit:auth-updated", sync);
       window.removeEventListener("storage", sync);
     };
   }, []);
@@ -199,6 +201,8 @@ const periodTabs = [
   { id: "month", label: "Месяц" },
 ];
 
+const WEEKLY_STEPS_GOAL = 70000;
+const WEEKLY_ACTIVITY_QUERY_MODE = "history_7d";
 const weekLabels = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
 function formatCompact(value) {
@@ -632,6 +636,77 @@ function compactDateLabel(dateKey) {
 
 function dayDateLabel(day = {}) {
   return day.dateLabel || compactDateLabel(day.date || day.key);
+}
+
+function metricHistoryDateKey(item = {}) {
+  const direct = item.date || item.key || item.canonicalDate || item.sleepDate;
+  if (typeof direct === "string" && /^\d{4}-\d{2}-\d{2}/.test(direct)) return direct.slice(0, 10);
+  const temporal = item.end || item.start || item.endTime || item.startTime || item.timestamp || item.createdAt;
+  return temporal ? localDateKeyFromValue(temporal) : "";
+}
+
+function metricHistoryMap(rows = [], keys = ["value"], calendar = lastSevenDays()) {
+  const items = Array.isArray(rows) ? rows : [];
+  const offset = Math.max(0, calendar.length - items.length);
+  const byDate = new Map();
+  items.forEach((item, index) => {
+    const dateKey = metricHistoryDateKey(item) || calendar[offset + index]?.key;
+    if (!dateKey) return;
+    byDate.set(dateKey, (byDate.get(dateKey) || 0) + metricHistoryValue(item, keys));
+  });
+  return byDate;
+}
+
+function weekMapByDate(days = [], calendar = lastSevenDays()) {
+  const items = Array.isArray(days) ? days : [];
+  const offset = Math.max(0, calendar.length - items.length);
+  const byDate = new Map();
+  items.forEach((item, index) => {
+    const dateKey = item?.date || item?.key || calendar[offset + index]?.key;
+    if (dateKey) byDate.set(dateKey, item || {});
+  });
+  return byDate;
+}
+
+function buildActivityWeekForUi(health = {}) {
+  const calendar = lastSevenDays();
+  const existingByDate = weekMapByDate(health.activity_history?.week, calendar);
+  const historySteps = Array.isArray(health.history7d?.steps) ? health.history7d.steps : [];
+  const historyCalories = Array.isArray(health.history7d?.calories) ? health.history7d.calories : [];
+  const stepsByDate = metricHistoryMap(historySteps, ["value", "steps", "totalSteps"], calendar);
+  const caloriesByDate = metricHistoryMap(historyCalories, ["activeCalories", "calories", "value", "kcal"], calendar);
+
+  return calendar.map((calendarDay) => {
+    const existing = existingByDate.get(calendarDay.key) || {};
+    const steps = stepsByDate.has(calendarDay.key)
+      ? stepsByDate.get(calendarDay.key)
+      : Number(existing.steps || 0);
+    const activeCalories = caloriesByDate.has(calendarDay.key)
+      ? caloriesByDate.get(calendarDay.key)
+      : Number(existing.activeCalories ?? existing.calories ?? 0);
+    return {
+      ...existing,
+      key: calendarDay.key,
+      date: calendarDay.key,
+      label: existing.label || calendarDay.label,
+      dateLabel: existing.dateLabel || calendarDay.dateLabel,
+      steps,
+      calories: activeCalories,
+      activeCalories,
+      totalCalories: Number(existing.totalCalories || 0),
+      heart: Number(existing.heart || 0),
+      suspicious: Boolean(existing.suspicious),
+      suspiciousReason: existing.suspiciousReason || null,
+    };
+  });
+}
+
+function hasActivityWeekSource(health = {}) {
+  return Boolean(
+    (Array.isArray(health.history7d?.steps) && health.history7d.steps.length > 0)
+    || (Array.isArray(health.history7d?.calories) && health.history7d.calories.length > 0)
+    || (Array.isArray(health.activity_history?.week) && health.activity_history.week.length > 0)
+  );
 }
 
 function activityDayTitle(day = {}) {
@@ -1158,6 +1233,26 @@ function hasChartData(values = []) {
   return values.some((value) => Number(value || 0) > 0);
 }
 
+function metricHistoryValue(item = {}, keys = ["value"]) {
+  for (const key of keys) {
+    const value = Number(item?.[key]);
+    if (Number.isFinite(value)) return Math.round(value);
+  }
+  return 0;
+}
+
+function historyValues(rows = [], keys = ["value"]) {
+  return (Array.isArray(rows) ? rows : []).map((item) => metricHistoryValue(item, keys));
+}
+
+function hasHistoryValues(values = []) {
+  return values.some((value) => Number(value || 0) > 0);
+}
+
+function historyLabels(rows = []) {
+  return (Array.isArray(rows) ? rows : []).map((item, index) => item?.label || item?.day || weekLabels[index] || "");
+}
+
 function ChartEmptyState({ children }) {
   return (
     <div className="rounded-[22px] border border-dashed border-appBorder bg-appBg/70 p-4 text-center text-[12px] font-semibold leading-5 text-appMuted">
@@ -1354,8 +1449,9 @@ function CycleWidget({ health, onOpen }) {
 }
 
 function WeeklyWidget({ health, onOpen, onConnect }) {
-  const values = health.activity_history.week.map((item) => item.steps);
-  if (!health.steps?.dataSource && !health.calories?.dataSource) {
+  const days = useMemo(() => buildActivityWeekForUi(health), [health]);
+  const values = days.map((item) => item.steps);
+  if (!health.steps?.dataSource && !health.calories?.dataSource && !hasActivityWeekSource(health)) {
     return (
       <motion.button type="button" onClick={onOpen} whileTap={{ scale: 0.985 }} className="col-span-2 rounded-[24px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
         <div className="flex items-center justify-between">
@@ -1402,8 +1498,8 @@ function WeeklyWidget({ health, onOpen, onConnect }) {
               />
             </div>
             <span className="text-center text-[10px] font-semibold leading-3 text-appMuted">
-              <span className="block">{health.activity_history.week[index].label}</span>
-              <span className="block text-[8px] text-appMuted/80">{dayDateLabel(health.activity_history.week[index])}</span>
+              <span className="block">{days[index]?.label}</span>
+              <span className="block text-[8px] text-appMuted/80">{dayDateLabel(days[index])}</span>
             </span>
           </div>
         ))}
@@ -1413,7 +1509,7 @@ function WeeklyWidget({ health, onOpen, onConnect }) {
 }
 
 function WeeklyWidgetV2({ health, onOpen, onConnect }) {
-  const days = health.activity_history?.week || [];
+  const days = useMemo(() => buildActivityWeekForUi(health), [health]);
   const todayKey = localDateKeyFromValue(new Date());
   const todayIndex = days.findIndex((day) => day.date === todayKey);
   const [selectedIndex, setSelectedIndex] = useState(() => todayIndex >= 0 ? todayIndex : Math.max(0, days.length - 1));
@@ -1422,7 +1518,7 @@ function WeeklyWidgetV2({ health, onOpen, onConnect }) {
     setSelectedIndex(nextTodayIndex >= 0 ? nextTodayIndex : Math.max(0, days.length - 1));
   }, [days, todayKey]);
   const selectedDay = days[selectedIndex] || days[6] || {};
-  const hasData = Boolean(health.steps?.dataSource || health.calories?.dataSource || days.some((day) => Number(day.steps || day.calories || 0) > 0));
+  const hasData = Boolean(health.steps?.dataSource || health.calories?.dataSource || hasActivityWeekSource(health) || days.some((day) => Number(day.steps || day.calories || 0) > 0));
   if (!hasData) {
     return (
       <motion.button type="button" onClick={onOpen} whileTap={{ scale: 0.985 }} className="col-span-2 rounded-[24px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
@@ -1828,22 +1924,49 @@ function MetricDetail({ type, health }) {
   const color = isSteps ? "#8BBE3D" : "#FF7A2F";
   const title = isSteps ? "Шаги" : "Калории";
   const unit = isSteps ? "шагов" : "ккал";
-  const sourceAvailable = Boolean(metric?.dataSource);
 
+  const activityWeek = useMemo(() => buildActivityWeekForUi(health), [health]);
+  const historyRows = Array.isArray(health.history7d?.[type]) ? health.history7d[type] : [];
+  const hasHistoryRows = historyRows.length > 0;
+  const historyValuesFromWeek = hasHistoryRows
+    ? activityWeek.map((day) => Number(isSteps ? day.steps || 0 : day.activeCalories ?? day.calories ?? 0))
+    : historyValues(historyRows, isSteps ? ["value", "steps"] : ["activeCalories", "calories", "value", "kcal"]);
+  const sourceAvailable = Boolean(metric?.dataSource || hasHistoryRows || hasHistoryValues(historyValuesFromWeek));
   const rawWeek = Array.isArray(metric.weekRaw) ? metric.weekRaw : [];
   const rawMonth = Array.isArray(metric.monthRaw) ? metric.monthRaw : [];
   const values = period === "today"
     ? (metric.hourly || [])
     : period === "week"
-      ? (rawWeek.length ? rawWeek : (metric.week || []))
+      ? (hasHistoryRows ? historyValuesFromWeek : (rawWeek.length ? rawWeek : (metric.week || [])))
       : (rawMonth.length ? rawMonth : (metric.month || []));
-  const value = period === "today" ? Number(metric.today || 0) : sum(values);
-  const target = period === "today" ? Number(metric.goal || 0) : Number(metric.goal || 0) * (period === "week" ? 7 : 30);
-  const labels = period === "today" ? ["00", "06", "12", "18", "24"] : period === "week" ? weekLabels : ["1", "10", "20", "30"];
+  const todayValue = isSteps
+    ? Number(metric.finalDashboardValue ?? metric.dashboardValue ?? metric.today ?? 0)
+    : Number(metric.today || 0);
+  const weekFallbackValue = Number(metric.detailValue || 0);
+  const value = period === "today"
+    ? todayValue
+    : period === "week" && hasHistoryRows
+      ? sum(historyValuesFromWeek)
+      : period === "week" && isSteps && !hasChartData(values) && weekFallbackValue > 0
+        ? weekFallbackValue
+        : sum(values);
+  const target = period === "today"
+    ? Number(metric.goal || 0)
+    : period === "week" && isSteps
+      ? WEEKLY_STEPS_GOAL
+      : Number(metric.goal || 0) * (period === "week" ? 7 : 30);
+  const labels = period === "today"
+    ? ["00", "06", "12", "18", "24"]
+    : period === "week"
+      ? (hasHistoryRows ? activityWeek.map((day) => day.label || dayDateLabel(day)) : weekLabels)
+      : ["1", "10", "20", "30"];
   const activeValue = activeIndex === null ? null : values[Math.min(activeIndex, values.length - 1)];
   const activeLabel = activeIndex === null ? "" : (period === "today" ? `${activeIndex}:00` : labels[Math.min(activeIndex, labels.length - 1)] || `#${activeIndex + 1}`);
   const chartHasData = hasChartData(values);
   const showAggregateToday = period === "today" && !chartHasData && Number(metric.today || 0) > 0;
+  const detailPercent = period === "week" && isSteps && target
+    ? Math.round((Number(value || 0) / target) * 100)
+    : formatPercent(value, target);
 
   if (!sourceAvailable) {
     return <p className="rounded-[22px] bg-appBg p-4 text-[13px] text-appMuted">{isSteps ? "Шаги" : "Калории"} пока не найдены. Проверьте подключение Health Connect.</p>;
@@ -1866,7 +1989,7 @@ function MetricDetail({ type, health }) {
       <div className="mt-5">
         <p className="text-[12px] font-bold uppercase tracking-wide text-appMuted">{title}</p>
         <p className="mt-1 text-[44px] font-black leading-none text-appText">{value.toLocaleString("ru-RU")}</p>
-        <p className="mt-2 text-[13px] text-appMuted">Цель: {target.toLocaleString("ru-RU")} {unit} · {formatPercent(value, target)}%</p>
+        <p className="mt-2 text-[13px] text-appMuted">Цель: {target.toLocaleString("ru-RU")} {unit} · {detailPercent}%</p>
         <p className="mt-1 text-[12px] font-semibold text-appMuted">{friendlySourceHint(metric, type)}</p>
       </div>
       {!isSteps && (
@@ -2401,8 +2524,8 @@ function CycleDetail({ health, updateCycle }) {
 }
 
 function WeeklyDetail({ health }) {
-  const week = health.activity_history.week || [];
-  const hasData = Boolean(health.steps?.dataSource || health.calories?.dataSource);
+  const week = useMemo(() => buildActivityWeekForUi(health), [health]);
+  const hasData = Boolean(health.steps?.dataSource || health.calories?.dataSource || hasActivityWeekSource(health) || week.some((item) => Number(item.steps || item.calories || 0) > 0));
 
   if (!hasData) {
     return (
@@ -2427,10 +2550,10 @@ function WeeklyDetail({ health }) {
         <StatPill label="Активные дни" value={`${activeDays}/7`} />
       </div>
       <div className="mt-4">
-        <BarChart values={health.activity_history.week.map((item) => item.steps)} color="#8BBE3D" labels={health.activity_history.week.map((item) => item.label)} />
+        <BarChart values={week.map((item) => item.steps)} color="#8BBE3D" labels={week.map((item) => item.label)} />
       </div>
       <div className="mt-4">
-        <BarChart values={health.activity_history.week.map((item) => item.calories)} color="#FF7A2F" labels={health.activity_history.week.map((item) => item.label)} />
+        <BarChart values={week.map((item) => item.calories)} color="#FF7A2F" labels={week.map((item) => item.label)} />
       </div>
     </>
   );
@@ -2564,7 +2687,7 @@ function SleepDetailV2({ health, updateSleepManual }) {
 }
 
 function WeeklyDetailV2({ health }) {
-  const week = health.activity_history?.week || [];
+  const week = useMemo(() => buildActivityWeekForUi(health), [health]);
   const todayKey = localDateKeyFromValue(new Date());
   const todayIndex = week.findIndex((day) => day.date === todayKey);
   const [selectedIndex, setSelectedIndex] = useState(() => todayIndex >= 0 ? todayIndex : Math.max(0, week.length - 1));
@@ -2573,7 +2696,7 @@ function WeeklyDetailV2({ health }) {
     setSelectedIndex(nextTodayIndex >= 0 ? nextTodayIndex : Math.max(0, week.length - 1));
   }, [todayKey, week]);
   const selectedDay = week[selectedIndex] || week[6] || {};
-  const hasData = Boolean(health.steps?.dataSource || health.calories?.dataSource || week.some((item) => Number(item.steps || item.calories || 0) > 0));
+  const hasData = Boolean(health.steps?.dataSource || health.calories?.dataSource || hasActivityWeekSource(health) || week.some((item) => Number(item.steps || item.calories || 0) > 0));
 
   if (!hasData) {
     return (
@@ -2724,7 +2847,7 @@ export default function WidgetGrid({ profile, access, onNavigate }) {
   }
 
   useEffect(() => {
-    syncNativeHealth?.({ reason: "dashboard-auto", queryMode: "dashboard" });
+    syncNativeHealth?.({ reason: "dashboard-auto-history7d", queryMode: WEEKLY_ACTIVITY_QUERY_MODE });
   }, [syncNativeHealth]);
 
   function render(widget) {
@@ -2736,9 +2859,9 @@ export default function WidgetGrid({ profile, access, onNavigate }) {
       case "heart":
         return <HeartWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:heart")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-heart", queryMode: "dashboard" })} />;
       case "steps":
-        return <MetricWidget key={widget.id} kind="steps" status={health.steps.status} title="Шаги" icon={Footprints} value={health.steps.today} target={health.steps.goal} color="#8BBE3D" suffix="шагов" sourceNote={friendlySourceHint(health.steps, "steps")} onOpen={() => onNavigate?.("health:steps")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-steps", queryMode: "dashboard" })} />;
+        return <MetricWidget key={widget.id} kind="steps" status={health.steps.status} title="Шаги" icon={Footprints} value={health.steps.today} target={health.steps.goal} color="#8BBE3D" suffix="шагов" sourceNote={friendlySourceHint(health.steps, "steps")} onOpen={() => onNavigate?.("health:steps")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-steps-history7d", queryMode: WEEKLY_ACTIVITY_QUERY_MODE })} />;
       case "calories":
-        return <MetricWidget key={widget.id} kind="calories" status={health.calories.status} title="Калории" icon={Flame} value={health.calories.today} target={health.calories.goal} color="#FF7A2F" suffix="ккал" sourceNote={friendlySourceHint(health.calories, "calories")} onOpen={() => onNavigate?.("health:calories")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-calories", queryMode: "dashboard" })} />;
+        return <MetricWidget key={widget.id} kind="calories" status={health.calories.status} title="Калории" icon={Flame} value={health.calories.today} target={health.calories.goal} color="#FF7A2F" suffix="ккал" sourceNote={friendlySourceHint(health.calories, "calories")} onOpen={() => onNavigate?.("health:calories")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-calories-history7d", queryMode: WEEKLY_ACTIVITY_QUERY_MODE })} />;
       case "sleep":
         return <SleepWidgetV2 key={widget.id} health={health} onOpen={() => onNavigate?.("health:sleep")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-sleep", queryMode: "dashboard" })} />;
       case "recovery":

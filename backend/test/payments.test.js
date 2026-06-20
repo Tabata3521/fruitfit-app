@@ -15,6 +15,7 @@ process.env.API_PUBLIC_URL = "https://api.tagirfruit.ru";
 process.env.APP_BASE_URL = "https://client.tagirfruit.ru";
 
 const payments = await import("../src/payments.js");
+const recurring = await import("../src/robokassaRecurringWorker.js");
 
 test("sorts Shp_* params alphabetically for Robokassa signatures", () => {
   assert.deepEqual(payments.shpSignatureParts({
@@ -81,6 +82,102 @@ test("adds Recurring=true only for eligible recurring checkout", () => {
   const url = new URL(checkoutUrl);
   assert.equal(url.searchParams.get("Recurring"), "true");
   assert.equal(url.searchParams.get("Shp_productCode"), "individual_program");
+});
+
+test("program subscription checkout uses recurring product code", () => {
+  const checkoutUrl = payments.buildRobokassaCheckoutUrl({
+    session: {
+      id: "ps_subscription",
+      product_code: "program_subscription",
+      amount: 100,
+      robokassa_inv_id: 67891,
+      recurring_enabled: true
+    },
+    product: payments.PAYMENT_PRODUCTS.program_subscription,
+    successUrl: "https://tagirfruit.ru/payment-success",
+    failUrl: "https://tagirfruit.ru/payment-fail"
+  });
+
+  const url = new URL(checkoutUrl);
+  assert.equal(url.searchParams.get("Recurring"), "true");
+  assert.equal(url.searchParams.get("Shp_productCode"), "program_subscription");
+});
+
+test("program criteria can prefer current profile for recurring cycles", () => {
+  const session = {
+    profile_snapshot: {
+      gender: "female",
+      goal: "fat loss",
+      experience: "beginner",
+      trainingFrequency: "2",
+      restrictions: "none"
+    },
+    program_params: {
+      gender: "female",
+      trainingFrequency: "2"
+    }
+  };
+  const currentProfile = {
+    gender: "male",
+    goal: "muscle gain",
+    experience: "advanced",
+    trainingFrequency: "3",
+    restrictions: "back"
+  };
+
+  const firstCycle = payments.buildProgramCriteria(session);
+  assert.equal(firstCycle.gender, "female");
+  assert.equal(firstCycle.frequency, 2);
+  assert.equal(firstCycle.raw.criteriaSource, "payment_session");
+
+  const nextCycle = payments.buildProgramCriteria(session, {
+    profileSnapshot: currentProfile,
+    preferProfile: true
+  });
+  assert.equal(nextCycle.gender, "male");
+  assert.equal(nextCycle.goal, "muscle_gain");
+  assert.equal(nextCycle.level, "advanced");
+  assert.equal(nextCycle.frequency, 3);
+  assert.equal(nextCycle.restrictions, "back");
+  assert.equal(nextCycle.raw.criteriaSource, "current_user_profile");
+});
+
+test("builds recurring child signature without PreviousInvoiceID", () => {
+  const params = {
+    MerchantLogin: "demo",
+    OutSum: "2990.00",
+    InvoiceID: "2002",
+    PreviousInvoiceID: "1001",
+    Shp_productCode: "program_subscription",
+    Shp_paymentSessionId: "ps_recurring",
+    Shp_subscriptionDbId: "7"
+  };
+  const signature = recurring.buildRobokassaRecurringSignature(params, "password_1");
+  const expected = recurring.robokassaRecurringHash(
+    "demo:2990.00:2002:password_1:Shp_paymentSessionId=ps_recurring:Shp_productCode=program_subscription:Shp_subscriptionDbId=7"
+  );
+  assert.equal(signature, expected);
+});
+
+test("builds recurring child request params for Merchant/Recurring", () => {
+  const params = recurring.buildRobokassaRecurringParams({
+    childInvId: "2003",
+    subscription: {
+      id: 9,
+      amount: 2990,
+      payment_session_id: "ps_child",
+      robokassa_parent_inv_id: 1001
+    }
+  });
+
+  assert.equal(params.MerchantLogin, "demo");
+  assert.equal(params.OutSum, "2990.00");
+  assert.equal(params.InvoiceID, "2003");
+  assert.equal(params.PreviousInvoiceID, "1001");
+  assert.equal(params.Shp_paymentSessionId, "ps_child");
+  assert.equal(params.Shp_productCode, "program_subscription");
+  assert.equal(params.Shp_subscriptionDbId, "9");
+  assert.ok(params.SignatureValue);
 });
 
 test("uses backend-hosted Robokassa return URLs", () => {

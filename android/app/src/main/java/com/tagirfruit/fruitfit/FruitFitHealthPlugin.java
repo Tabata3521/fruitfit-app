@@ -2,6 +2,7 @@ package com.tagirfruit.fruitfit;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.health.connect.AggregateRecordsGroupedByDurationResponse;
 import android.health.connect.AggregateRecordsGroupedByPeriodResponse;
@@ -29,6 +30,7 @@ import android.health.connect.datatypes.units.Energy;
 import android.net.Uri;
 import android.os.Build;
 import android.os.OutcomeReceiver;
+import android.webkit.WebView;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import com.getcapacitor.JSArray;
@@ -48,11 +50,15 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import java.io.File;
+import java.io.FileInputStream;
+import java.lang.reflect.Method;
 
 @CapacitorPlugin(
     name = "FruitFitHealth",
@@ -84,6 +90,24 @@ public class FruitFitHealthPlugin extends Plugin {
     private static final int MAX_HEART_SAMPLES = 96;
     private static final int MAX_SLEEP_SESSIONS = 30;
     private static final int MAX_SLEEP_STAGES = 120;
+    private static final int MAX_DIAGNOSTIC_TEXT_BYTES = 24000;
+    private static final List<String> DIAGNOSTIC_PACKAGES = Arrays.asList(
+        "com.huawei.health",
+        "com.huawei.hms",
+        "com.huawei.hwid",
+        "com.huawei.appmarket",
+        "com.huawei.wearengine",
+        "com.huawei.bone",
+        "com.huawei.healthcloud",
+        "com.google.android.apps.healthdata",
+        "com.google.android.apps.fitness",
+        "com.xiaomi.wearable",
+        "com.mi.health",
+        "com.xiaomi.hm.health",
+        "com.huami.watch.hmwatchmanager",
+        "com.zepp.z",
+        "com.sec.android.app.shealth"
+    );
     private static final List<String> HEALTH_PERMISSIONS = Arrays.asList(
         HealthPermissions.READ_STEPS,
         HealthPermissions.READ_ACTIVE_CALORIES_BURNED,
@@ -187,14 +211,44 @@ public class FruitFitHealthPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void getDeviceDiagnostics(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("platform", "android");
+        result.put("packageName", getContext().getPackageName());
+        result.put("manufacturer", Build.MANUFACTURER);
+        result.put("brand", Build.BRAND);
+        result.put("model", Build.MODEL);
+        result.put("device", Build.DEVICE);
+        result.put("product", Build.PRODUCT);
+        result.put("hardware", Build.HARDWARE);
+        result.put("sdkInt", Build.VERSION.SDK_INT);
+        result.put("release", Build.VERSION.RELEASE);
+        result.put("incremental", Build.VERSION.INCREMENTAL);
+        result.put("fingerprint", Build.FINGERPRINT);
+        result.put("emuiVersion", systemProperty("ro.build.version.emui"));
+        result.put("magicUiVersion", systemProperty("ro.build.version.magic"));
+        result.put("romDisplayVersion", systemProperty("ro.build.display.id"));
+        result.put("isHuaweiDevice", isHuaweiDevice());
+        result.put("webView", webViewDiagnostic());
+        result.put("healthConnect", availability());
+        result.put("permissionStatus", permissionStatus());
+        result.put("installedPackages", installedPackageDiagnostics());
+        result.put("lastNativeCrash", readDiagnosticFile("fruitfit_last_native_crash.txt"));
+        result.put("diagnosticLimits", diagnosticLimits());
+        call.resolve(result);
+    }
+
+    @PluginMethod
     public void getSteps(PluginCall call) {
         if (shouldUseAggregateApi()) {
             String range = call.getString("range", "today");
+            String preferredSourcePackage = normalizeDataOriginPackage(call.getString("preferredSourcePackage", ""));
+            boolean includeSourceDiagnostics = Boolean.TRUE.equals(call.getBoolean("includeSourceDiagnostics", false));
             TimeInstantRangeFilter filter = rangeFilter(range);
             HealthConnectManager manager = managerOrResolve(call);
             if (manager == null || !ensureHealthPermission(call, HealthPermissions.READ_STEPS)) return;
 
-            aggregateLongBuckets(manager, filter, range, StepsRecord.STEPS_COUNT_TOTAL, value -> value, new LongBucketsCallback() {
+            aggregateLongBuckets(manager, filter, range, preferredSourcePackage, StepsRecord.STEPS_COUNT_TOTAL, value -> value, new LongBucketsCallback() {
                 @Override
                 public void onResult(double total, JSArray samples, JSArray dataOrigins, int bucketsCount) {
                     long roundedTotal = Math.round(total);
@@ -203,16 +257,20 @@ public class FruitFitHealthPlugin extends Plugin {
                     result.put("total", roundedTotal);
                     result.put("rawTotal", roundedTotal);
                     result.put("aggregateStrategy", "health_connect_aggregate");
-                    result.put("selectedSourceStrategy", "health_connect_aggregate");
-                    result.put("selectedSourcePackage", null);
-                    result.put("selectedSourceName", "Health Connect aggregate");
-                    result.put("sourceName", "Health Connect aggregate");
+                    result.put("selectedSourceStrategy", preferredSourcePackage.isEmpty() ? "health_connect_aggregate" : "health_connect_aggregate_data_origin_filter");
+                    result.put("selectedSourcePackage", preferredSourcePackage.isEmpty() ? null : preferredSourcePackage);
+                    result.put("selectedSourceName", preferredSourcePackage.isEmpty() ? "Health Connect aggregate" : sourceName(preferredSourcePackage));
+                    result.put("sourceName", preferredSourcePackage.isEmpty() ? "Health Connect aggregate" : sourceName(preferredSourcePackage));
                     result.put("sources", new JSArray());
                     result.put("dataOrigins", dataOrigins);
                     result.put("recordsCount", bucketsCount);
                     result.put("bucketsCount", bucketsCount);
                     result.put("samples", samples);
                     attachAggregateMetadata(result, 1);
+                    if (!includeSourceDiagnostics) {
+                        call.resolve(result);
+                        return;
+                    }
                     readStepSourceDiagnostics(manager, filter, new SourceDiagnosticsCallback() {
                         @Override
                         public void onResult(JSObject diagnostics) {
@@ -284,6 +342,8 @@ public class FruitFitHealthPlugin extends Plugin {
     public void getCalories(PluginCall call) {
         if (shouldUseAggregateApi()) {
             String range = call.getString("range", "today");
+            String preferredSourcePackage = normalizeDataOriginPackage(call.getString("preferredSourcePackage", ""));
+            boolean includeSourceDiagnostics = Boolean.TRUE.equals(call.getBoolean("includeSourceDiagnostics", false));
             TimeInstantRangeFilter filter = rangeFilter(range);
             HealthConnectManager manager = managerOrResolve(call);
             if (manager == null) return;
@@ -293,7 +353,7 @@ public class FruitFitHealthPlugin extends Plugin {
                 resolveMissingPermission(call, HealthPermissions.READ_ACTIVE_CALORIES_BURNED);
                 return;
             }
-            aggregateCalories(call, manager, filter, range);
+            aggregateCalories(call, manager, filter, range, preferredSourcePackage, includeSourceDiagnostics);
             return;
         }
         TimeInstantRangeFilter filter = rangeFilter(call.getString("range", "today"));
@@ -416,7 +476,7 @@ public class FruitFitHealthPlugin extends Plugin {
             TimeInstantRangeFilter filter = rangeFilter(range);
             HealthConnectManager manager = managerOrResolve(call);
             if (manager == null || !ensureHealthPermission(call, HealthPermissions.READ_SLEEP)) return;
-            aggregateLongBuckets(manager, filter, range, SleepSessionRecord.SLEEP_DURATION_TOTAL, value -> value / 60000.0, new LongBucketsCallback() {
+            aggregateLongBuckets(manager, filter, range, "", SleepSessionRecord.SLEEP_DURATION_TOTAL, value -> value / 60000.0, new LongBucketsCallback() {
                 @Override
                 public void onResult(double total, JSArray samples, JSArray dataOrigins, int bucketsCount) {
                     readSleepRecords(call, filter, Math.round(total), samples, dataOrigins, null);
@@ -588,18 +648,37 @@ public class FruitFitHealthPlugin extends Plugin {
         call.resolve(result);
     }
 
+    private String normalizeDataOriginPackage(String value) {
+        String text = value == null ? "" : value.trim();
+        if (text.isEmpty() || "auto".equalsIgnoreCase(text)) return "";
+        String lower = text.toLowerCase();
+        if ("fitbit".equals(lower)) return "com.fitbit.FitbitMobile";
+        if ("zepp".equals(lower) || "amazfit".equals(lower)) return "com.huami.watch.hmwatchmanager";
+        if ("samsung".equals(lower) || "shealth".equals(lower)) return "com.sec.android.app.shealth";
+        if ("mi".equals(lower) || "mi_fitness".equals(lower) || "xiaomi".equals(lower)) return "com.xiaomi.wearable";
+        return text;
+    }
+
+    private <T> void addDataOriginFilter(AggregateRecordsRequest.Builder<T> builder, String preferredSourcePackage) {
+        String packageName = normalizeDataOriginPackage(preferredSourcePackage);
+        if (packageName.isEmpty()) return;
+        builder.addDataOriginsFilter(new DataOrigin.Builder().setPackageName(packageName).build());
+    }
+
     private void aggregateLongBuckets(
         HealthConnectManager manager,
         TimeInstantRangeFilter filter,
         String range,
+        String preferredSourcePackage,
         AggregationType<Long> aggregationType,
         LongValueConverter converter,
         LongBucketsCallback callback
     ) {
         try {
-            AggregateRecordsRequest<Long> request = new AggregateRecordsRequest.Builder<Long>(filter)
-                .addAggregationType(aggregationType)
-                .build();
+            AggregateRecordsRequest.Builder<Long> requestBuilder = new AggregateRecordsRequest.Builder<Long>(filter)
+                .addAggregationType(aggregationType);
+            addDataOriginFilter(requestBuilder, preferredSourcePackage);
+            AggregateRecordsRequest<Long> request = requestBuilder.build();
 
             if (usesDurationBuckets(range)) {
                 manager.aggregateGroupByDuration(request, Duration.ofHours(1), mainExecutor, new OutcomeReceiver<List<AggregateRecordsGroupedByDurationResponse<Long>>, HealthConnectException>() {
@@ -631,9 +710,10 @@ public class FruitFitHealthPlugin extends Plugin {
                 return;
             }
 
-            AggregateRecordsRequest<Long> periodRequest = new AggregateRecordsRequest.Builder<Long>(localRangeFilter(range))
-                .addAggregationType(aggregationType)
-                .build();
+            AggregateRecordsRequest.Builder<Long> periodRequestBuilder = new AggregateRecordsRequest.Builder<Long>(localRangeFilter(range))
+                .addAggregationType(aggregationType);
+            addDataOriginFilter(periodRequestBuilder, preferredSourcePackage);
+            AggregateRecordsRequest<Long> periodRequest = periodRequestBuilder.build();
             manager.aggregateGroupByPeriod(periodRequest, Period.ofDays(1), mainExecutor, new OutcomeReceiver<List<AggregateRecordsGroupedByPeriodResponse<Long>>, HealthConnectException>() {
                 @Override
                 public void onResult(List<AggregateRecordsGroupedByPeriodResponse<Long>> responses) {
@@ -666,7 +746,7 @@ public class FruitFitHealthPlugin extends Plugin {
         }
     }
 
-    private void aggregateCalories(PluginCall call, HealthConnectManager manager, TimeInstantRangeFilter filter, String range) {
+    private void aggregateCalories(PluginCall call, HealthConnectManager manager, TimeInstantRangeFilter filter, String range, String preferredSourcePackage, boolean includeSourceDiagnostics) {
         boolean canReadActive = hasHealthPermissionGranted(HealthPermissions.READ_ACTIVE_CALORIES_BURNED);
         boolean canReadTotal = hasHealthPermissionGranted(HealthPermissions.READ_TOTAL_CALORIES_BURNED);
         boolean canReadBasal = hasHealthPermissionGranted(HealthPermissions.READ_BASAL_METABOLIC_RATE);
@@ -676,6 +756,7 @@ public class FruitFitHealthPlugin extends Plugin {
             if (canReadActive) builder.addAggregationType(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL);
             if (canReadTotal) builder.addAggregationType(TotalCaloriesBurnedRecord.ENERGY_TOTAL);
             if (canReadBasal) builder.addAggregationType(BasalMetabolicRateRecord.BASAL_CALORIES_TOTAL);
+            addDataOriginFilter(builder, preferredSourcePackage);
             AggregateRecordsRequest<Energy> request = builder.build();
 
             manager.aggregate(request, mainExecutor, new OutcomeReceiver<AggregateRecordsResponse<Energy>, HealthConnectException>() {
@@ -694,16 +775,16 @@ public class FruitFitHealthPlugin extends Plugin {
                         return;
                     }
 
-                    aggregateEnergyBuckets(manager, filter, range, ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL, new EnergyBucketsCallback() {
+                    aggregateEnergyBuckets(manager, filter, range, preferredSourcePackage, ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL, new EnergyBucketsCallback() {
                         @Override
                         public void onResult(JSArray activeSamples, JSArray bucketOrigins, int bucketsCount) {
                             origins.put("activeBuckets", bucketOrigins);
-                            readAdditionalCaloriesBuckets(call, manager, filter, range, activeRaw, totalRaw, basalRaw, activeSamples, origins, 2, null, canReadTotal, canReadBasal);
+                            readAdditionalCaloriesBuckets(call, manager, filter, range, preferredSourcePackage, includeSourceDiagnostics, activeRaw, totalRaw, basalRaw, activeSamples, origins, 2, null, canReadTotal, canReadBasal);
                         }
 
                         @Override
                         public void onError(@NonNull Exception error) {
-                            readAdditionalCaloriesBuckets(call, manager, filter, range, activeRaw, totalRaw, basalRaw, new JSArray(), origins, 2, aggregateErrorObject("ActiveCaloriesBurnedRecord", error), canReadTotal, canReadBasal);
+                            readAdditionalCaloriesBuckets(call, manager, filter, range, preferredSourcePackage, includeSourceDiagnostics, activeRaw, totalRaw, basalRaw, new JSArray(), origins, 2, aggregateErrorObject("ActiveCaloriesBurnedRecord", error), canReadTotal, canReadBasal);
                         }
                     });
                 }
@@ -723,6 +804,8 @@ public class FruitFitHealthPlugin extends Plugin {
         HealthConnectManager manager,
         TimeInstantRangeFilter filter,
         String range,
+        String preferredSourcePackage,
+        boolean includeSourceDiagnostics,
         double activeRaw,
         double totalRaw,
         double basalRaw,
@@ -734,20 +817,20 @@ public class FruitFitHealthPlugin extends Plugin {
         boolean canReadBasal
     ) {
         if (!canReadTotal) {
-            resolveCaloriesAggregateResultWithSourceDiagnostics(call, manager, filter, range, activeRaw, totalRaw, basalRaw, activeSamples, new JSArray(), new JSArray(), origins, queryCount, aggregateError);
+            resolveCaloriesAggregateResultMaybeWithSourceDiagnostics(call, manager, filter, range, includeSourceDiagnostics, activeRaw, totalRaw, basalRaw, activeSamples, new JSArray(), new JSArray(), origins, queryCount, aggregateError);
             return;
         }
-        aggregateEnergyBuckets(manager, filter, range, TotalCaloriesBurnedRecord.ENERGY_TOTAL, new EnergyBucketsCallback() {
+        aggregateEnergyBuckets(manager, filter, range, preferredSourcePackage, TotalCaloriesBurnedRecord.ENERGY_TOTAL, new EnergyBucketsCallback() {
             @Override
             public void onResult(JSArray totalSamples, JSArray bucketOrigins, int bucketsCount) {
                 origins.put("totalBuckets", bucketOrigins);
-                readBasalCaloriesBuckets(call, manager, filter, range, activeRaw, totalRaw, basalRaw, activeSamples, totalSamples, origins, queryCount + 1, aggregateError, canReadBasal);
+                readBasalCaloriesBuckets(call, manager, filter, range, preferredSourcePackage, includeSourceDiagnostics, activeRaw, totalRaw, basalRaw, activeSamples, totalSamples, origins, queryCount + 1, aggregateError, canReadBasal);
             }
 
             @Override
             public void onError(@NonNull Exception error) {
                 JSObject errorObject = aggregateError != null ? aggregateError : aggregateErrorObject("TotalCaloriesBurnedRecord", error);
-                readBasalCaloriesBuckets(call, manager, filter, range, activeRaw, totalRaw, basalRaw, activeSamples, new JSArray(), origins, queryCount + 1, errorObject, canReadBasal);
+                readBasalCaloriesBuckets(call, manager, filter, range, preferredSourcePackage, includeSourceDiagnostics, activeRaw, totalRaw, basalRaw, activeSamples, new JSArray(), origins, queryCount + 1, errorObject, canReadBasal);
             }
         });
     }
@@ -757,6 +840,8 @@ public class FruitFitHealthPlugin extends Plugin {
         HealthConnectManager manager,
         TimeInstantRangeFilter filter,
         String range,
+        String preferredSourcePackage,
+        boolean includeSourceDiagnostics,
         double activeRaw,
         double totalRaw,
         double basalRaw,
@@ -768,29 +853,30 @@ public class FruitFitHealthPlugin extends Plugin {
         boolean canReadBasal
     ) {
         if (!canReadBasal) {
-            resolveCaloriesAggregateResultWithSourceDiagnostics(call, manager, filter, range, activeRaw, totalRaw, basalRaw, activeSamples, totalSamples, new JSArray(), origins, queryCount, aggregateError);
+            resolveCaloriesAggregateResultMaybeWithSourceDiagnostics(call, manager, filter, range, includeSourceDiagnostics, activeRaw, totalRaw, basalRaw, activeSamples, totalSamples, new JSArray(), origins, queryCount, aggregateError);
             return;
         }
-        aggregateEnergyBuckets(manager, filter, range, BasalMetabolicRateRecord.BASAL_CALORIES_TOTAL, new EnergyBucketsCallback() {
+        aggregateEnergyBuckets(manager, filter, range, preferredSourcePackage, BasalMetabolicRateRecord.BASAL_CALORIES_TOTAL, new EnergyBucketsCallback() {
             @Override
             public void onResult(JSArray restingSamples, JSArray bucketOrigins, int bucketsCount) {
                 origins.put("restingBuckets", bucketOrigins);
-                resolveCaloriesAggregateResultWithSourceDiagnostics(call, manager, filter, range, activeRaw, totalRaw, basalRaw, activeSamples, totalSamples, restingSamples, origins, queryCount + 1, aggregateError);
+                resolveCaloriesAggregateResultMaybeWithSourceDiagnostics(call, manager, filter, range, includeSourceDiagnostics, activeRaw, totalRaw, basalRaw, activeSamples, totalSamples, restingSamples, origins, queryCount + 1, aggregateError);
             }
 
             @Override
             public void onError(@NonNull Exception error) {
                 JSObject errorObject = aggregateError != null ? aggregateError : aggregateErrorObject("BasalMetabolicRateRecord", error);
-                resolveCaloriesAggregateResultWithSourceDiagnostics(call, manager, filter, range, activeRaw, totalRaw, basalRaw, activeSamples, totalSamples, new JSArray(), origins, queryCount + 1, errorObject);
+                resolveCaloriesAggregateResultMaybeWithSourceDiagnostics(call, manager, filter, range, includeSourceDiagnostics, activeRaw, totalRaw, basalRaw, activeSamples, totalSamples, new JSArray(), origins, queryCount + 1, errorObject);
             }
         });
     }
 
-    private void resolveCaloriesAggregateResultWithSourceDiagnostics(
+    private void resolveCaloriesAggregateResultMaybeWithSourceDiagnostics(
         PluginCall call,
         HealthConnectManager manager,
         TimeInstantRangeFilter filter,
         String range,
+        boolean includeSourceDiagnostics,
         double activeRaw,
         double totalRaw,
         double basalRaw,
@@ -801,6 +887,10 @@ public class FruitFitHealthPlugin extends Plugin {
         int queryCount,
         JSObject aggregateError
     ) {
+        if (!includeSourceDiagnostics) {
+            resolveCaloriesAggregateResult(call, range, activeRaw, totalRaw, basalRaw, activeSamples, totalSamples, restingSamples, origins, queryCount, aggregateError);
+            return;
+        }
         readCaloriesSourceDiagnostics(manager, filter, new SourceDiagnosticsCallback() {
             @Override
             public void onResult(JSObject diagnostics) {
@@ -820,13 +910,15 @@ public class FruitFitHealthPlugin extends Plugin {
         HealthConnectManager manager,
         TimeInstantRangeFilter filter,
         String range,
+        String preferredSourcePackage,
         AggregationType<Energy> aggregationType,
         EnergyBucketsCallback callback
     ) {
         try {
-            AggregateRecordsRequest<Energy> request = new AggregateRecordsRequest.Builder<Energy>(filter)
-                .addAggregationType(aggregationType)
-                .build();
+            AggregateRecordsRequest.Builder<Energy> requestBuilder = new AggregateRecordsRequest.Builder<Energy>(filter)
+                .addAggregationType(aggregationType);
+            addDataOriginFilter(requestBuilder, preferredSourcePackage);
+            AggregateRecordsRequest<Energy> request = requestBuilder.build();
 
             if (usesDurationBuckets(range)) {
                 manager.aggregateGroupByDuration(request, Duration.ofHours(1), mainExecutor, new OutcomeReceiver<List<AggregateRecordsGroupedByDurationResponse<Energy>>, HealthConnectException>() {
@@ -858,9 +950,10 @@ public class FruitFitHealthPlugin extends Plugin {
                 return;
             }
 
-            AggregateRecordsRequest<Energy> periodRequest = new AggregateRecordsRequest.Builder<Energy>(localRangeFilter(range))
-                .addAggregationType(aggregationType)
-                .build();
+            AggregateRecordsRequest.Builder<Energy> periodRequestBuilder = new AggregateRecordsRequest.Builder<Energy>(localRangeFilter(range))
+                .addAggregationType(aggregationType);
+            addDataOriginFilter(periodRequestBuilder, preferredSourcePackage);
+            AggregateRecordsRequest<Energy> periodRequest = periodRequestBuilder.build();
             manager.aggregateGroupByPeriod(periodRequest, Period.ofDays(1), mainExecutor, new OutcomeReceiver<List<AggregateRecordsGroupedByPeriodResponse<Energy>>, HealthConnectException>() {
                 @Override
                 public void onResult(List<AggregateRecordsGroupedByPeriodResponse<Energy>> responses) {
@@ -1347,6 +1440,8 @@ public class FruitFitHealthPlugin extends Plugin {
                 Map<String, Long> uniqueTotalsBySource = new HashMap<>();
                 Map<String, Long> rawCountsBySource = new HashMap<>();
                 Map<String, Long> uniqueCountsBySource = new HashMap<>();
+                Map<String, Map<String, Long>> uniqueTotalsBySourceDate = new HashMap<>();
+                Map<String, Map<String, Long>> uniqueCountsBySourceDate = new HashMap<>();
                 Map<String, Integer> keyCounts = new HashMap<>();
                 long rawTotal = 0;
                 long uniqueTotal = 0;
@@ -1364,6 +1459,9 @@ public class FruitFitHealthPlugin extends Plugin {
                     uniqueTotal += count;
                     uniqueTotalsBySource.put(sourcePackage, uniqueTotalsBySource.getOrDefault(sourcePackage, 0L) + count);
                     uniqueCountsBySource.put(sourcePackage, uniqueCountsBySource.getOrDefault(sourcePackage, 0L) + 1);
+                    String dateKey = localDateKey(record.getStartTime());
+                    putDailyLong(uniqueTotalsBySourceDate, sourcePackage, dateKey, count);
+                    putDailyLong(uniqueCountsBySourceDate, sourcePackage, dateKey, 1L);
                     JSObject sample = intervalSample(record.getStartTime(), record.getEndTime());
                     sample.put("value", count);
                     sample.put("sourcePackage", sourcePackage);
@@ -1373,6 +1471,7 @@ public class FruitFitHealthPlugin extends Plugin {
                 DedupeStats stats = dedupeStats(keyCounts, records.size());
                 JSObject result = new JSObject();
                 result.put("sources", dedupedLongSourceBreakdown(uniqueTotalsBySource, rawTotalsBySource, uniqueCountsBySource, rawCountsBySource));
+                result.put("sourceDaily", longSourceDailyBreakdown(uniqueTotalsBySourceDate, uniqueCountsBySourceDate));
                 result.put("sourceSamples", samples);
                 result.put("sourceRecordsCount", stats.recordsCountUnique);
                 result.put("recordsCountRaw", stats.recordsCountRaw);
@@ -1402,6 +1501,8 @@ public class FruitFitHealthPlugin extends Plugin {
                 Map<String, Double> uniqueCaloriesBySource = new HashMap<>();
                 Map<String, Long> rawCountsBySource = new HashMap<>();
                 Map<String, Long> uniqueCountsBySource = new HashMap<>();
+                Map<String, Map<String, Double>> uniqueCaloriesBySourceDate = new HashMap<>();
+                Map<String, Map<String, Long>> uniqueCountsBySourceDate = new HashMap<>();
                 Map<String, Integer> keyCounts = new HashMap<>();
                 double rawTotal = 0;
                 double uniqueTotal = 0;
@@ -1420,6 +1521,9 @@ public class FruitFitHealthPlugin extends Plugin {
                     uniqueTotal += rawCalories;
                     uniqueCaloriesBySource.put(sourcePackage, uniqueCaloriesBySource.getOrDefault(sourcePackage, 0.0) + rawCalories);
                     uniqueCountsBySource.put(sourcePackage, uniqueCountsBySource.getOrDefault(sourcePackage, 0L) + 1);
+                    String dateKey = localDateKey(record.getStartTime());
+                    putDailyDouble(uniqueCaloriesBySourceDate, sourcePackage, dateKey, rawCalories / CALORIES_PER_KILOCALORIE);
+                    putDailyLong(uniqueCountsBySourceDate, sourcePackage, dateKey, 1L);
                     JSObject sample = intervalSample(record.getStartTime(), record.getEndTime());
                     sample.put("value", Math.round(kilocalories));
                     sample.put("rawValue", rawCalories);
@@ -1433,6 +1537,7 @@ public class FruitFitHealthPlugin extends Plugin {
                 DedupeStats stats = dedupeStats(keyCounts, records.size());
                 JSObject result = new JSObject();
                 result.put("sources", dedupedCalorieSourceBreakdown(uniqueCaloriesBySource, rawCaloriesBySource, uniqueCountsBySource, rawCountsBySource));
+                result.put("sourceDaily", doubleSourceDailyBreakdown(uniqueCaloriesBySourceDate, uniqueCountsBySourceDate));
                 result.put("sourceSamples", samples);
                 result.put("sourceRecordsCount", stats.recordsCountUnique);
                 result.put("recordsCountRaw", stats.recordsCountRaw);
@@ -1663,9 +1768,133 @@ public class FruitFitHealthPlugin extends Plugin {
         }
     }
 
+    private boolean isHuaweiDevice() {
+        String raw = (Build.MANUFACTURER + " " + Build.BRAND + " " + Build.MODEL + " " + systemProperty("ro.build.version.emui")).toLowerCase();
+        return raw.contains("huawei") || raw.contains("honor") || raw.contains("emui");
+    }
+
+    private JSObject webViewDiagnostic() {
+        JSObject object = new JSObject();
+        try {
+            PackageInfo webViewPackage = Build.VERSION.SDK_INT >= 26 ? WebView.getCurrentWebViewPackage() : null;
+            if (webViewPackage == null) {
+                object.put("packageName", null);
+                object.put("versionName", null);
+                object.put("available", false);
+                return object;
+            }
+            object.put("packageName", webViewPackage.packageName);
+            object.put("versionName", webViewPackage.versionName);
+            object.put("versionCode", packageVersionCode(webViewPackage));
+            object.put("available", true);
+        } catch (Exception error) {
+            object.put("available", false);
+            object.put("error", error.getMessage());
+        }
+        return object;
+    }
+
+    private JSArray installedPackageDiagnostics() {
+        JSArray items = new JSArray();
+        PackageManager packageManager = getContext().getPackageManager();
+        for (String packageName : DIAGNOSTIC_PACKAGES) {
+            JSObject item = new JSObject();
+            item.put("packageName", packageName);
+            item.put("sourceName", sourceName(packageName));
+            try {
+                PackageInfo info = packageManager.getPackageInfo(packageName, 0);
+                item.put("installed", true);
+                item.put("versionName", info.versionName);
+                item.put("versionCode", packageVersionCode(info));
+                item.put("hasLaunchIntent", packageManager.getLaunchIntentForPackage(packageName) != null);
+            } catch (PackageManager.NameNotFoundException error) {
+                item.put("installed", false);
+            } catch (Exception error) {
+                item.put("installed", false);
+                item.put("error", error.getMessage());
+            }
+            items.put(item);
+        }
+        return items;
+    }
+
+    private long packageVersionCode(PackageInfo info) {
+        if (info == null) return 0;
+        if (Build.VERSION.SDK_INT >= 28) return info.getLongVersionCode();
+        return info.versionCode;
+    }
+
+    private String systemProperty(String key) {
+        try {
+            Class<?> systemProperties = Class.forName("android.os.SystemProperties");
+            Method get = systemProperties.getMethod("get", String.class);
+            Object value = get.invoke(null, key);
+            return value == null ? "" : String.valueOf(value);
+        } catch (Exception error) {
+            return "";
+        }
+    }
+
+    private JSObject diagnosticLimits() {
+        JSObject object = new JSObject();
+        object.put("readPageSize", READ_PAGE_SIZE);
+        object.put("maxReadPages", MAX_READ_PAGES);
+        object.put("maxSampleRecords", MAX_SAMPLE_RECORDS);
+        object.put("maxHeartSamples", MAX_HEART_SAMPLES);
+        object.put("maxSleepSessions", MAX_SLEEP_SESSIONS);
+        object.put("maxSleepStages", MAX_SLEEP_STAGES);
+        return object;
+    }
+
+    private JSObject readDiagnosticFile(String fileName) {
+        JSObject object = new JSObject();
+        File file = findDiagnosticFile(fileName);
+        object.put("fileName", fileName);
+        if (file == null || !file.exists()) {
+            object.put("exists", false);
+            object.put("text", null);
+            return object;
+        }
+        object.put("exists", true);
+        object.put("pathHint", "app cache diagnostics/" + fileName);
+        object.put("sizeBytes", file.length());
+        try (FileInputStream stream = new FileInputStream(file)) {
+            long skipped = 0;
+            long length = file.length();
+            if (length > MAX_DIAGNOSTIC_TEXT_BYTES) {
+                skipped = length - MAX_DIAGNOSTIC_TEXT_BYTES;
+                long remainingSkip = skipped;
+                while (remainingSkip > 0) {
+                    long nextSkipped = stream.skip(remainingSkip);
+                    if (nextSkipped <= 0) break;
+                    remainingSkip -= nextSkipped;
+                }
+            }
+            byte[] buffer = new byte[(int) Math.min(MAX_DIAGNOSTIC_TEXT_BYTES, Math.max(0, length - skipped))];
+            int read = stream.read(buffer);
+            String text = read > 0 ? new String(buffer, 0, read, "UTF-8") : "";
+            object.put("truncatedHeadBytes", skipped);
+            object.put("text", text);
+        } catch (Exception error) {
+            object.put("readError", error.getMessage());
+            object.put("text", null);
+        }
+        return object;
+    }
+
+    private File findDiagnosticFile(String fileName) {
+        File internal = new File(new File(getContext().getCacheDir(), "diagnostics"), fileName);
+        if (internal.exists()) return internal;
+        File externalCache = getContext().getExternalCacheDir();
+        if (externalCache == null) return internal;
+        File external = new File(new File(externalCache, "diagnostics"), fileName);
+        return external.exists() ? external : internal;
+    }
+
     private String sourceName(String sourcePackage) {
         if (sourcePackage == null || sourcePackage.length() == 0 || "unknown".equalsIgnoreCase(sourcePackage)) return "Health Connect aggregate";
         String value = sourcePackage.toLowerCase();
+        if (value.contains("huawei")) return "Huawei Health";
         if (value.contains("com.google.android.apps.fitness") || value.contains("google.android.apps.fitness") || value.contains("googlefit")) return "Google Fit";
         if (value.contains("xiaomi") || value.contains("mi.health") || value.contains("mihealth") || value.contains("mifitness")) return "Mi Fitness";
         if (value.contains("huami") || value.contains("zepp") || value.contains("amazfit")) return "Zepp / Amazfit";
@@ -1680,6 +1909,7 @@ public class FruitFitHealthPlugin extends Plugin {
     }
 
     private String[] packagesForSource(String sourceId) {
+        if ("huawei_health".equals(sourceId)) return new String[] { "com.huawei.health" };
         if ("samsung_health".equals(sourceId)) return new String[] { "com.sec.android.app.shealth" };
         if ("google_fit".equals(sourceId)) return new String[] { "com.google.android.apps.fitness" };
         if ("zepp".equals(sourceId)) return new String[] { "com.huami.watch.hmwatchmanager", "com.zepp.z" };
@@ -1703,6 +1933,7 @@ public class FruitFitHealthPlugin extends Plugin {
             "huami",
             "zepp",
             "amazfit",
+            "huawei",
             "com.google.android.apps.fitness",
             "google.android.apps.fitness",
             "googlefit",
@@ -1833,6 +2064,69 @@ public class FruitFitHealthPlugin extends Plugin {
             sources.put(item);
         }
         return sources;
+    }
+
+    private String localDateKey(Instant instant) {
+        return instant.atZone(ZoneId.systemDefault()).toLocalDate().toString();
+    }
+
+    private void putDailyLong(Map<String, Map<String, Long>> target, String sourcePackage, String dateKey, long value) {
+        if (dateKey == null || dateKey.isEmpty()) return;
+        Map<String, Long> byDate = target.computeIfAbsent(sourcePackage, ignored -> new LinkedHashMap<>());
+        byDate.put(dateKey, byDate.getOrDefault(dateKey, 0L) + value);
+    }
+
+    private void putDailyDouble(Map<String, Map<String, Double>> target, String sourcePackage, String dateKey, double value) {
+        if (dateKey == null || dateKey.isEmpty()) return;
+        Map<String, Double> byDate = target.computeIfAbsent(sourcePackage, ignored -> new LinkedHashMap<>());
+        byDate.put(dateKey, byDate.getOrDefault(dateKey, 0.0) + value);
+    }
+
+    private JSObject longSourceDailyBreakdown(
+        Map<String, Map<String, Long>> totalsBySourceDate,
+        Map<String, Map<String, Long>> countsBySourceDate
+    ) {
+        JSObject result = new JSObject();
+        for (Map.Entry<String, Map<String, Long>> sourceEntry : totalsBySourceDate.entrySet()) {
+            String sourcePackage = sourceEntry.getKey();
+            JSArray days = new JSArray();
+            Map<String, Long> countsByDate = countsBySourceDate.getOrDefault(sourcePackage, new HashMap<>());
+            for (Map.Entry<String, Long> dayEntry : sourceEntry.getValue().entrySet()) {
+                JSObject day = new JSObject();
+                day.put("date", dayEntry.getKey());
+                day.put("value", dayEntry.getValue());
+                day.put("recordsCount", countsByDate.getOrDefault(dayEntry.getKey(), 0L));
+                day.put("sourcePackage", sourcePackage);
+                day.put("sourceName", sourceName(sourcePackage));
+                days.put(day);
+            }
+            result.put(sourcePackage, days);
+        }
+        return result;
+    }
+
+    private JSObject doubleSourceDailyBreakdown(
+        Map<String, Map<String, Double>> totalsBySourceDate,
+        Map<String, Map<String, Long>> countsBySourceDate
+    ) {
+        JSObject result = new JSObject();
+        for (Map.Entry<String, Map<String, Double>> sourceEntry : totalsBySourceDate.entrySet()) {
+            String sourcePackage = sourceEntry.getKey();
+            JSArray days = new JSArray();
+            Map<String, Long> countsByDate = countsBySourceDate.getOrDefault(sourcePackage, new HashMap<>());
+            for (Map.Entry<String, Double> dayEntry : sourceEntry.getValue().entrySet()) {
+                JSObject day = new JSObject();
+                day.put("date", dayEntry.getKey());
+                day.put("value", Math.round(dayEntry.getValue()));
+                day.put("rawValue", dayEntry.getValue());
+                day.put("recordsCount", countsByDate.getOrDefault(dayEntry.getKey(), 0L));
+                day.put("sourcePackage", sourcePackage);
+                day.put("sourceName", sourceName(sourcePackage));
+                days.put(day);
+            }
+            result.put(sourcePackage, days);
+        }
+        return result;
     }
 
     private String exactRecordKey(String sourcePackage, Instant start, Instant end, long value) {

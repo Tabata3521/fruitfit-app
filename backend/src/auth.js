@@ -532,14 +532,23 @@ function passwordResetExpiresAt() {
   return new Date(Date.now() + minutes * 60 * 1000);
 }
 
+function appEmailActionLink(event, token, fallbackPath) {
+  const appBase = String(config.appPublicUrl || config.appBaseUrl || "http://localhost:5173").replace(/\/+$/, "");
+  const productionRouterBase = config.nodeEnv === "production" && config.siteBaseUrl
+    ? `${String(config.siteBaseUrl).replace(/\/+$/, "")}/app`
+    : "";
+  const routerBase = String(config.authAppRouterUrl || productionRouterBase || "").replace(/\/+$/, "");
+  if (!routerBase) return `${appBase}${fallbackPath}?token=${encodeURIComponent(token)}`;
+  const params = new URLSearchParams({ event, token: String(token || "") });
+  return `${routerBase}?${params.toString()}`;
+}
+
 function verificationLink(token) {
-  const base = String(config.appPublicUrl || config.appBaseUrl || "http://localhost:5173").replace(/\/+$/, "");
-  return `${base}/email/verify?token=${encodeURIComponent(token)}`;
+  return appEmailActionLink("email_verify", token, "/email/verify");
 }
 
 function passwordResetLink(token) {
-  const base = String(config.appPublicUrl || config.appBaseUrl || "http://localhost:5173").replace(/\/+$/, "");
-  return `${base}/email/reset-password?token=${encodeURIComponent(token)}`;
+  return appEmailActionLink("password_reset", token, "/email/reset-password");
 }
 
 function publicEmailAuthResponse() {

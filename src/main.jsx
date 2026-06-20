@@ -3,6 +3,47 @@ import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
 import "./styles.css";
 
+const CLIENT_ERROR_STORAGE_KEY = "fruitfit.client.errors";
+
+function saveBootError(entry = {}) {
+  try {
+    const current = JSON.parse(localStorage.getItem(CLIENT_ERROR_STORAGE_KEY) || "[]");
+    const errors = Array.isArray(current) ? current : [];
+    localStorage.setItem(CLIENT_ERROR_STORAGE_KEY, JSON.stringify([...errors, {
+      at: new Date().toISOString(),
+      type: "boot_error",
+      ...entry,
+    }].slice(-50)));
+  } catch (_) {
+    // Boot diagnostics must never make startup worse.
+  }
+}
+
+if (typeof window !== "undefined" && !window.__fruitfitBootDiagnosticsInstalled) {
+  window.__fruitfitBootDiagnosticsInstalled = true;
+  window.addEventListener("error", (event) => {
+    saveBootError({
+      type: "window_error",
+      message: event.message,
+      source: event.filename,
+      line: event.lineno,
+      column: event.colno,
+      stack: String(event.error?.stack || ""),
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+    });
+  });
+  window.addEventListener("unhandledrejection", (event) => {
+    saveBootError({
+      type: "unhandledrejection",
+      message: String(event.reason?.message || event.reason || "Unhandled promise rejection"),
+      stack: String(event.reason?.stack || ""),
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+    });
+  });
+}
+
 class BootErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -13,6 +54,16 @@ class BootErrorBoundary extends React.Component {
     return { error };
   }
 
+  componentDidCatch(error, info) {
+    saveBootError({
+      message: String(error?.message || error || "Runtime error"),
+      stack: String(error?.stack || ""),
+      componentStack: String(info?.componentStack || ""),
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+    });
+  }
+
   render() {
     if (!this.state.error) return this.props.children;
     return (
@@ -20,6 +71,16 @@ class BootErrorBoundary extends React.Component {
         <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900 }}>FruitFit</h1>
         <p style={{ marginTop: 12, lineHeight: 1.5, color: "#DDF7B4" }}>Не удалось запустить экран приложения.</p>
         <p style={{ marginTop: 8, lineHeight: 1.5, color: "#A8B0A8" }}>{String(this.state.error?.message || this.state.error || "Runtime error")}</p>
+        <button
+          type="button"
+          onClick={() => {
+            const report = localStorage.getItem(CLIENT_ERROR_STORAGE_KEY) || "[]";
+            navigator.clipboard?.writeText?.(report);
+          }}
+          style={{ marginTop: 18, height: 44, border: "1px solid rgba(191,243,107,0.35)", borderRadius: 999, padding: "0 18px", background: "transparent", color: "#DDF7B4", fontWeight: 900 }}
+        >
+          Copy error report
+        </button>
         <button
           type="button"
           onClick={() => {

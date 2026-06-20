@@ -2,7 +2,7 @@ import { Check, ChevronRight, Dumbbell, Lock } from "lucide-react";
 import BottomNavigation from "../components/BottomNavigation";
 import femaleProgramImage from "../assets/program-female.png";
 import maleProgramImage from "../assets/program-male.png";
-import { isWorkoutUnlocked, visibleWorkoutsForAccess, workoutAccessLabel } from "../data/accessRules";
+import { isWorkoutUnlocked, originalWorkoutIndex, visibleWorkoutsForAccess, workoutAccessLabel } from "../data/accessRules";
 
 function programImage(course) {
   const text = `${course?.gender || ""} ${course?.display_name || ""} ${course?.technical_name || ""}`.toLowerCase();
@@ -56,15 +56,17 @@ export default function WorkoutsScreen({ program, selectedWorkoutIndex, onOpenWo
 
         <section className="mt-5 space-y-2">
           {visibleWorkouts.map((workout, index) => {
-            const active = index === selectedWorkoutIndex;
-            const locked = !isWorkoutUnlocked(index, program.workouts, access);
-            const completed = index <= completedUntil;
+            const sourceIndex = originalWorkoutIndex(program.workouts, workout);
+            const safeSourceIndex = sourceIndex >= 0 ? sourceIndex : index;
+            const active = safeSourceIndex === selectedWorkoutIndex;
+            const locked = !isWorkoutUnlocked(safeSourceIndex, program.workouts, access);
+            const completed = safeSourceIndex <= completedUntil;
             const status = locked ? "закрыта" : completed ? "завершена" : active ? "в процессе" : "не начата";
             return (
               <button
                 key={workout.workout_id}
                 type="button"
-                onClick={() => onOpenWorkout(index)}
+                onClick={() => onOpenWorkout(safeSourceIndex)}
                 className={`grid min-h-[92px] w-full grid-cols-[44px_1fr_32px] items-center gap-3 rounded-[20px] border p-3 text-left shadow-sm transition ${locked ? "border-appBorder bg-appCard/62 opacity-75" : active ? "border-[#7FBA31] bg-appCard" : "border-appBorder bg-appCard/82"}`}
               >
                 <span className={`grid h-11 w-11 place-items-center rounded-full text-[13px] font-black ${locked ? "bg-appBg text-appMuted" : completed ? "bg-[#8BCB35] text-[#181F19]" : active ? "bg-appDark text-[#8BCB35]" : "bg-appBg text-appMuted"}`}>

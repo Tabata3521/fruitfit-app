@@ -4,7 +4,7 @@ import { requireUser } from "./auth.js";
 import { config } from "./config.js";
 import { query } from "./db.js";
 import { getFcmStatus, sendFcmMessage } from "./fcm.js";
-import { buildUtcMotivationSchedule, MOTIVATION_MESSAGES } from "../../shared/motivationMessages.js";
+import { buildUtcPushSchedule, PUSH_CADENCE, PUSH_MESSAGE_COUNTS } from "../../shared/pushMessages.js";
 
 export const notificationRouter = express.Router();
 
@@ -26,7 +26,8 @@ notificationRouter.get("/", async (req, res) => {
   res.json({
     items: result.rows,
     pushConfigured: isPushProviderConfigured(),
-    messageLibrarySize: MOTIVATION_MESSAGES.length
+    messageLibrarySize: PUSH_MESSAGE_COUNTS.total,
+    messageLibrary: PUSH_MESSAGE_COUNTS
   });
 });
 
@@ -124,11 +125,14 @@ notificationRouter.post("/test", async (req, res) => {
 notificationRouter.post("/test-pack", async (req, res) => {
   const startAt = req.body?.startAt ? new Date(req.body.startAt) : new Date();
   const timezoneOffsetMinutes = normalizeOffset(req.body?.timezoneOffsetMinutes);
-  const schedule = buildUtcMotivationSchedule({
+  const recent = await recentPushHistory(req.user.id);
+  const schedule = buildUtcPushSchedule({
     now: startAt,
     days: 5,
     timezoneOffsetMinutes,
-    previousBody: await latestMotivationBody(req.user.id)
+    userId: req.user.id,
+    recentMessageIds: recent.messageIds,
+    recentBodies: recent.bodies
   }).slice(0, 10);
   const rows = [];
 
@@ -147,9 +151,9 @@ notificationRouter.post("/test-pack", async (req, res) => {
         item.body,
         {
           ...item.data,
-          pack: "motivation-preview-10",
+          pack: "push-preview-10",
           index: index + 1,
-          cadence: "2-3/day"
+          cadence: PUSH_CADENCE
         },
         item.scheduledAt
       ]
@@ -160,7 +164,7 @@ notificationRouter.post("/test-pack", async (req, res) => {
   res.status(201).json({
     items: rows,
     count: rows.length,
-    cadence: "2-3/day",
+    cadence: PUSH_CADENCE,
     pushConfigured: isPushProviderConfigured(),
     delivery: isPushProviderConfigured() ? "queued" : "queued_without_provider"
   });
@@ -169,11 +173,14 @@ notificationRouter.post("/test-pack", async (req, res) => {
 notificationRouter.post("/motivation/schedule", async (req, res) => {
   const days = Math.max(1, Math.min(Number(req.body?.days || 7), 14));
   const timezoneOffsetMinutes = normalizeOffset(req.body?.timezoneOffsetMinutes);
-  const schedule = buildUtcMotivationSchedule({
+  const recent = await recentPushHistory(req.user.id);
+  const schedule = buildUtcPushSchedule({
     now: new Date(),
     days,
     timezoneOffsetMinutes,
-    previousBody: await latestMotivationBody(req.user.id)
+    userId: req.user.id,
+    recentMessageIds: recent.messageIds,
+    recentBodies: recent.bodies
   });
   const rows = [];
 
@@ -191,8 +198,9 @@ notificationRouter.post("/motivation/schedule", async (req, res) => {
   res.status(201).json({
     items: rows,
     count: rows.length,
-    cadence: "2-3/day",
-    messageLibrarySize: MOTIVATION_MESSAGES.length,
+    cadence: PUSH_CADENCE,
+    messageLibrarySize: PUSH_MESSAGE_COUNTS.total,
+    messageLibrary: PUSH_MESSAGE_COUNTS,
     pushConfigured: isPushProviderConfigured()
   });
 });
@@ -279,16 +287,21 @@ function isPushProviderConfigured() {
   return false;
 }
 
-async function latestMotivationBody(userId) {
+async function recentPushHistory(userId) {
   const result = await query(
-    `SELECT body
+    `SELECT body, data
      FROM notification_events
-     WHERE user_id = $1 AND kind = 'motivation'
+     WHERE user_id = $1
+       AND kind IN ('daily_motivation', 'discipline_gym_etiquette', 'clarification_messages')
+       AND COALESCE(scheduled_at, sent_at, created_at) >= now() - interval '7 days'
      ORDER BY COALESCE(scheduled_at, sent_at, created_at) DESC
-     LIMIT 1`,
+     LIMIT 80`,
     [userId]
   );
-  return result.rows[0]?.body || "";
+  return {
+    messageIds: result.rows.map((row) => row.data?.messageId).filter(Boolean),
+    bodies: result.rows.map((row) => row.body).filter(Boolean)
+  };
 }
 
 function normalizeOffset(value) {

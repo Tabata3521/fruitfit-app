@@ -1,12 +1,15 @@
-import { buildLocalMotivationEvents } from "../../shared/motivationMessages.js";
+import { buildLocalPushEvents } from "../../shared/pushMessages.js";
+import { currentUserId } from "./userScopedCache.js";
 
-const STORAGE_KEY = "fruitfit.notificationCenter.v1";
+const STORAGE_KEY = "fruitfit.notificationCenter.v2";
 const MAX_ITEMS = 60;
 
 export function loadNotificationCenter(now = new Date()) {
-  const stored = readStore();
+  const userId = currentUserId();
+  if (!userId) return [];
+  const stored = readStore(userId);
   const storedItems = Array.isArray(stored.items) ? stored.items : [];
-  const generated = buildLocalMotivationEvents({ now, daysBack: 4, existingItems: storedItems });
+  const generated = buildLocalPushEvents({ now, daysBack: 4, existingItems: storedItems, userId });
   const generatedIds = new Set(generated.map((item) => item.id));
   const customItems = storedItems
     .filter((item) => !generatedIds.has(item.id))
@@ -15,23 +18,27 @@ export function loadNotificationCenter(now = new Date()) {
     .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt))
     .slice(0, MAX_ITEMS);
 
-  writeStore({ items, updatedAt: now.toISOString() });
+  writeStore(userId, { userId, items, updatedAt: now.toISOString() });
   return items;
 }
 
 export function markNotificationRead(id) {
+  const userId = currentUserId();
+  if (!userId) return [];
   const now = new Date().toISOString();
   const items = loadNotificationCenter().map((item) => (
     item.id === id ? { ...item, readAt: item.readAt || now } : item
   ));
-  writeStore({ items, updatedAt: now });
+  writeStore(userId, { userId, items, updatedAt: now });
   return items;
 }
 
 export function markAllNotificationsRead() {
+  const userId = currentUserId();
+  if (!userId) return [];
   const now = new Date().toISOString();
   const items = loadNotificationCenter().map((item) => ({ ...item, readAt: item.readAt || now }));
-  writeStore({ items, updatedAt: now });
+  writeStore(userId, { userId, items, updatedAt: now });
   return items;
 }
 
@@ -57,19 +64,24 @@ function sameLocalDay(left, right) {
     && left.getDate() === right.getDate();
 }
 
-function readStore() {
+function scopedStorageKey(userId) {
+  return `${STORAGE_KEY}:${userId}`;
+}
+
+function readStore(userId) {
   if (typeof localStorage === "undefined") return {};
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {};
+    const value = JSON.parse(localStorage.getItem(scopedStorageKey(userId)) || "{}") || {};
+    return value.userId && value.userId !== userId ? {} : value;
   } catch (_) {
     return {};
   }
 }
 
-function writeStore(value) {
+function writeStore(userId, value) {
   if (typeof localStorage === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+    localStorage.setItem(scopedStorageKey(userId), JSON.stringify({ ...value, userId }));
   } catch (_) {
     // Notification center should never block the dashboard.
   }

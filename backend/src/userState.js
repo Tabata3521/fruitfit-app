@@ -571,6 +571,48 @@ adminRouter.get("/users/:userId", async (req, res) => {
   res.json({ user: serializeAdminUser(result.rows[0]) });
 });
 
+adminRouter.delete("/users/:userId", async (req, res) => {
+  const userId = String(req.params.userId || "").trim();
+  const confirmation = String(req.body?.confirmation || req.body?.confirm || "").trim();
+  if (confirmation !== "Удалить") {
+    res.status(400).json({ error: "Confirmation word is required" });
+    return;
+  }
+
+  const target = await query(
+    `SELECT u.id, u.email, u.name, u.username, u.role, ua.status AS access_status
+     FROM users u
+     LEFT JOIN user_access ua ON ua.user_id = u.id
+     WHERE u.id = $1`,
+    [userId]
+  );
+  if (!target.rowCount) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const row = target.rows[0];
+  const isAdmin = String(row.role || "").toLowerCase() === "admin" || String(row.access_status || "").toLowerCase() === "admin";
+  if (isAdmin) {
+    res.status(403).json({ error: "Admin users cannot be deleted" });
+    return;
+  }
+
+  const deleted = await query(
+    `DELETE FROM users
+     WHERE id = $1
+       AND COALESCE(role, 'user') <> 'admin'
+     RETURNING id, email, name, username, role`,
+    [userId]
+  );
+  if (!deleted.rowCount) {
+    res.status(403).json({ error: "User was not deleted" });
+    return;
+  }
+
+  res.json({ deleted: deleted.rows[0] });
+});
+
 adminRouter.patch("/users/:userId/access", updateUserAccess);
 adminRouter.put("/users/:userId/access", updateUserAccess);
 adminRouter.get("/users/:userId/program-assignment", async (req, res) => {

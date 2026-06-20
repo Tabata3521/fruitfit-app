@@ -43,6 +43,8 @@ import { getAppInfo } from "../services/appInfo";
 import { getJson } from "../services/nativeHttp";
 import { canUseTelegramNativeLogin, startTelegramNativeLogin } from "../services/telegramNativeLogin";
 import { useHealth } from "../data/healthStore";
+import { readHealthContainer, readUserCoreField } from "../data/dataContainers";
+import { currentUserId } from "../data/userScopedCache";
 
 const PROVIDER_META = {
   telegram: { label: "Telegram", color: "text-[#229ED9]", dot: "bg-[#229ED9]" },
@@ -201,7 +203,7 @@ function canUseProgressPhotos(user, access) {
 
 function loadLocalMeasurements() {
   try {
-    const items = JSON.parse(localStorage.getItem("fruitfit.measurements") || "[]");
+    const items = readUserCoreField("measurements", currentUserId(), []);
     return Array.isArray(items) ? items : [];
   } catch (_) {
     return [];
@@ -460,7 +462,7 @@ function buildReportHealthSnapshot(health = {}) {
 function readStoredHealthForReport() {
   if (typeof window === "undefined") return null;
   try {
-    const parsed = JSON.parse(localStorage.getItem("fruitfit.health") || "null");
+    const parsed = readHealthContainer(currentUserId(), null);
     return parsed && typeof parsed === "object" ? parsed : null;
   } catch (_) {
     return null;

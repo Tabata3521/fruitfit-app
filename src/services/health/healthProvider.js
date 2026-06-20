@@ -64,6 +64,10 @@ function getHealthPlugin() {
   return getCapacitor()?.Plugins?.FruitFitHealth || null;
 }
 
+function getDiagnosticsPlugin() {
+  return getCapacitor()?.Plugins?.FruitFitDiagnostics || null;
+}
+
 function getPlatform() {
   return getCapacitor()?.getPlatform?.() || "web";
 }
@@ -482,6 +486,30 @@ export async function openHealthSource(sourceId = "health_connect") {
   return callPlugin("openHealthSource", webUnavailable(), { sourceId });
 }
 
+export async function getDeviceDiagnostics() {
+  if (isIosPlatform()) {
+    return {
+      platform: "ios",
+      source: IOS_SOURCE_NAME,
+      message: "Native Android/Huawei diagnostics are not available on iOS.",
+    };
+  }
+  const fallback = {
+    platform: getPlatform(),
+    source: "web",
+    message: "Native device diagnostics are unavailable in this build.",
+    installedPackages: [],
+    lastNativeCrash: { exists: false, text: null },
+  };
+  const plugin = getDiagnosticsPlugin() || getHealthPlugin();
+  if (!plugin || typeof plugin.getDeviceDiagnostics !== "function") return fallback;
+  try {
+    return await plugin.getDeviceDiagnostics({});
+  } catch (error) {
+    return { ...fallback, state: healthProviderStates.ERROR, message: error?.message || fallback.message };
+  }
+}
+
 export async function getSteps(range = "today", options = {}) {
   if (isIosPlatform()) return iosSteps(range, options);
   return callPlugin(
@@ -491,8 +519,8 @@ export async function getSteps(range = "today", options = {}) {
   );
 }
 
-export async function getCalories(range = "today") {
-  if (isIosPlatform()) return iosCalories(range);
+export async function getCalories(range = "today", options = {}) {
+  if (isIosPlatform()) return iosCalories(range, options);
   return callPlugin("getCalories", {
     state: healthProviderStates.NO_DATA,
     source: null,
@@ -506,7 +534,7 @@ export async function getCalories(range = "today") {
     recordsCount: 0,
     sources: [],
     samples: [],
-  }, { range });
+  }, { range, ...options });
 }
 
 export async function getHeartRate(range = "today") {
@@ -576,6 +604,7 @@ export const healthSources = {
 };
 
 export const healthSourceShortcuts = [
+  { id: "huawei_health", label: "Huawei Health", hint: "EMUI / Huawei Health diagnostics" },
   { id: "health_connect", label: "Health Connect", hint: "Системный транспорт данных здоровья" },
   { id: "samsung_health", label: "Samsung Health", hint: "Galaxy Watch и Samsung Health" },
   { id: "google_fit", label: "Google Fit", hint: "Optional connected app; Health Connect aggregate remains canonical" },

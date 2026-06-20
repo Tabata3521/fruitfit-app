@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   getCalories,
+  getDeviceDiagnostics,
   getExerciseSessions,
   getHealthAvailability,
   getHeartRate,
@@ -12,10 +13,11 @@ import {
   requestHealthPermissions,
 } from "../services/health/healthProvider";
 import { fetchMenstrualCycle, saveMenstrualCycle } from "./authStore";
+import { readHealthContainer, writeHealthContainer } from "./dataContainers";
 import { loadProfile } from "./profileStore";
+import { currentUserId } from "./userScopedCache";
 
 export const HEALTH_STORAGE_KEY = "fruitfit.health";
-const HEALTH_HISTORY_KEY = "fruitfit.health.history";
 const HEALTH_REFRESH_CACHE_MS = 3 * 60 * 1000;
 const HEALTH_CANONICAL_SCHEMA_VERSION = 3;
 const HEALTH_RATE_LIMIT_COOLDOWN_MS = 15 * 60 * 1000;
@@ -34,12 +36,34 @@ const HEALTH_QUERY_MODES = {
   DEBUG_SNAPSHOT: "debug_snapshot",
 };
 const CLIENT_ERROR_BUFFER_KEY = "__fruitfitClientErrors";
+const CLIENT_ERROR_STORAGE_KEY = "fruitfit.client.errors";
+
+function loadClientErrorLog() {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CLIENT_ERROR_STORAGE_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed.slice(-50) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function saveClientErrorLog(items = []) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(CLIENT_ERROR_STORAGE_KEY, JSON.stringify(items.slice(-50)));
+  } catch (_) {
+    // Diagnostics must never break app startup.
+  }
+}
 
 if (typeof window !== "undefined" && !window.__fruitfitHealthErrorListenersInstalled) {
   window.__fruitfitHealthErrorListenersInstalled = true;
   const pushClientError = (entry) => {
     const current = Array.isArray(window[CLIENT_ERROR_BUFFER_KEY]) ? window[CLIENT_ERROR_BUFFER_KEY] : [];
-    window[CLIENT_ERROR_BUFFER_KEY] = [...current, { at: new Date().toISOString(), ...entry }].slice(-20);
+    const next = [...current, { at: new Date().toISOString(), ...entry }].slice(-20);
+    window[CLIENT_ERROR_BUFFER_KEY] = next;
+    saveClientErrorLog([...loadClientErrorLog(), ...next.slice(-1)]);
   };
   window.addEventListener("error", (event) => {
     pushClientError({ type: "error", message: event.message, source: event.filename, line: event.lineno, column: event.colno });
@@ -340,7 +364,7 @@ export function calculateMenstrualCycle(input = {}, todayKey = localDateKey()) {
 function readHealthHistory() {
   if (typeof window === "undefined") return [];
   try {
-    const parsed = JSON.parse(localStorage.getItem(HEALTH_HISTORY_KEY) || "[]");
+    const parsed = readHealthContainer(currentUserId(), null)?.localHistory || [];
     return Array.isArray(parsed) ? parsed : [];
   } catch (_) {
     return [];
@@ -349,12 +373,15 @@ function readHealthHistory() {
 
 function writeHealthHistory(entry) {
   if (typeof window === "undefined") return [entry];
+  const userId = currentUserId();
+  if (!userId) return [entry];
   const date = entry.date || localDateKey();
   const current = readHealthHistory().filter((item) => item?.date && item.date !== date);
   const next = [...current, { ...entry, date }]
     .sort((a, b) => String(a.date).localeCompare(String(b.date)))
     .slice(-45);
-  localStorage.setItem(HEALTH_HISTORY_KEY, JSON.stringify(next));
+  const health = readHealthContainer(userId, {}) || {};
+  writeHealthContainer({ ...health, localHistory: next }, userId);
   return next;
 }
 
@@ -595,6 +622,7 @@ function makeEmptyHealth(saved = {}) {
       status: saved.recovery?.status || "no_data",
     },
     healthRefresh: resetTrackerCache ? { ...defaultHealthRefresh } : { ...defaultHealthRefresh, ...(saved.healthRefresh || {}) },
+    localHistory: resetTrackerCache ? [] : Array.isArray(saved.localHistory) ? saved.localHistory : [],
     history7d: resetTrackerCache ? { steps: [], calories: [], heartRate: [], sleep: [] } : saved.history7d || { steps: [], calories: [], heartRate: [], sleep: [] },
     cycle,
     activity_history: !resetTrackerCache && saved.activity_history?.week?.length ? saved.activity_history : emptyHistory(),
@@ -856,11 +884,8 @@ export function createHealthSnapshot(_scenario = "empty", _range = "week", previ
 function loadHealthData() {
   if (typeof window === "undefined") return makeEmptyHealth();
   try {
-    const saved = JSON.parse(localStorage.getItem(HEALTH_STORAGE_KEY) || "null");
+    const saved = readHealthContainer(currentUserId(), null);
     if (saved && typeof saved === "object") {
-      if (Number(saved.healthSchemaVersion || 0) < HEALTH_CANONICAL_SCHEMA_VERSION) {
-        localStorage.removeItem(HEALTH_HISTORY_KEY);
-      }
       return makeEmptyHealth(saved);
     }
   } catch (_) {
@@ -1163,6 +1188,12 @@ function dayIndexFromDate(value) {
   return day === 0 ? 6 : day - 1;
 }
 
+function sampleDateKey(sample = {}) {
+  const direct = sample.date || sample.key || sample.day;
+  if (typeof direct === "string" && /^\d{4}-\d{2}-\d{2}/.test(direct)) return direct.slice(0, 10);
+  return localDateKey(sample.start || sample.time || sample.end || Date.now());
+}
+
 function buildSeriesFromSamples(samples = [], range = "week", valueKey = "value") {
   if (range === "today") {
     const hourly = Array.from({ length: 24 }, () => 0);
@@ -1175,8 +1206,7 @@ function buildSeriesFromSamples(samples = [], range = "week", valueKey = "value"
   const length = range === "month" ? 30 : 7;
   const series = Array.from({ length }, () => 0);
   samples.forEach((sample) => {
-    const date = new Date(sample.start || sample.time || sample.end || Date.now());
-    const diffDays = diffLocalDays(localDateKey(date));
+    const diffDays = diffLocalDays(sampleDateKey(sample));
     const index = length - 1 - diffDays;
     if (index >= 0 && index < length) series[index] += Number(sample[valueKey] || 0);
   });
@@ -1446,7 +1476,7 @@ function buildMetricHistory7d(samples = [], valueKey = "value") {
   });
   const byDate = new Map(days.map((day) => [day.date, day]));
   (samples || []).forEach((sample) => {
-    const date = localDateKey(sample.start || sample.time || sample.end);
+    const date = sampleDateKey(sample);
     const day = byDate.get(date);
     if (!day) return;
     day.value += Number(sample[valueKey] || 0) || 0;
@@ -2045,12 +2075,6 @@ function aggregateValidation(result = {}, options = {}) {
       reason: "active_calories_gt_total_calories",
     };
   }
-  if (metric === "steps" && steps > 40000 && !options.hasConfirmedActivity) {
-    return {
-      status: "aggregate_rejected",
-      reason: "steps_gt_40000_without_confirmed_activity",
-    };
-  }
   return { status: "aggregate_valid", reason: null };
 }
 
@@ -2070,9 +2094,6 @@ function sourceValidation(source = {}, result = {}, options = {}) {
   const total = sourceTotal(source);
   if (!Number.isFinite(total) || total <= 0) {
     return { ok: false, reason: "source_empty" };
-  }
-  if (metric === "steps" && total > 40000 && !options.hasConfirmedActivity) {
-    return { ok: false, reason: "source_steps_gt_40000_without_confirmed_activity" };
   }
   if (metric === "calories") {
     const totalCalories = Number(result?.total ?? result?.convertedTotal ?? 0) || 0;
@@ -2109,12 +2130,63 @@ function healthConnectAggregateSelection(result = {}, options = {}) {
   const dataOrigins = Array.isArray(result?.dataOrigins) ? result.dataOrigins : [];
   const validation = aggregateValidation(result, options);
   const trusted = trustedDashboardSource(result, options);
+  const preferredSourcePackage = options.preferredSourcePackage || "";
+  const preferredSource = preferredSourcePackage
+    ? (result?.sources || []).find((source) => sourceMatchesPreference(source, preferredSourcePackage))
+    : null;
+  const filteredSourcePackage = result?.selectedSourcePackage || "";
 
-  if (options.metric === "steps" && !validation.reason) {
+  if (preferredSource && sourceTotal(preferredSource) > 0) {
+    return {
+      selectedSourcePackage: preferredSource.sourcePackage || null,
+      selectedSourceName: sourceLabel(preferredSource),
+      selectedSourceReason: `User selected ${sourceLabel(preferredSource)}; using this source for today and history when daily source data is available.`,
+      selectedSourceStrategy: "preferred_user_source",
+      selectedTotal: sourceTotal(preferredSource),
+      sources: result?.sources || [],
+      allSources: dataOrigins.length ? dataOrigins : (result?.sources || []),
+      suspiciousSources: [],
+      suspiciousHighSources: [],
+      rejectedSources: trusted.rejected,
+      autoStrategy: "manual_preferred_source",
+      suspiciousReason: null,
+      dashboardSourcePackage: preferredSource.sourcePackage || null,
+      dashboardSourceName: sourceLabel(preferredSource),
+      dashboardValidationStatus: "preferred_source",
+      aggregateRejectedReason: null,
+      dashboardValueSource: preferredSource.sourcePackage || null,
+      dashboardValueReason: "user_preferred_source",
+    };
+  }
+
+  if (filteredSourcePackage && sourceMatchesPreference({ sourcePackage: filteredSourcePackage }, preferredSourcePackage)) {
+    return {
+      selectedSourcePackage: filteredSourcePackage,
+      selectedSourceName: sourceLabel({ sourcePackage: filteredSourcePackage, sourceName: result?.selectedSourceName }),
+      selectedSourceReason: `User selected ${sourceLabel({ sourcePackage: filteredSourcePackage, sourceName: result?.selectedSourceName })}; Health Connect returned aggregate buckets filtered by this source.`,
+      selectedSourceStrategy: result?.selectedSourceStrategy || "health_connect_aggregate_data_origin_filter",
+      selectedTotal,
+      sources: result?.sources || [],
+      allSources: dataOrigins.length ? dataOrigins : (result?.sources || []),
+      suspiciousSources: [],
+      suspiciousHighSources: [],
+      rejectedSources: trusted.rejected,
+      autoStrategy: "manual_preferred_source",
+      suspiciousReason: null,
+      dashboardSourcePackage: filteredSourcePackage,
+      dashboardSourceName: sourceLabel({ sourcePackage: filteredSourcePackage, sourceName: result?.selectedSourceName }),
+      dashboardValidationStatus: "preferred_source",
+      aggregateRejectedReason: null,
+      dashboardValueSource: filteredSourcePackage,
+      dashboardValueReason: "user_preferred_data_origin_filter",
+    };
+  }
+
+  if ((options.metric === "steps" || options.metric === "calories") && !validation.reason) {
     return {
       selectedSourcePackage: null,
       selectedSourceName: "Health Connect aggregate",
-      selectedSourceReason: "Dashboard steps use Health Connect aggregate; source-specific raw records are diagnostics only after exact dedupe.",
+      selectedSourceReason: "Health Connect aggregate is the primary value; source-specific raw records are diagnostics only after exact dedupe.",
       selectedSourceStrategy: result?.aggregateStrategy || "health_connect_aggregate",
       selectedTotal,
       sources: result?.sources || [],
@@ -2129,7 +2201,7 @@ function healthConnectAggregateSelection(result = {}, options = {}) {
       dashboardValidationStatus: "aggregate_valid",
       aggregateRejectedReason: null,
       dashboardValueSource: "health_connect_aggregate",
-      dashboardValueReason: "source_totals_are_diagnostics_only_exact_dedupe_required",
+      dashboardValueReason: "aggregate_bucket_values_match_health_connect",
     };
   }
 
@@ -2203,7 +2275,7 @@ function healthConnectAggregateSelection(result = {}, options = {}) {
 
 function selectBestSource(result, preferredSourcePackage = "", options = {}) {
   if (isHealthConnectAggregateResult(result)) {
-    return healthConnectAggregateSelection(result, options);
+    return healthConnectAggregateSelection(result, { ...options, preferredSourcePackage });
   }
 
   if (options.metric === "steps" || options.metric === "calories") {
@@ -2329,6 +2401,26 @@ function samplesForSelectedSource(result, selection) {
   return sourceSamples.filter((sample) => String(sample.sourcePackage || "").toLowerCase() === String(selection.selectedSourcePackage).toLowerCase());
 }
 
+function sourceDailyRowsForSelectedSource(result, selection) {
+  const selectedPackage = selection?.selectedSourcePackage || "";
+  const sourceDaily = result?.sourceDaily;
+  if (!selectedPackage || !sourceDaily || typeof sourceDaily !== "object") return [];
+  const directRows = sourceDaily[selectedPackage];
+  if (Array.isArray(directRows)) return directRows;
+  const matchedKey = Object.keys(sourceDaily).find((key) => sourceMatchesPreference({ sourcePackage: key }, selectedPackage));
+  return matchedKey && Array.isArray(sourceDaily[matchedKey]) ? sourceDaily[matchedKey] : [];
+}
+
+function metricRowsForSelectedSource(result, selection) {
+  if (!selection?.selectedSourcePackage) return result?.samples || [];
+  const sourceDailyRows = sourceDailyRowsForSelectedSource(result, selection);
+  if (sourceDailyRows.length) return sourceDailyRows;
+  if (result?.selectedSourcePackage && sourceMatchesPreference(result, selection.selectedSourcePackage)) {
+    return result?.samples || [];
+  }
+  return samplesForSelectedSource(result, selection);
+}
+
 function minutesSince(value) {
   if (!value) return null;
   const timestamp = new Date(value).getTime();
@@ -2447,10 +2539,10 @@ function splitCalorieValues({ caloriesResult = {}, estimatedActive = 0, profile 
   };
 }
 
-function sanitizedCalorieResult(caloriesResult = {}, range = "today") {
+function sanitizedCalorieResult(caloriesResult = {}, range = "today", preferredSourcePackage = "") {
   if (isHealthConnectAggregateResult(caloriesResult)) {
-    const selection = selectBestSource(caloriesResult, "", { metric: "calories", range });
-    const selectedSamples = samplesForSelectedSource(caloriesResult, selection);
+    const selection = selectBestSource(caloriesResult, preferredSourcePackage, { metric: "calories", range });
+    const selectedSamples = metricRowsForSelectedSource(caloriesResult, selection);
     const selectedTotal = round(selection.selectedTotal || 0);
     const aggregateTotal = Number(caloriesResult.total || caloriesResult.convertedTotal || 0) || 0;
     return {
@@ -2488,9 +2580,9 @@ function sanitizedCalorieResult(caloriesResult = {}, range = "today") {
     };
   }
 
-  const selection = selectBestSource(caloriesResult, "", { metric: "calories", range });
+  const selection = selectBestSource(caloriesResult, preferredSourcePackage, { metric: "calories", range });
   const selectedTotal = round(selection.selectedTotal || caloriesResult.active || 0);
-  const selectedSamples = samplesForSelectedSource(caloriesResult, selection);
+  const selectedSamples = metricRowsForSelectedSource(caloriesResult, selection);
   return {
     ...caloriesResult,
     active: selectedTotal,
@@ -2657,9 +2749,9 @@ async function readNativeHealthSnapshot(previous, options = {}) {
   let workoutsWeek;
 
   const useStepsTodayCache = !forceNative && canUseMetricCache(previous, "steps", "steps", HEALTH_METRIC_TTL_MS.steps, { now: nowMs });
-  const useStepsHistoryCache = !forceNative && !isDashboardMode && canUseMetricCache(previous, "steps", "steps", HEALTH_METRIC_TTL_MS.steps, { history: true, now: nowMs });
+  const useStepsHistoryCache = !forceNative && !isDashboardMode && !isHistory7dMode && canUseMetricCache(previous, "steps", "steps", HEALTH_METRIC_TTL_MS.steps, { history: true, now: nowMs });
   const useCaloriesTodayCache = !forceNative && canUseMetricCache(previous, "calories", "calories", HEALTH_METRIC_TTL_MS.calories, { now: nowMs });
-  const useCaloriesHistoryCache = !forceNative && !isDashboardMode && canUseMetricCache(previous, "calories", "calories", HEALTH_METRIC_TTL_MS.calories, { history: true, now: nowMs });
+  const useCaloriesHistoryCache = !forceNative && !isDashboardMode && !isHistory7dMode && canUseMetricCache(previous, "calories", "calories", HEALTH_METRIC_TTL_MS.calories, { history: true, now: nowMs });
   const useHeartDashboardCache = !forceNative && isDashboardMode && canUseMetricCache(previous, "heart_rate", "heart", HEALTH_METRIC_TTL_MS.heartRate, { now: nowMs });
   const useHeartHistoryCache = !forceNative && !isDashboardMode && canUseMetricCache(previous, "heart_rate", "heart", HEALTH_METRIC_TTL_MS.heartRate, { history: true, now: nowMs });
   const useSleepCache = !forceNative && canUseMetricCache(previous, "sleep", "sleep", HEALTH_METRIC_TTL_MS.sleep, { history: true, now: nowMs });
@@ -2669,7 +2761,7 @@ async function readNativeHealthSnapshot(previous, options = {}) {
     [availability, stepsToday, caloriesToday, heart24h, sleepWeek] = await Promise.all([
       getHealthAvailability(),
       useStepsTodayCache ? Promise.resolve(cachedStepsResult("today", previous.steps)) : getSteps("today", stepSourceOptions),
-      useCaloriesTodayCache ? Promise.resolve(cachedCaloriesResult("today", previous.calories)) : getCalories("today"),
+      useCaloriesTodayCache ? Promise.resolve(cachedCaloriesResult("today", previous.calories)) : getCalories("today", stepSourceOptions),
       useHeartDashboardCache ? Promise.resolve(cachedHeartResult("last24h", previous.heart_rate)) : getHeartRate("last24h"),
       useSleepCache ? Promise.resolve(cachedSleepResult("last24h", previous.sleep)) : getSleep("last24h"),
     ]);
@@ -2688,9 +2780,9 @@ async function readNativeHealthSnapshot(previous, options = {}) {
       useStepsTodayCache ? Promise.resolve(cachedStepsResult("today", previous.steps)) : getSteps("today", stepSourceOptions),
       useStepsHistoryCache ? Promise.resolve(cachedStepsResult("week", previous.steps)) : getSteps("week", stepSourceOptions),
       includeMonthHistory ? (useStepsHistoryCache ? Promise.resolve(cachedStepsResult("month", previous.steps)) : getSteps("month", stepSourceOptions)) : Promise.resolve(skipped("month", { skippedReason: isHistory7dMode ? "first_sync_30d_deferred" : "history_month_skipped" })),
-      useCaloriesTodayCache ? Promise.resolve(cachedCaloriesResult("today", previous.calories)) : getCalories("today"),
-      useCaloriesHistoryCache ? Promise.resolve(cachedCaloriesResult("week", previous.calories)) : getCalories("week"),
-      includeMonthHistory ? (useCaloriesHistoryCache ? Promise.resolve(cachedCaloriesResult("month", previous.calories)) : getCalories("month")) : Promise.resolve(skipped("month", { skippedReason: isHistory7dMode ? "first_sync_30d_deferred" : "history_month_skipped" })),
+      useCaloriesTodayCache ? Promise.resolve(cachedCaloriesResult("today", previous.calories)) : getCalories("today", stepSourceOptions),
+      useCaloriesHistoryCache ? Promise.resolve(cachedCaloriesResult("week", previous.calories)) : getCalories("week", stepSourceOptions),
+      includeMonthHistory ? (useCaloriesHistoryCache ? Promise.resolve(cachedCaloriesResult("month", previous.calories)) : getCalories("month", stepSourceOptions)) : Promise.resolve(skipped("month", { skippedReason: isHistory7dMode ? "first_sync_30d_deferred" : "history_month_skipped" })),
       useHeartHistoryCache ? Promise.resolve(cachedHeartResult("last24h", previous.heart_rate)) : getHeartRate("last24h"),
       useHeartHistoryCache ? Promise.resolve(cachedHeartResult("week", previous.heart_rate)) : getHeartRate("week"),
       useSleepCache ? Promise.resolve(cachedSleepResult("week", previous.sleep)) : getSleep("week"),
@@ -2733,13 +2825,13 @@ async function readNativeHealthSnapshot(previous, options = {}) {
   const stepSelectionToday = selectBestSource(stepsToday, preferredPackage, { metric: "steps", range: "today" });
   const stepSelectionWeek = selectBestSource(stepsWeek, preferredPackage, { metric: "steps", range: "week" });
   const stepSelectionMonth = selectBestSource(stepsMonth, preferredPackage, { metric: "steps", range: "month" });
-  const calorieSelectionWeek = selectBestSource(caloriesWeek, "", { metric: "calories", range: "week" });
-  const calorieSelectionMonth = selectBestSource(caloriesMonth, "", { metric: "calories", range: "month" });
-  const stepSamplesToday = samplesForSelectedSource(stepsToday, stepSelectionToday);
-  const stepSamplesWeek = samplesForSelectedSource(stepsWeek, stepSelectionWeek);
-  const stepSamplesMonth = samplesForSelectedSource(stepsMonth, stepSelectionMonth);
-  const calorieSamplesWeek = samplesForSelectedSource(caloriesWeek, calorieSelectionWeek);
-  const calorieSamplesMonth = samplesForSelectedSource(caloriesMonth, calorieSelectionMonth);
+  const calorieSelectionWeek = selectBestSource(caloriesWeek, preferredPackage, { metric: "calories", range: "week" });
+  const calorieSelectionMonth = selectBestSource(caloriesMonth, preferredPackage, { metric: "calories", range: "month" });
+  const stepSamplesToday = metricRowsForSelectedSource(stepsToday, stepSelectionToday);
+  const stepSamplesWeek = metricRowsForSelectedSource(stepsWeek, stepSelectionWeek);
+  const stepSamplesMonth = metricRowsForSelectedSource(stepsMonth, stepSelectionMonth);
+  const calorieSamplesWeek = metricRowsForSelectedSource(caloriesWeek, calorieSelectionWeek);
+  const calorieSamplesMonth = metricRowsForSelectedSource(caloriesMonth, calorieSelectionMonth);
   const stepsWeekWasRead = resultWasRead(stepsWeek);
   const stepsMonthWasRead = resultWasRead(stepsMonth);
   const caloriesWeekWasRead = resultWasRead(caloriesWeek);
@@ -2830,7 +2922,7 @@ async function readNativeHealthSnapshot(previous, options = {}) {
     workouts,
   });
   const selectedStepsToday = stepSelectionToday.selectedTotal || stepsToday.total || 0;
-  const caloriesTodaySafe = sanitizedCalorieResult(caloriesToday, "today");
+  const caloriesTodaySafe = sanitizedCalorieResult(caloriesToday, "today", preferredPackage);
   const calorieSplit = splitCalorieValues({
     caloriesResult: caloriesTodaySafe,
     estimatedActive: estimatedCalories,
@@ -3124,6 +3216,7 @@ async function readNativeHealthSnapshot(previous, options = {}) {
       quotaExceeded: queryStats.quotaExceeded,
       truncatedQueries: queryStats.truncatedQueries,
     },
+    localHistory: history,
     history7d: nextHistory7d,
     activity_history: buildActivityHistory(resolvedStepWeek, resolvedCaloriesWeek, resolvedTotalCaloriesWeek, heartRateWeekRaw, nextHistory7d.steps, nextHistory7d.calories),
   };
@@ -3148,6 +3241,29 @@ export function HealthProvider({ children }) {
   useEffect(() => {
     healthRef.current = health;
   }, [health]);
+
+  useEffect(() => {
+    function resetHealthForUser() {
+      syncPromiseRef.current = null;
+      syncStartedAtRef.current = 0;
+      nativeCommitSeqRef.current += 1;
+      const next = loadHealthData();
+      healthRef.current = next;
+      setHealth(next);
+      setSyncError("");
+      setAvailability({
+        state: next.providerState || "not_supported",
+        source: next.providerSource || "web",
+        message: next.providerMessage || "РўСЂРµРєРµСЂ РЅРµ РїРѕРґРєР»СЋС‡С‘РЅ",
+      });
+    }
+    window.addEventListener("fruitfit:health-reset", resetHealthForUser);
+    window.addEventListener("fruitfit:auth-updated", resetHealthForUser);
+    return () => {
+      window.removeEventListener("fruitfit:health-reset", resetHealthForUser);
+      window.removeEventListener("fruitfit:auth-updated", resetHealthForUser);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -3206,7 +3322,10 @@ export function HealthProvider({ children }) {
       };
     }
 
-    if (!force && cacheAgeMs != null && cacheAgeMs < HEALTH_REFRESH_CACHE_MS) {
+    const wantsHistorySnapshot = queryMode === HEALTH_QUERY_MODES.HISTORY_7D || queryMode === HEALTH_QUERY_MODES.HISTORY;
+    const previousQueryMode = currentHealth.healthRefresh?.queryMode || null;
+    const freshSnapshotMatchesQueryMode = !wantsHistorySnapshot || previousQueryMode === queryMode;
+    if (!force && freshSnapshotMatchesQueryMode && cacheAgeMs != null && cacheAgeMs < HEALTH_REFRESH_CACHE_MS) {
       const refreshStartedAt = new Date(now).toISOString();
       const next = buildCacheHitHealthState(currentHealth, {
         now,
@@ -3481,7 +3600,7 @@ export function HealthProvider({ children }) {
 
   useEffect(() => {
     const sanitized = sanitizeCanonicalHealthState(health);
-    localStorage.setItem(HEALTH_STORAGE_KEY, JSON.stringify(sanitized));
+    if (currentUserId()) writeHealthContainer(sanitized);
     window.dispatchEvent(new CustomEvent("fruitfit:health-updated", { detail: sanitized }));
   }, [health]);
 
@@ -3748,6 +3867,11 @@ export function HealthProvider({ children }) {
   const buildHealthDebugReport = useCallback(async () => {
     const stepSourceOptions = preferredHealthSourceOptions();
     const now = new Date();
+    const deviceDiagnostics = await getDeviceDiagnostics();
+    const clientErrors = [
+      ...loadClientErrorLog(),
+      ...(typeof window !== "undefined" && Array.isArray(window[CLIENT_ERROR_BUFFER_KEY]) ? window[CLIENT_ERROR_BUFFER_KEY] : []),
+    ].slice(-50);
     const snapshotHealth = sanitizeCanonicalHealthState(healthRef.current || health || loadHealthData());
     const snapshotHeart = snapshotHealth.heart_rate || {};
     const snapshotSteps = snapshotHealth.steps || {};
@@ -3883,7 +4007,7 @@ export function HealthProvider({ children }) {
       weightKg: calorieProfile.weight || snapshotHealth.profileWeightKg || snapshotHealth.weightKg || 75,
       workouts: workoutsWeek.sessions || [],
     });
-    const caloriesTodaySafeDebug = sanitizedCalorieResult(caloriesToday, "today");
+    const caloriesTodaySafeDebug = sanitizedCalorieResult(caloriesToday, "today", stepSourceOptions.preferredSourcePackage || "");
     const calorieSplitDebug = splitCalorieValues({
       caloriesResult: caloriesTodaySafeDebug,
       estimatedActive: estimatedCaloriesDebug,
@@ -3959,10 +4083,11 @@ export function HealthProvider({ children }) {
         webViewVersion: navigator.userAgent.match(/(?:Chrome|CriOS)\/([0-9.]+)/i)?.[1] || null,
         lastScreen: window.location?.hash || window.location?.pathname || null,
         lastAction: healthRefreshDebug.reason || healthRefreshDebug.nativeReadReason || null,
-        recentClientErrors: Array.isArray(window[CLIENT_ERROR_BUFFER_KEY]) ? window[CLIENT_ERROR_BUFFER_KEY].slice(-10) : [],
+        recentClientErrors: clientErrors.slice(-10),
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         timestampNow: now.toISOString(),
       },
+      deviceDiagnostics,
       healthConnect: {
         isHealthConnectAvailable: nextAvailability.state !== healthProviderStates.NOT_SUPPORTED,
         isHealthConnectInstalled: nextAvailability.state !== healthProviderStates.NOT_INSTALLED,
@@ -4189,8 +4314,8 @@ export function HealthProvider({ children }) {
       },
       history7d: {
         heartRate: snapshotHealth.history7d?.heartRate || heartHistory7d,
-      steps: snapshotHealth.history7d?.steps || buildMetricHistory7d(samplesForSelectedSource(stepsWeek, selectBestSource(stepsWeek, stepSourceOptions.preferredSourcePackage || "", { metric: "steps", range: "week" }))),
-        calories: snapshotHealth.history7d?.calories || buildMetricHistory7d(samplesForSelectedSource(caloriesWeek, selectBestSource(caloriesWeek, "", { metric: "calories", range: "week" }))),
+      steps: snapshotHealth.history7d?.steps || buildMetricHistory7d(metricRowsForSelectedSource(stepsWeek, selectBestSource(stepsWeek, stepSourceOptions.preferredSourcePackage || "", { metric: "steps", range: "week" }))),
+        calories: snapshotHealth.history7d?.calories || buildMetricHistory7d(metricRowsForSelectedSource(caloriesWeek, selectBestSource(caloriesWeek, stepSourceOptions.preferredSourcePackage || "", { metric: "calories", range: "week" }))),
         sleep: snapshotHealth.history7d?.sleep || buildMetricHistory7d((sleepWeek.sessions || []).map((session) => ({
           start: session.start,
           value: session.minutes,
@@ -4225,7 +4350,8 @@ export function HealthProvider({ children }) {
         lastHealthConnectError: [nextAvailability, heart15, heartToday, heart24, heart7, stepsToday, stepsWeek, caloriesToday, caloriesWeek, sleepWeek, workoutsWeek, weightLatest]
           .filter((item) => item?.state === healthProviderStates.ERROR || item?.state === healthProviderStates.RATE_LIMITED)
           .map((item) => ({ source: item.source, message: item.message, code: item.errorCode || null })),
-        exceptions: [],
+        exceptions: clientErrors,
+        lastNativeCrash: deviceDiagnostics?.lastNativeCrash || null,
         failedQueries: queryErrors,
         permissionRequestErrors: [],
       },

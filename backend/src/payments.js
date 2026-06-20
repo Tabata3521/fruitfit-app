@@ -10,7 +10,7 @@ export const paymentsRouter = express.Router();
 const DEFAULT_CURRENCY = "RUB";
 const SESSION_TTL_HOURS = 24;
 const PROGRAM_ASSIGNMENT_MIN_SCORE = 20;
-const PROGRAM_PRODUCT_CODES = new Set(["individual_program", "training_program"]);
+const PROGRAM_PRODUCT_CODES = new Set(["individual_program", "training_program", "program_subscription"]);
 const PAYMENT_ASSIGNMENT_BATCH_SIZE = 10;
 const MIN_PAYMENT_AMOUNT = 1;
 let paymentAssignmentWorker = null;
@@ -24,6 +24,17 @@ export const PAYMENT_PRODUCTS = {
     accessPlan: "individual_program",
     recurringEligible: true,
     description: "FruitFit: индивидуальная программа тренировок"
+  },
+  program_subscription: {
+    code: "program_subscription",
+    title: "FruitFit program subscription",
+    amount: 2990,
+    accessStatus: "paid",
+    accessPlan: "program_subscription",
+    recurringEligible: true,
+    subscription: true,
+    periodDays: 30,
+    description: "FruitFit: automatic program renewal"
   },
   vip_coaching: {
     code: "vip_coaching",
@@ -75,6 +86,11 @@ paymentsRouter.post("/subscription/cancel", requireUser, async (req, res) => {
       req.user.id
     ]
   );
+  await cancelSubscriptionRecordIfAvailable({
+    userId: req.user.id,
+    paymentSessionId: subscription.id,
+    reason: cleanNullableText(req.body?.reason, 240) || "client_request"
+  });
 
   const updated = {
     ...result.rows[0],
@@ -129,10 +145,10 @@ async function createPaymentSession(req, res, body, options = {}) {
   const requestedRecurring = Boolean(body?.recurringEnabled || body?.recurring_enabled);
   const recurringEnabled = requestedRecurring && Boolean(product?.recurringEligible) && config.robokassaRecurringEnabled;
   const baseAmount = product ? sessionAmount(product) : 0;
-  const profileSnapshot = sanitizeObject(body?.profileSnapshot || body?.profile || {});
+  const bodyProfileSnapshot = sanitizeObject(body?.profileSnapshot || body?.profile || {});
   const programParams = sanitizeObject(body?.programParams || body?.program_params || {});
   const email = cleanNullableText(body?.email || user?.email, 320);
-  const telegramId = cleanNullableText(body?.telegramId || body?.telegram_id || telegramIdFromProfile(user, profileSnapshot), 80);
+  const bodyTelegramId = cleanNullableText(body?.telegramId || body?.telegram_id, 80);
   const promoCode = normalizePromoCode(body?.promoCode || body?.promo_code);
   const bodyUserId = options.allowBodyUserId ? cleanNullableText(body?.userId || body?.user_id, 120) : null;
   const userId = user?.id || bodyUserId;
@@ -140,6 +156,10 @@ async function createPaymentSession(req, res, body, options = {}) {
 
   try {
     const session = await transaction(async (client) => {
+      const profileSnapshot = hasMeaningfulObject(bodyProfileSnapshot) || !userId
+        ? bodyProfileSnapshot
+        : await loadUserProfileSnapshot(client, userId);
+      const telegramId = cleanNullableText(bodyTelegramId || telegramIdFromProfile(user, profileSnapshot), 80);
       const price = promoCode && userId
         ? await previewReferralDiscount(client, {
             code: promoCode,
@@ -792,11 +812,22 @@ export async function markRobokassaPaymentPaid({ invId, outSum, sessionId, paylo
     const sessionResult = sessionId
       ? await client.query("SELECT * FROM payment_sessions WHERE id = $1 FOR UPDATE", [sessionId])
       : await client.query("SELECT * FROM payment_sessions WHERE robokassa_inv_id = $1 FOR UPDATE", [Number(invId)]);
-    const session = sessionResult.rows[0] || null;
-    const product = productByCode(session?.product_code);
     const paymentId = `robokassa:${invId}`;
     const amount = Number(outSum);
-    assertRobokassaAmountMatchesSession({ session, outSum, paymentId });
+    const pendingPayment = await loadPendingRobokassaPayment(client, invId);
+    let session = sessionResult.rows[0] || null;
+    if (!session && pendingPayment?.payment_session_id) {
+      const pendingSession = await client.query("SELECT * FROM payment_sessions WHERE id = $1 FOR UPDATE", [pendingPayment.payment_session_id]);
+      session = pendingSession.rows[0] || null;
+    }
+    const product = productByCode(session?.product_code);
+    const paymentAlreadyPaid = pendingPayment?.status === "paid";
+    assertRobokassaAmountMatchesSession({
+      session,
+      outSum,
+      paymentId,
+      expectedAmount: pendingPayment?.recurring_child ? pendingPayment.final_amount ?? pendingPayment.amount : null
+    });
     console.log("[fruitfit-payments] payment paid", {
       paymentId,
       sessionId: session?.id || sessionId || null,
@@ -806,6 +837,15 @@ export async function markRobokassaPaymentPaid({ invId, outSum, sessionId, paylo
     });
 
     await tryEnsureReferralUseForPaidSession(client, { session });
+    const paymentBaseAmount = pendingPayment?.recurring_child
+      ? moneyNumber(pendingPayment.base_amount ?? pendingPayment.amount ?? amount)
+      : moneyNumber(session?.base_amount ?? amount);
+    const paymentDiscountAmount = pendingPayment?.recurring_child
+      ? moneyNumber(pendingPayment.discount_amount ?? 0)
+      : moneyNumber(session?.discount_amount ?? 0);
+    const paymentFinalAmount = pendingPayment?.recurring_child
+      ? moneyNumber(pendingPayment.final_amount ?? pendingPayment.amount ?? amount)
+      : moneyNumber(session?.final_amount ?? session?.amount ?? amount);
 
     const paymentResult = await client.query(
       `INSERT INTO payments (
@@ -830,9 +870,9 @@ export async function markRobokassaPaymentPaid({ invId, outSum, sessionId, paylo
         String(invId),
         Number(invId),
         Number.isFinite(amount) ? amount : 0,
-        moneyNumber(session?.base_amount ?? amount),
-        moneyNumber(session?.discount_amount ?? 0),
-        moneyNumber(session?.final_amount ?? session?.amount ?? amount),
+        paymentBaseAmount,
+        paymentDiscountAmount,
+        paymentFinalAmount,
         session?.currency || DEFAULT_CURRENCY,
         session?.product_code || null,
         payload,
@@ -894,6 +934,16 @@ export async function markRobokassaPaymentPaid({ invId, outSum, sessionId, paylo
         ]
       );
 
+      await applyRecurringSubscriptionPaymentIfAvailable(client, {
+        session,
+        product,
+        payment: paymentResult.rows[0],
+        pendingPayment,
+        paymentAlreadyPaid,
+        invId,
+        payload
+      });
+
       if (shouldAutoAssignProgram(product)) {
         await scheduleProgramAssignmentAfterPayment(client, { session, product, paymentId, invId });
       } else if (isVip) {
@@ -908,6 +958,207 @@ export async function markRobokassaPaymentPaid({ invId, outSum, sessionId, paylo
       }
     }
   });
+}
+
+async function applyRecurringSubscriptionPaymentIfAvailable(client, { session, product, payment, pendingPayment, paymentAlreadyPaid, invId, payload }) {
+  if (!session?.user_id || !product?.recurringEligible || !session.recurring_enabled) return;
+  if (paymentAlreadyPaid) return;
+
+  try {
+    const periodDays = Number(product.periodDays || 30);
+    const subscription = await upsertSubscriptionForPayment(client, {
+      session,
+      product,
+      payment,
+      pendingPayment,
+      invId,
+      payload,
+      periodDays
+    });
+    if (!subscription) return;
+
+    const baseDate = subscription.paid_until && new Date(subscription.paid_until).getTime() > Date.now()
+      ? new Date(subscription.paid_until)
+      : new Date();
+    const paidUntil = addDays(baseDate, periodDays);
+    const cycleNumber = await nextSubscriptionCycleNumber(client, subscription.id, payment.id);
+    const deliveryMode = cycleNumber === 1 ? "first_half" : cycleNumber === 2 ? "second_half" : "replacement_cycle";
+
+    await client.query(
+      `UPDATE subscriptions
+       SET status = 'active',
+           robokassa_last_inv_id = $2,
+           paid_until = $3,
+           next_payment_date = $3,
+           raw_payload = COALESCE($4::jsonb, raw_payload),
+           meta = COALESCE(meta, '{}'::jsonb) || $5::jsonb,
+           updated_at = now()
+       WHERE id = $1`,
+      [
+        subscription.id,
+        Number(invId),
+        paidUntil,
+        payload || {},
+        {
+          lastPaymentId: payment.id,
+          lastInvId: String(invId),
+          lastResultAt: new Date().toISOString(),
+          lastDeliveryMode: deliveryMode
+        }
+      ]
+    );
+
+    await client.query(
+      `INSERT INTO subscription_program_cycles (
+         subscription_id, user_id, cycle_number, payment_id, payment_session_id,
+         questionnaire_snapshot, delivery_mode, access_from, access_until, meta, created_at
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, now(), $8, $9, now())
+       ON CONFLICT DO NOTHING`,
+      [
+        subscription.id,
+        session.user_id,
+        cycleNumber,
+        payment.id,
+        session.id,
+        session.profile_snapshot || {},
+        deliveryMode,
+        paidUntil,
+        {
+          source: "robokassa_result",
+          robokassaInvId: String(invId),
+          recurringChild: Boolean(pendingPayment?.recurring_child),
+          productCode: product.code
+        }
+      ]
+    );
+
+    await client.query(
+      `UPDATE user_access
+       SET premium_until = $2,
+           expires_at = $2,
+           meta = COALESCE(meta, '{}'::jsonb) || $3::jsonb,
+           updated_at = now()
+       WHERE user_id = $1`,
+      [
+        session.user_id,
+        paidUntil,
+        {
+          subscriptionId: String(subscription.id),
+          subscriptionCycleNumber: cycleNumber,
+          paidUntil: paidUntil.toISOString()
+        }
+      ]
+    );
+
+    await client.query(
+      `UPDATE payment_sessions
+       SET recurring_parent_inv_id = COALESCE(recurring_parent_inv_id, $2),
+           recurring_next_charge_at = $3,
+           updated_at = now()
+       WHERE id = $1`,
+      [session.id, Number(subscription.robokassa_parent_inv_id || invId), paidUntil]
+    );
+  } catch (error) {
+    if (error?.code === "42P01" || error?.code === "42703") {
+      console.warn("[fruitfit-payments] subscription tables are not available for recurring callback", {
+        sessionId: session.id,
+        paymentId: payment?.id || null
+      });
+      return;
+    }
+    throw error;
+  }
+}
+
+async function upsertSubscriptionForPayment(client, { session, product, payment, pendingPayment, invId, payload, periodDays }) {
+  const hintedSubscriptionId = pendingPayment?.meta?.subscriptionDbId || payload?.Shp_subscriptionDbId || null;
+  const existing = hintedSubscriptionId
+    ? await client.query("SELECT * FROM subscriptions WHERE id = $1 FOR UPDATE", [hintedSubscriptionId])
+    : await client.query(
+        `SELECT *
+         FROM subscriptions
+         WHERE payment_session_id = $1
+            OR robokassa_parent_inv_id = $2
+         ORDER BY created_at DESC
+         LIMIT 1
+         FOR UPDATE`,
+        [session.id, Number(session.recurring_parent_inv_id || invId)]
+      );
+  const subscription = existing.rows[0] || null;
+  const recurringAmount = moneyNumber(sessionAmount(product));
+  const parentInvId = Number(subscription?.robokassa_parent_inv_id || session.recurring_parent_inv_id || pendingPayment?.recurring_parent_inv_id || invId);
+
+  if (subscription) {
+    const updated = await client.query(
+      `UPDATE subscriptions
+       SET product_code = $2,
+           status = 'active',
+           amount = $3,
+           currency = $4,
+           period_days = $5,
+           robokassa_parent_inv_id = COALESCE(robokassa_parent_inv_id, $6),
+           raw_payload = COALESCE($7::jsonb, raw_payload),
+           updated_at = now()
+       WHERE id = $1
+       RETURNING *`,
+      [
+        subscription.id,
+        product.code,
+        recurringAmount,
+        session.currency || DEFAULT_CURRENCY,
+        periodDays,
+        parentInvId,
+        payload || {}
+      ]
+    );
+    return updated.rows[0] || subscription;
+  }
+
+  const inserted = await client.query(
+    `INSERT INTO subscriptions (
+       user_id, payment_session_id, product_code, status, amount, currency, period_days,
+       robokassa_parent_inv_id, robokassa_last_inv_id, raw_payload, meta, created_at, updated_at
+     )
+     VALUES ($1, $2, $3, 'active', $4, $5, $6, $7, $8, $9, $10, now(), now())
+     RETURNING *`,
+    [
+      session.user_id,
+      session.id,
+      product.code,
+      recurringAmount,
+      session.currency || DEFAULT_CURRENCY,
+      periodDays,
+      parentInvId,
+      Number(invId),
+      payload || {},
+      {
+        source: "robokassa_result",
+        firstPaymentId: payment.id,
+        createdFromSessionId: session.id
+      }
+    ]
+  );
+  return inserted.rows[0] || null;
+}
+
+async function nextSubscriptionCycleNumber(client, subscriptionId, paymentId) {
+  const existing = await client.query(
+    "SELECT cycle_number FROM subscription_program_cycles WHERE payment_id = $1 LIMIT 1",
+    [paymentId]
+  );
+  if (existing.rows[0]?.cycle_number) return Number(existing.rows[0].cycle_number);
+  const result = await client.query(
+    "SELECT COALESCE(MAX(cycle_number), 0) + 1 AS next_cycle FROM subscription_program_cycles WHERE subscription_id = $1",
+    [subscriptionId]
+  );
+  return Number(result.rows[0]?.next_cycle || 1);
+}
+
+function addDays(date, days) {
+  const copy = new Date(date);
+  copy.setUTCDate(copy.getUTCDate() + Number(days || 30));
+  return copy;
 }
 
 function shouldAutoAssignProgram(product) {
@@ -1021,8 +1272,8 @@ async function scheduleProgramAssignmentAfterPayment(client, { session, product,
   });
 }
 
-async function assignProgramAfterPayment(client, { session, product, paymentId, invId, source = "payment/robokassa_delayed" }) {
-  const criteria = buildProgramCriteria(session);
+async function assignProgramAfterPayment(client, { session, product, paymentId, invId, source = "payment/robokassa_delayed", profileSnapshot = null, preferProfile = false }) {
+  const criteria = buildProgramCriteria(session, { profileSnapshot, preferProfile });
   const selected = await selectProgramForPayment(client, criteria);
   if (!selected) {
     return {
@@ -1207,11 +1458,16 @@ async function processProgramAssignmentSession(client, session) {
   const payment = await latestPaymentForSession(client, session.id);
   const invId = payment?.robokassa_inv_id || session.robokassa_inv_id || "";
   const paymentId = payment?.id || (invId ? `robokassa:${invId}` : null);
+  const recurringChild = Boolean(payment?.recurring_child);
+  const currentProfileSnapshot = recurringChild
+    ? await loadUserProfileSnapshot(client, session.user_id)
+    : null;
 
   console.log("[fruitfit-payments] assignment started", {
     sessionId: session.id,
     userId: session.user_id,
-    paymentId
+    paymentId,
+    criteriaSource: recurringChild ? "current_user_profile" : "payment_session"
   });
 
   const assignment = await assignProgramAfterPayment(client, {
@@ -1219,7 +1475,9 @@ async function processProgramAssignmentSession(client, session) {
     product,
     paymentId,
     invId,
-    source: "payment/robokassa_delayed"
+    source: recurringChild ? "payment/robokassa_recurring_cycle" : "payment/robokassa_delayed",
+    profileSnapshot: currentProfileSnapshot,
+    preferProfile: recurringChild
   });
   await recordProgramAssignmentStatus(client, session.user_id, session.id, assignment);
 
@@ -1241,7 +1499,7 @@ async function processProgramAssignmentSession(client, session) {
 
 async function latestPaymentForSession(client, sessionId) {
   const result = await client.query(
-    `SELECT id, robokassa_inv_id
+    `SELECT id, robokassa_inv_id, recurring_child
      FROM payments
      WHERE payment_session_id = $1
        AND status = 'paid'
@@ -1252,33 +1510,44 @@ async function latestPaymentForSession(client, sessionId) {
   return result.rows[0] || null;
 }
 
-function buildProgramCriteria(session = {}) {
-  const profile = sanitizeObject(session.profile_snapshot || {});
+export function buildProgramCriteria(session = {}, options = {}) {
+  const profile = sanitizeObject(options.profileSnapshot || session.profile_snapshot || {});
   const params = sanitizeObject(session.program_params || {});
+  const preferProfile = Boolean(options.preferProfile);
+  const choose = (profileValues = [], paramValues = []) => (
+    preferProfile
+      ? firstPresent(...profileValues, ...paramValues)
+      : firstPresent(...paramValues, ...profileValues)
+  );
   const frequency = parseFrequency(
-    firstPresent(
-      params.trainingFrequency,
-      params.training_frequency,
-      params.frequency,
-      params.daysPerWeek,
-      params.days_per_week,
-      profile.trainingFrequency,
-      profile.training_frequency,
-      profile.frequency,
-      profile.daysPerWeek,
-      profile.days_per_week
+    choose(
+      [
+        profile.trainingFrequency,
+        profile.training_frequency,
+        profile.frequency,
+        profile.daysPerWeek,
+        profile.days_per_week
+      ],
+      [
+        params.trainingFrequency,
+        params.training_frequency,
+        params.frequency,
+        params.daysPerWeek,
+        params.days_per_week
+      ]
     )
   );
 
   return {
-    gender: normalizeGender(firstPresent(params.gender, profile.gender, profile.sex)),
-    goal: normalizeGoal(firstPresent(params.goal, profile.goal, profile.trainingGoal, profile.training_goal)),
-    level: normalizeLevel(firstPresent(params.experience, params.level, profile.experience, profile.level)),
+    gender: normalizeGender(choose([profile.gender, profile.sex], [params.gender])),
+    goal: normalizeGoal(choose([profile.goal, profile.trainingGoal, profile.training_goal], [params.goal])),
+    level: normalizeLevel(choose([profile.experience, profile.level], [params.experience, params.level])),
     frequency,
-    restrictions: normalizeRestrictions(firstPresent(params.limitations, params.restrictions, profile.limitations, profile.restrictions)),
+    restrictions: normalizeRestrictions(choose([profile.limitations, profile.restrictions], [params.limitations, params.restrictions])),
     raw: {
       profileSnapshot: profile,
-      programParams: params
+      programParams: params,
+      criteriaSource: preferProfile ? "current_user_profile" : "payment_session"
     }
   };
 }
@@ -1367,6 +1636,36 @@ async function loadCurrentSubscription(userId) {
   return result.rows[0] || null;
 }
 
+async function cancelSubscriptionRecordIfAvailable({ userId, paymentSessionId, reason }) {
+  try {
+    await query(
+      `UPDATE subscriptions
+       SET status = 'cancelled',
+           cancelled_at = COALESCE(cancelled_at, now()),
+           cancel_reason = COALESCE($3, cancel_reason),
+           next_payment_date = NULL,
+           meta = COALESCE(meta, '{}'::jsonb) || $4::jsonb,
+           updated_at = now()
+       WHERE user_id = $1
+         AND payment_session_id = $2
+         AND status <> 'cancelled'`,
+      [
+        userId,
+        paymentSessionId,
+        reason,
+        {
+          cancelledBy: userId,
+          cancelledAt: new Date().toISOString(),
+          cancelSource: "client"
+        }
+      ]
+    );
+  } catch (error) {
+    if (error?.code === "42P01" || error?.code === "42703") return;
+    throw error;
+  }
+}
+
 function serializePaymentSession(row = {}) {
   const product = productByCode(row.product_code);
   return {
@@ -1444,7 +1743,7 @@ function productByCode(code) {
 }
 
 function sessionAmount(product) {
-  if (product?.code === "individual_program") {
+  if (product?.code === "individual_program" || product?.code === "program_subscription") {
     const priceMode = String(config.programPriceMode || "").trim().toLowerCase();
     if (priceMode === "test") return config.programPriceTest;
     if (priceMode === "prod" || priceMode === "production") return config.programPriceProd;
@@ -1501,17 +1800,30 @@ function moneyCents(value) {
   return Number.isFinite(amount) ? Math.round(amount * 100) : null;
 }
 
-function assertRobokassaAmountMatchesSession({ session, outSum, paymentId }) {
-  if (!session) return;
-  const expected = moneyCents(session.final_amount ?? session.amount);
+async function loadPendingRobokassaPayment(client, invId) {
+  const result = await client.query(
+    `SELECT *
+     FROM payments
+     WHERE robokassa_inv_id = $1
+     LIMIT 1
+     FOR UPDATE`,
+    [Number(invId)]
+  );
+  return result.rows[0] || null;
+}
+
+function assertRobokassaAmountMatchesSession({ session, outSum, paymentId, expectedAmount = null }) {
+  if (!session && expectedAmount === null) return;
+  const expectedValue = expectedAmount ?? session?.final_amount ?? session?.amount;
+  const expected = moneyCents(expectedValue);
   const actual = moneyCents(outSum);
   if (expected !== null && actual !== null && expected === actual) return;
 
   console.error("[fruitfit-payments] payment amount mismatch", {
     paymentId,
-    sessionId: session.id,
-    userId: session.user_id || null,
-    expectedFinalAmount: session.final_amount ?? session.amount,
+    sessionId: session?.id || null,
+    userId: session?.user_id || null,
+    expectedFinalAmount: expectedValue,
     actualOutSum: outSum
   });
 
@@ -1604,6 +1916,22 @@ function normalizePromoCode(value) {
 function sanitizeObject(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return JSON.parse(JSON.stringify(value));
+}
+
+function hasMeaningfulObject(value = {}) {
+  return Object.values(sanitizeObject(value)).some((item) => {
+    if (item === null || item === undefined) return false;
+    if (typeof item === "string") return item.trim() !== "";
+    if (Array.isArray(item)) return item.length > 0;
+    if (typeof item === "object") return hasMeaningfulObject(item);
+    return true;
+  });
+}
+
+async function loadUserProfileSnapshot(client, userId) {
+  if (!userId) return {};
+  const result = await client.query("SELECT profile FROM user_profiles WHERE user_id = $1", [userId]);
+  return sanitizeObject(result.rows[0]?.profile || {});
 }
 
 function normalizeLegalConsent(value) {

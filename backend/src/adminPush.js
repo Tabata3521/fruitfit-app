@@ -3,7 +3,7 @@ import express from "express";
 import { requireAdmin } from "./auth.js";
 import { query } from "./db.js";
 import { getFcmStatus, sendFcmMessage } from "./fcm.js";
-import { buildUtcMotivationSchedule, MOTIVATION_MESSAGES } from "../../shared/motivationMessages.js";
+import { buildUtcPushSchedule, PUSH_CADENCE, PUSH_MESSAGE_COUNTS } from "../../shared/pushMessages.js";
 
 export const adminPushRouter = express.Router();
 
@@ -26,7 +26,8 @@ adminPushRouter.get("/logs", async (req, res) => {
   res.json({
     items: result.rows,
     fcmStatus: publicFcmStatus(),
-    messageLibrarySize: MOTIVATION_MESSAGES.length
+    messageLibrarySize: PUSH_MESSAGE_COUNTS.total,
+    messageLibrary: PUSH_MESSAGE_COUNTS
   });
 });
 
@@ -48,7 +49,8 @@ adminPushRouter.post("/send-test", async (req, res) => {
     failed: delivery.failed,
     tokenCount: tokens.length,
     fcmStatus: publicFcmStatus(),
-    messageLibrarySize: MOTIVATION_MESSAGES.length,
+    messageLibrarySize: PUSH_MESSAGE_COUNTS.total,
+    messageLibrary: PUSH_MESSAGE_COUNTS,
     logs: delivery.logs.slice(0, 20)
   });
 });
@@ -87,24 +89,27 @@ adminPushRouter.post("/schedule", async (req, res) => {
     scheduledAt,
     tokenCount: tokens.length,
     fcmStatus: publicFcmStatus(),
-    messageLibrarySize: MOTIVATION_MESSAGES.length
+    messageLibrarySize: PUSH_MESSAGE_COUNTS.total,
+    messageLibrary: PUSH_MESSAGE_COUNTS
   });
 });
 
 adminPushRouter.get("/motivation/preview", async (req, res) => {
   const days = Math.max(1, Math.min(Number(req.query.days || 5), 14));
   const timezoneOffsetMinutes = normalizeOffset(req.query.timezoneOffsetMinutes);
-  const schedule = buildUtcMotivationSchedule({
+  const schedule = buildUtcPushSchedule({
     now: new Date(),
     days,
     timezoneOffsetMinutes,
+    userId: String(req.query.userId || "admin-preview"),
     previousBody: String(req.query.previousBody || "")
   });
 
   res.json({
     items: schedule,
-    cadence: "2-3/day",
-    messageLibrarySize: MOTIVATION_MESSAGES.length
+    cadence: PUSH_CADENCE,
+    messageLibrarySize: PUSH_MESSAGE_COUNTS.total,
+    messageLibrary: PUSH_MESSAGE_COUNTS
   });
 });
 

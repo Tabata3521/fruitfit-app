@@ -4,6 +4,8 @@
 
 :root {
   --bg: #f7f5ef;
+  --boot-bg: #f7f5ef;
+  --boot-text: #111827;
   --dark: #181f19;
   --green: #9bd83f;
   --orange: #ff7a2f;
@@ -28,8 +30,9 @@
   --report-row-a: rgba(255, 255, 255, 0.72);
   --report-row-b: rgba(245, 240, 231, 0.98);
   --report-track: rgba(255, 255, 255, 0.92);
-  color: #111827;
-  background: #f7f5ef;
+  color: var(--boot-text);
+  color-scheme: light;
+  background: var(--boot-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -62,9 +65,10 @@
 
 .access-days-ring {
   --access-ring: var(--orange);
+  --access-ring-deg: 360deg;
   background:
     radial-gradient(circle, var(--card) 0 56%, transparent 57%),
-    conic-gradient(var(--access-ring) 0deg 306deg, rgba(127, 139, 118, 0.22) 306deg 360deg);
+    conic-gradient(var(--access-ring) 0deg var(--access-ring-deg), rgba(127, 139, 118, 0.22) var(--access-ring-deg) 360deg);
   box-shadow: inset 0 0 0 1px rgba(127, 139, 118, 0.16), 0 10px 22px rgba(255, 122, 47, 0.12);
 }
 
@@ -81,6 +85,8 @@
 
 :root[data-theme="dark"] {
   --bg: #111811;
+  --boot-bg: #111811;
+  --boot-text: #f6f8ef;
   --dark: #071009;
   --green: #d8ff8f;
   --orange: #ff8a3d;
@@ -105,6 +111,9 @@
   --report-row-a: rgba(255, 255, 255, 0.06);
   --report-row-b: rgba(255, 255, 255, 0.095);
   --report-track: rgba(255, 255, 255, 0.12);
+  color: var(--boot-text);
+  color-scheme: dark;
+  background: var(--boot-bg);
 }
 
 * {
@@ -154,6 +163,22 @@ body {
   font-family: Inter, "SF Pro Display", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+.fruitfit-loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  width: 100vw;
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+  background: var(--boot-bg, var(--bg));
+  color: var(--boot-text, var(--text));
+  isolation: isolate;
+  transform: translateZ(0);
+  will-change: transform;
+  transition: none;
 }
 
 button,
@@ -237,57 +262,6 @@ input {
 
 .workout-report-track {
   background: var(--report-track);
-}
-
-.notification-popover-layer {
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: max(76px, calc(env(safe-area-inset-top) + 64px));
-  z-index: 60;
-  padding: 0 14px;
-  pointer-events: none;
-}
-
-.notification-popover-card {
-  width: min(361px, calc(100vw - 28px));
-  max-height: min(68vh, calc(100vh - 116px - env(safe-area-inset-bottom)));
-  margin: 0 auto;
-  border-radius: 24px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  pointer-events: auto;
-}
-
-.notification-popover-scroll {
-  min-height: 0;
-  flex: 1;
-  display: grid;
-  gap: 8px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 12px;
-}
-
-@media (max-height: 700px) {
-  .notification-popover-layer {
-    top: max(68px, calc(env(safe-area-inset-top) + 56px));
-  }
-
-  .notification-popover-card {
-    max-height: calc(100vh - 96px - env(safe-area-inset-bottom));
-  }
-}
-
-@media (max-width: 360px) {
-  .notification-popover-layer {
-    padding: 0 10px;
-  }
-
-  .notification-popover-card {
-    width: calc(100vw - 20px);
-  }
 }
 
 .fruitfit-report-range::-webkit-slider-runnable-track {

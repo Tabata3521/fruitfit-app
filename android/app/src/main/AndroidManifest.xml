@@ -13,6 +13,13 @@
 
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
+        <package android:name="com.huawei.health" />
+        <package android:name="com.huawei.hms" />
+        <package android:name="com.huawei.hwid" />
+        <package android:name="com.huawei.appmarket" />
+        <package android:name="com.huawei.wearengine" />
+        <package android:name="com.huawei.bone" />
+        <package android:name="com.huawei.healthcloud" />
         <package android:name="org.telegram.messenger" />
         <package android:name="org.telegram.messenger.web" />
         <package android:name="org.thunderdog.challegram" />

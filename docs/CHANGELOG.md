@@ -2,6 +2,112 @@
 
 This is a human-readable project log. Add entries whenever behavior changes.
 
+## 2026-06-18
+
+### Client Data Access Cache Recovery
+
+- Added a client data access layer over validated user-scoped containers.
+- Restored `currentWorkout` in `fruitfit.user_core:<userId>` and recalculates it from the active program plus program assignment.
+- AI Coach now sends sanitized scoped context with profile, access, program assignment, current workout, Health snapshot, and recent chat messages.
+- Client `/api/me` handling now writes returned profile and program assignment into the current user's core container.
+- Program assignment changes clear stale current workout before recalculation.
+- Weekly metric details now use `history7d.calories` for calories the same way steps use `history7d.steps`.
+
+### Android Loading Theme Flicker Guard
+
+- Loading screen now receives the saved app theme before React starts, so light theme starts on a light surface and dark theme starts on a dark surface.
+- Android launch splash now uses light/night resource colors to reduce the native splash to WebView color jump.
+- Added a stable themed loading surface to prevent startup height/paint transitions.
+- Health widget investigation only: activity uses `history7d`, steps detail already sums `history7d.steps`, while calories detail still does not consume `history7d.calories` in the same path. No widget behavior was changed in this pass.
+
+### Security Architecture Data Container Isolation
+
+- Added strict user-scoped containers: `fruitfit.user_core:<userId>`, `fruitfit.health:<userId>`, and `fruitfit.ai_memory:<userId>`.
+- Profile, access, program assignment, measurements, avatar, paid program lock, Health metrics/history, and AI Coach chat history now go through validated container reads.
+- Any cache read with missing or mismatched `userId` is rejected and cannot be shown as current-user data.
+- Logout deletes the current user's containers and legacy scoped sensitive keys, then clears in-memory sensitive state.
+- Health widgets use one validated Health container so `history7d.steps` and `history7d.calories` remain attached to the same snapshot.
+- AI Coach local memory is isolated from UI/Health cache, and backend `/api/coach` now requires auth and builds server context from `req.user.id`.
+
+### Android Back Navigation Native Fallback
+
+- Android hardware/swipe back now goes through a shared FruitFit navigation handler before the app is allowed to minimize.
+- Added a native WebView fallback in `MainActivity` so back navigation still reaches the app router when Capacitor's JS back listener is skipped.
+- Internal routes pop the FruitFit route stack or return to home; the app minimizes only from home.
+- No Health, payments, FCM, or business logic was changed.
+
+### Questionnaire Paid-Cycle Program Behavior
+
+- Questionnaire/profile edits no longer switch the current PAID/VIP workout program immediately on the client.
+- FREE users still get immediate profile-driven program selection, with existing preview limits.
+- PAID/VIP users keep the current paid block by server assignment or user-scoped `fruitfit.paidProgramLock:<userId>`.
+- Nutrition remains profile-driven and can update immediately after questionnaire changes for every access tier.
+- Authenticated app payment sessions now get the current saved backend profile snapshot without sending profile/user id from the client.
+- Recurring program assignment now uses the current profile for the next paid cycle while the first paid cycle keeps the payment-session snapshot.
+
+### Profile Defaults and Greetings
+
+- Profile name field placeholders are now `Имя` and `Фамилия` instead of person-specific examples.
+- Home greeting now uses an explicitly entered profile first name; otherwise it falls back to `спортсмен`, `спортсменка`, or `спортсмен` when gender is unknown.
+- AI Coach welcome no longer uses auth/provider names as a first-name fallback, so it does not address an unnamed user as `Тагир`.
+- If the user has not entered a first name, AI Coach also avoids the literal creator name in the default welcome text.
+
+### Health Weekly UI Mapper
+
+- Weekly activity UI now uses a normalized 7-day local calendar range.
+- `history7d.steps` and `history7d.calories` are preferred by date when present, so the activity widget and activity detail screen do not drop recent days because `activity_history.week` is stale.
+- `Шаги -> Неделя` now sums the normalized `history7d.steps` rows and uses `steps.detailValue` only when weekly history rows are absent.
+- Weekly rows with zero values remain visible when the JSON contains those dates.
+
+### User-Scoped Client Cache Isolation
+
+- Fixed confirmed localStorage leakage between accounts on Android WebView.
+- Sensitive local caches now use user-scoped keys and envelope values with `userId`, `savedAt`, and `data`.
+- Profile, avatar, measurements, Health snapshot/history, access state, program assignment, and VIP report local fallbacks no longer read legacy global keys for authenticated users.
+- Logout and account switching now reset in-memory sensitive UI state so the next account cannot see the previous account's profile, health, measurements, access, or program cache.
+- Legacy global sensitive keys are removed after authenticated user load.
+- Added debug logs for cache accepted/rejected, logout sensitive-state clearing, and login user-switch detection.
+
+### Steps Detail Weekly Total
+
+- Fixed `Шаги -> Неделя` so the detail screen uses `health.history7d.steps` as the source of truth when weekly history exists.
+- Weekly total is now `sum(history7d.steps[].value)` with a `70000` step goal; `steps.detailValue` is only a fallback when weekly history is empty.
+
+### AI Coach Chat History
+
+- AI Coach chat now persists locally for 30 days per account under `fruitfit.aiCoach.chat:<userId>`.
+- Stored messages include `id`, `userId`, `role`, `content`, and `createdAt`.
+- Opening the chat, sending a message, and saving history prune messages older than 30 days.
+- Account switching/logout reloads only the current user's scoped chat history, so another account does not see the previous account's chat.
+- `/api/coach` requests now send the current message plus the last 12 local messages for the current user.
+
+### Client Workout Visibility Hard Cap
+
+- Added a client-side workout visibility guard in `src/data/accessRules.js`.
+- Admin users can still see all workouts.
+- Non-admin users are capped after server restrictions: 24-workout programs show at most 12 workouts, and 16-workout programs show at most 8 workouts.
+- Existing backend limits such as `visibleWorkoutIds` and `visibleWorkoutCount` are respected first, so the client never expands a server-limited list.
+- Hidden workouts are not rendered as locked cards, and workout day navigation uses the same visible list.
+- Added dev/debug visibility logs with total count, server count, hard cap, final visible count, user role, and access level.
+
+### Profile Access Ring Progress
+
+- Profile Pro/VIP access rings now shrink proportionally to the paid time remaining.
+- Monthly access without an explicit start date falls back to a 30-day duration, so a fresh 30-day purchase renders as full and then decreases over time.
+- Free and admin/infinite access rings remain fully filled with the infinity symbol.
+
+### Theme Boot Flash Guard
+
+- Saved app theme is now applied from `index.html` before React starts, preventing the dark theme from briefly rendering on the light default.
+- Theme changes update `color-scheme` and the page `theme-color` meta.
+- Android launch background now uses a dark brand color instead of the default white splash.
+
+### Android Back Navigation
+
+- Android back/swipe now uses an internal app route stack before falling through to app minimize.
+- Browser/history metadata can be cleared by auth/cache flows without breaking in-app back navigation.
+- The app minimizes only when the current screen is already home and there is no previous in-app screen.
+
 ## 2026-06-16
 
 ### iOS Local Build and HealthKit Preparation

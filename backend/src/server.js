@@ -10,6 +10,7 @@ import { runMigrations } from "./migrate.js";
 import { nutritionRouter } from "./nutrition.js";
 import { notificationRouter } from "./notifications.js";
 import { paymentsRouter, startPaymentAssignmentWorker } from "./payments.js";
+import { startRobokassaRecurringWorker } from "./robokassaRecurringWorker.js";
 import { referralsRouter } from "./referrals.js";
 import { adminPushRouter } from "./adminPush.js";
 import { adminAiRouter, openAiWebhookRouter } from "./aiUsage.js";
@@ -110,6 +111,7 @@ if (process.env.FRUITFIT_SKIP_LISTEN !== "1") {
         console.log(`FruitFit backend listening on http://${config.host}:${config.port}`);
       });
       startPaymentAssignmentWorker();
+      startRobokassaRecurringWorker();
     })
     .catch((error) => {
       console.error("[fruitfit-backend] startup failed", error);

@@ -8,13 +8,16 @@ import IconButton from "../components/IconButton";
 import MuscleWorkBlock from "../components/MuscleWorkBlock";
 import { buildClientReportScores, ClientReportSliders, normalizeClientReportScores } from "../components/ClientReportSliders";
 import { submitTrainerReport } from "../data/authStore";
-import { isWorkoutUnlocked, LOCKED_WORKOUT_MESSAGE, visibleWorkoutsForAccess } from "../data/accessRules";
+import { isWorkoutUnlocked, LOCKED_WORKOUT_MESSAGE, originalWorkoutIndex, visibleWorkoutsForAccess } from "../data/accessRules";
+import { readWorkoutHistoryField, writeWorkoutHistoryField } from "../data/dataContainers";
 import { getExerciseAlternatives } from "../data/exerciseAlternatives";
 import { assignMuscleTemplate } from "../data/muscleTemplates";
 import { getExerciseWeight, saveExerciseWeight } from "../utils/exerciseWeights";
 
 const SET_TARGET_SECONDS = 30;
 const REST_SECONDS = 90;
+const EXERCISE_REPLACEMENTS_FIELD = "exerciseReplacements";
+const WORKOUT_REPORTS_FIELD = "workoutReports";
 
 function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60);
@@ -30,32 +33,45 @@ function exerciseMeta(exercise) {
   ].filter(Boolean).join(" • ");
 }
 
-function replacementKey(workoutId) {
-  return `fruitfit.exerciseReplacements.${workoutId}`;
-}
-
-function workoutReportKey(workoutId) {
-  return `fruitfit.workoutReport.${workoutId}`;
+function readWorkoutHistoryMap(field) {
+  const value = readWorkoutHistoryField(field, undefined, {});
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
 function readReplacements(workoutId) {
   try {
-    return JSON.parse(localStorage.getItem(replacementKey(workoutId)) || "{}");
+    const map = readWorkoutHistoryMap(EXERCISE_REPLACEMENTS_FIELD);
+    const value = map[String(workoutId || "")] || {};
+    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
   } catch (_) {
     return {};
   }
 }
 
+function saveReplacements(workoutId, replacements) {
+  const key = String(workoutId || "").trim();
+  if (!key) return {};
+  const map = readWorkoutHistoryMap(EXERCISE_REPLACEMENTS_FIELD);
+  const next = { ...map, [key]: replacements && typeof replacements === "object" ? replacements : {} };
+  writeWorkoutHistoryField(EXERCISE_REPLACEMENTS_FIELD, next);
+  return next[key];
+}
+
 function readWorkoutReport(workoutId) {
   try {
-    return JSON.parse(localStorage.getItem(workoutReportKey(workoutId)) || "null");
+    const map = readWorkoutHistoryMap(WORKOUT_REPORTS_FIELD);
+    return map[String(workoutId || "")] || null;
   } catch (_) {
     return null;
   }
 }
 
 function saveWorkoutReport(workoutId, report) {
-  localStorage.setItem(workoutReportKey(workoutId), JSON.stringify(report));
+  const key = String(workoutId || "").trim();
+  if (!key) return null;
+  const map = readWorkoutHistoryMap(WORKOUT_REPORTS_FIELD);
+  writeWorkoutHistoryField(WORKOUT_REPORTS_FIELD, { ...map, [key]: report || null });
+  return report || null;
 }
 
 function SetTimer({ seconds, active, onStart, onComplete }) {
@@ -702,7 +718,8 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
   const total = program?.workouts?.length || workout.lessons?.length || 1;
   const visibleWorkouts = useMemo(() => visibleWorkoutsForAccess(program?.workouts || [], access), [access, program?.workouts]);
   const visibleTotal = Math.max(1, visibleWorkouts.length || total);
-  const visibleSelectedIndex = Math.min(selectedWorkoutIndex, visibleTotal - 1);
+  const currentVisibleIndex = visibleWorkouts.findIndex((item) => originalWorkoutIndex(program?.workouts || [], item) === selectedWorkoutIndex);
+  const visibleSelectedIndex = currentVisibleIndex >= 0 ? currentVisibleIndex : Math.min(selectedWorkoutIndex, visibleTotal - 1);
   const meta = exerciseMeta(current);
   const muscleMapGender = profile?.gender === "male" || String(workout.course?.gender || "").toLowerCase().includes("муж") ? "male" : "female";
   const setRows = useMemo(() => Array.from({ length: setTotal }, (_, index) => index + 1), [setTotal]);
@@ -721,7 +738,8 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
   useEffect(() => {
     if (!visibleWorkouts.length) return;
     if (visibleWorkouts.some((item) => item.workout_id === workout.workout_id)) return;
-    onSelectWorkout?.(visibleWorkouts.length - 1);
+    const fallbackIndex = originalWorkoutIndex(program?.workouts || [], visibleWorkouts[visibleWorkouts.length - 1]);
+    onSelectWorkout?.(fallbackIndex >= 0 ? fallbackIndex : visibleWorkouts.length - 1);
   }, [onSelectWorkout, visibleWorkouts, workout.workout_id]);
 
   useEffect(() => {
@@ -818,7 +836,7 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
     };
     const next = { ...replacements, [String(current.exercise_order)]: replacement };
     setReplacements(next);
-    localStorage.setItem(replacementKey(workout.workout_id), JSON.stringify(next));
+    saveReplacements(workout.workout_id, next);
     setAlternativeReason("");
   }
 
@@ -827,7 +845,7 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
     const next = { ...replacements };
     delete next[key];
     setReplacements(next);
-    localStorage.setItem(replacementKey(workout.workout_id), JSON.stringify(next));
+    saveReplacements(workout.workout_id, next);
     setAlternativeReason("");
   }
 
@@ -907,12 +925,15 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
   }
 
   function selectDay(index) {
-    const nextIndex = Math.max(0, Math.min(index, visibleTotal - 1));
-    if (!isWorkoutUnlocked(nextIndex, program?.workouts || total, access)) {
+    const nextVisibleIndex = Math.max(0, Math.min(index, visibleTotal - 1));
+    const nextWorkout = visibleWorkouts[nextVisibleIndex];
+    const nextIndex = originalWorkoutIndex(program?.workouts || [], nextWorkout);
+    const safeIndex = nextIndex >= 0 ? nextIndex : nextVisibleIndex;
+    if (!isWorkoutUnlocked(safeIndex, program?.workouts || total, access)) {
       window.alert(LOCKED_WORKOUT_MESSAGE);
       return;
     }
-    onSelectWorkout?.(nextIndex);
+    onSelectWorkout?.(safeIndex);
   }
 
   const timerNode = (
@@ -979,7 +1000,7 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
               <h2 className="line-clamp-2 text-[26px] font-black leading-[1.08] text-appText">{workout.lesson.lesson_title}</h2>
               <p className="mt-2 line-clamp-1 text-[13px] text-appMuted">{workout.course.display_name}</p>
             </div>
-            <span className="shrink-0 rounded-full bg-appGreen/55 px-3 py-1.5 text-[12px] font-semibold text-[#181F19]">День {Math.min(day, visibleTotal)}/{visibleTotal}</span>
+            <span className="shrink-0 rounded-full bg-appGreen/55 px-3 py-1.5 text-[12px] font-semibold text-[#181F19]">День {visibleSelectedIndex + 1}/{visibleTotal}</span>
           </div>
           <div className="mt-4 flex items-center gap-3">
             <span className="text-[13px] text-appMuted">Прогресс</span>
@@ -987,9 +1008,11 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
             <span className="text-[13px] font-bold text-appText">{progress}%</span>
           </div>
           <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1">
-            <button type="button" onClick={() => selectDay(selectedWorkoutIndex - 1)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-appCard text-appMuted shadow-sm"><ChevronLeft size={17} /></button>
+            <button type="button" onClick={() => selectDay(visibleSelectedIndex - 1)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-appCard text-appMuted shadow-sm"><ChevronLeft size={17} /></button>
             {visibleWorkouts.map((item, index) => {
-              const locked = !isWorkoutUnlocked(index, program?.workouts || total, access);
+              const sourceIndex = originalWorkoutIndex(program?.workouts || [], item);
+              const safeSourceIndex = sourceIndex >= 0 ? sourceIndex : index;
+              const locked = !isWorkoutUnlocked(safeSourceIndex, program?.workouts || total, access);
               return (
                 <button key={item.workout_id} type="button" onClick={() => selectDay(index)} className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-[12px] font-bold ${locked ? "bg-appCard/70 text-appMuted opacity-70" : index === visibleSelectedIndex ? "bg-appDark text-appGreen" : "bg-appCard text-appMuted"}`}>
                   {locked && <Lock size={12} />}
@@ -997,7 +1020,7 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
                 </button>
               );
             })}
-            <button type="button" onClick={() => selectDay(selectedWorkoutIndex + 1)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-appCard text-appMuted shadow-sm"><ChevronRight size={17} /></button>
+            <button type="button" onClick={() => selectDay(visibleSelectedIndex + 1)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-appCard text-appMuted shadow-sm"><ChevronRight size={17} /></button>
           </div>
         </section>
 

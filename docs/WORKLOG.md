@@ -1,5 +1,341 @@
 # WORKLOG - FruitFit Food Database & Nutrition Parser
 
+## 2026-06-20 - Admin nutrition unrestricted ration and calories
+
+Scope: client nutrition screen only. Payments, Robokassa, email auth, Health Connect, AI Coach, program assignment, and backend were not changed.
+
+- Passed the authenticated user into `NutritionScreen` so the nutrition UI can apply admin-only client overrides.
+- Added unrestricted nutrition access for admin/trainer roles and the admin email `meyvaliev3521@gmail.com`.
+- Admin nutrition mode now shows all available ration types from the nutrition dataset.
+- Admin nutrition mode now shows all available calorie targets from the nutrition dataset.
+- Regular users still see only the questionnaire-derived ration and single calorie target.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large chunk warning only.
+
+## 2026-06-20 - AI Coach selected workout priority
+
+Scope: client AI Coach request context only. Payments, Robokassa, email auth, Health Connect, admin builder, backend program assignment, and deployment were not changed.
+
+- Changed AI Coach workout resolution so a fresh user-scoped `activeWorkoutSelection` from `user_core` wins over potentially stale `selectedWorkout` props.
+- A stored selection is accepted only when it belongs to the current user, has `source=user_selection`, has a workout id, and is not older than 24 hours.
+- Kept `selectedWorkout` prop as fallback only when no fresh user selection exists, or when it matches the stored user selection.
+- `selectedWorkoutId` and `selectedWorkoutTitle` are now always sent as top-level `/api/coach` payload fields.
+- Added structured `selectionResolution` and `workoutSelectionConflict` context so `serverCurrentWorkout` can differ while `userSelectedWorkout wins for this request` is explicit.
+- The workout selection remains transient for the AI request; nothing is saved to backend and `programAssignment` is not changed.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large chunk warning only.
+
+## 2026-06-20 - User-scoped workout and lecture cache containers
+
+Scope: client cache containers only. Payments, email auth flows, Robokassa, Health Connect aggregation, admin builder, and AI prompt logic were not changed.
+
+- Added `fruitfit.workout_history:<userId>` for workout-local cache:
+  - `exerciseWeights`;
+  - `workoutReports`;
+  - `exerciseReplacements`.
+- Added `fruitfit.lectures:<userId>` for lecture progress.
+- Moved selected workout persistence from legacy global `fruitfit.selectedWorkoutState` into `fruitfit.user_core:<userId>.selectedWorkoutState`.
+- Kept selected workout legacy migration only when the stored `userId` matches the current authenticated user, then removes the global key.
+- Expanded legacy cache cleanup on login/logout to remove:
+  - `exerciseWeights`;
+  - `fruitfit.workoutReport.*`;
+  - `fruitfit.exerciseReplacements.*`;
+  - `fruitfit.lectureProgress.v1`;
+  - `fruitfit.selectedWorkoutState`.
+- User B now reads empty/new scoped workout and lecture containers instead of seeing user A local weights, replacements, workout reports, or lecture progress from global localStorage.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large chunk warning only.
+
+## 2026-06-20 - AI chat anchor, questionnaire nutrition target, persistent workout selection
+
+Scope: client AI chat UX, nutrition plan selection, and workout selection state only. Payments, recurring, backend program logic, Health Connect native reads, and Robokassa were not changed.
+
+- Added a bottom sentinel/anchor to the AI Coach chat so the latest messages are opened and kept in view on chat load, new messages, loading state changes, and input focus.
+- Locked nutrition plan calories to the single questionnaire-derived target (`recommendedCaloriesTarget` / `calculatedCalories`) instead of offering neighbouring `-200/+200` calorie options.
+- Locked nutrition type to the questionnaire diet type in the client UI; changing questionnaire data is now the path that changes ration/calories in the app.
+- Added `nutritionTarget` to the sanitized client AI Coach context so the client sends one questionnaire-based nutrition target, not a manually selected calorie variant.
+- Added persistent `fruitfit.selectedWorkoutState` with `workoutId`, `title`, `programId`, and `dayIndex`.
+- `fruitfit.selectedWorkoutState` now stores those four fields at the top level as well as inside the guarded payload, making WebView/ADB diagnostics explicit while keeping user isolation metadata.
+- `selectedWorkoutState` is now the primary client UI selection when valid; `serverCurrentWorkout` is only the fallback/default.
+- User workout clicks now save the selected workout state and preserve it while navigating to AI Coach.
+- Coach payload now prefers the App-selected workout over stale `activeWorkoutSelection` from user core.
+- Expanded the AI Coach client runtime context with `selectedWorkout` plus full exercise snapshots (`id`, `name`, `order`, `sets`, `reps`, `weight`, `notes`, `rest`).
+- Expanded `nutritionTarget` with questionnaire-based calories/macros (`calories`, `protein`, `fat`, `carbs`, `goal`, `dietType`) and zero tolerance.
+- Replaced the raw AI health cache payload with a compact runtime `healthSnapshot` containing steps, sleep, calories, heart rate, source, freshness, and `lastSyncAt`.
+- Added `window.__fruitfitLastCoachPayload` and `COACH_REQUEST_PAYLOAD` debug logging for smoke-checking the exact `/api/coach` body from WebView DevTools.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large chunk warning only.
+- `npx cap sync android` passed.
+- `.\gradlew.bat assembleDebug --no-daemon` passed.
+- APK built at `android/app/build/outputs/apk/debug/app-debug.apk`.
+- ADB install was not run because `adb devices -l` returned no connected devices.
+
+## 2026-06-19 - Workout selection state vs server current workout
+
+Scope: client workout selection/navigation and AI Coach request payload only. Payments, recurring, backend program logic, push, and Health Connect were not changed.
+
+- Split server current workout and user-selected workout behavior in `App.jsx`.
+- Server current workout now acts as the default/fallback on initial load, auth refresh, and assignment refresh, but no longer overrides a valid user click on every render.
+- Fixed `selectWorkoutFromUi()` and `openWorkout()` so visible/unlocked workout cards and day chips open the actual selected workout instead of being replaced with `serverSelectedWorkoutIndex`.
+- Kept stale legacy workout cache cleanup, but removed the `setSelectedWorkoutIndex(0)` reset on opening workout/coach screens.
+- Added selected workout metadata (`selectedWorkoutId`, `selectedWorkoutTitle`) to the AI Coach client context and `/api/coach` request so backend validation can target the user's active visible workout.
+- Added an explicit in-memory `userSelectedWorkoutSnapshot` so the Coach screen keeps the user's selected workout even after `/api/me/program-assignment` refreshes server default state.
+- Injected the selected workout context into the latest user chat message because the current backend `/api/coach` path reads `payload.messages` and does not yet consume `payload.context` directly.
+- Persisted the active UI workout selection in the user-scoped `fruitfit.user_core:<userId>.activeWorkoutSelection` field while the app is open, so navigation from Workout to Coach does not lose the user's selected day.
+- Added an AI-only workout status hint (`in_progress` / selected in app) and workout day number to the Coach payload; this does not alter real workout progress state.
+- Added the same selected-workout hint to the top-level `/api/coach` `message` field as a fallback for backend variants that read `message` instead of `messages`.
+- Prevented workout/coach screen refresh from reapplying server current workout when a manual `userSelectedWorkoutId` is already active.
+- Debug logs now include selected workout id/title alongside server workout id/title for UI/AI divergence checks.
+- Raised Android `minSdkVersion` from 24 to 26 because `@capgo/capacitor-health` declares min SDK 26 and Gradle manifest merge blocks APK assembly otherwise.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large chunk warning only.
+
+## 2026-06-19 - Pre-auth questionnaire draft transfer
+
+Scope: client profile/auth data flow only. Payments, recurring, AI Coach, push, Health Connect, and admin logic were not changed.
+
+- Added `fruitfit.profile.draft` for questionnaire answers saved before authentication.
+- `saveProfile()` now writes to the pre-auth draft when there is no current `userId`, and to the user-scoped profile container after login.
+- `loadProfile()` now reads the draft for unauthenticated users, preserving onboarding answers before register/login.
+- Added server-safe draft merge:
+  - server-filled fields win;
+  - draft fills only empty/incomplete profile fields;
+  - draft is removed only after `/api/me/profile` succeeds.
+- Added `transferPreAuthProfileDraft()` after successful login/register/token auth/existing-session restore.
+- After transfer, the client clears stale current workout/program-assignment state and refetches `/api/me` plus `/api/me/program-assignment`.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large chunk warning only.
+
+## 2026-06-19 - Referral dashboard stats endpoint
+
+Scope: backend referral read endpoints and profile referral display data contract only. Payments, recurring, AI Coach, Health Connect, and program assignment logic were not changed.
+
+- Extended `/api/referrals/me/code` to return a full referral dashboard payload, not only the personal code.
+- Added `/api/referrals/me` as the same authenticated dashboard endpoint for the existing client fallback.
+- Dashboard payload now includes `referralCode`, flat `invitedCount` / `paidCount` / `bonusDaysTotal`, snake_case aliases, `lastBonusAt`, `bonusGranted`, `stats`, and recent `referralUses`.
+- Stats are computed from `referral_uses` by `referrer_user_id` and the current referral code id, so qualified uses with `bonus_granted=true` surface in the profile referral block.
+- Owned referral code lookup now prefers an active code with actual referral uses before falling back to an auto-generated personal code, so admin/referrer codes like `APPLE1` remain visible after a successful referral.
+- Kept the client profile referral block visible for admin/referrer accounts; it already fetches with `cache: "no-store"` and reads `stats.invitedCount` / `stats.paidCount`.
+
+## 2026-06-19 - Home coach tip instead of notification bell
+
+Scope: home-screen notification presentation only. Firebase delivery, push scheduling, payments, AI Coach, Health Connect, and program logic were not changed.
+
+- Replaced the top-right notification bell on the home screen with an always-visible inline coach tip.
+- The coach tip uses the latest generated push message text from `loadNotificationCenter()` and falls back to a calm default message when no user-scoped push text is available.
+- Removed the home-screen notification popover/dropdown UI and its unused CSS layer.
+- Tightened the home header: greeting/access badge moved to the top-right, and the coach tip is now a compact two-line inline message.
+- Removed the coach-tip label/card treatment; the home header now shows only the quote text without a border or `Coach` title.
+- Kept background lock-screen/local push scheduling active on home mount.
+- Design direction follows the inline/banner message pattern: visible, passive guidance instead of a modal/dropdown interaction.
+
+## 2026-06-19 - Push behavior message library
+
+Scope: push notification content and scheduling layer only. Firebase delivery, payments, AI Coach, program logic, Health Connect, and recurring logic were not changed.
+
+- Added `shared/pushMessages.js` as the unified push content module.
+- Push library now has three active categories:
+  - `daily_motivation`: 120 user-provided morning motivation messages;
+  - `discipline_gym_etiquette`: 42 calm gym order/etiquette messages;
+  - `clarification_messages`: 35 soft reminders for water, technique, rest, weight selection, and safe training behavior.
+- Kept `shared/motivationMessages.js` as a compatibility re-export.
+- Updated local native notification scheduling:
+  - one daily morning `daily_motivation`;
+  - `discipline_gym_etiquette` on Tuesday/Friday evenings;
+  - `clarification_messages` on Monday/Wednesday/Saturday midday;
+  - local scheduled notification history is now user-scoped under `fruitfit.localPushNotifications.v2:<userId>`.
+- Updated in-app notification center generation to use the same push library and user-scoped storage under `fruitfit.notificationCenter.v2:<userId>`.
+- Updated backend notification scheduling endpoints to create the new push kinds while keeping the existing endpoint URL for client compatibility.
+- Added 7-day no-repeat protection using `data.messageId` in backend `notification_events` and local scheduled history.
+
+## 2026-06-19 - Android loading screen theme paint stabilization
+
+Scope: client startup/theme paint only. Health, payments, AI, program access, and routing logic were not changed.
+
+- Kept the pre-React theme bootstrap background as persistent `--boot-bg` / `--boot-text` variables instead of removing the early background after React mounts.
+- Switched React theme application to `useLayoutEffect`, so `data-theme`, `color-scheme`, `theme-color`, and boot colors are applied before the first React paint.
+- Made the dumbbell loading screen a fixed full-WebView layer using the boot theme colors, removing the `phone-shell` width/background dependency during startup.
+- Added startup transition/animation suppression while `fruitfit-preboot` is present.
+- Updated Android `NoActionBar` and launch themes to use the same light/dark splash background under the WebView; dark splash now matches the React dark background `#111811`.
+- Validation:
+  - `npm run build` passed.
+  - `npm run android:sync` passed.
+  - `.\gradlew.bat assembleDebug --no-daemon` passed after clearing locked generated Gradle resource intermediates.
+  - `adb install -r android/app/build/outputs/apk/debug/app-debug.apk` succeeded on device `8f647179`.
+  - App launch via ADB succeeded and `pidof com.tagirfruit.fruitfit` returned a live process.
+
+## 2026-06-18 - Client data access cache recovery after security refactor
+
+- Added a small client data access layer in `src/data/dataAccess.js` over the existing validated user-scoped containers.
+- Restored `currentWorkout` as a user-scoped field inside `fruitfit.user_core:<userId>`:
+  - derived from the active program and `/api/me/program-assignment`;
+  - respects assignment delivery mode (`first_half` / `second_half`) when present;
+  - logs `CURRENT_WORKOUT_RESOLVED`.
+- AI Coach client requests now include a sanitized context payload:
+  - profile;
+  - access state;
+  - program assignment;
+  - current workout;
+  - user-scoped health snapshot;
+  - last scoped chat messages;
+  - AI memory preferences/summaries.
+- AI Coach context strips token/secret/authorization-shaped fields and never reads raw global localStorage.
+- `/api/me` client handling now saves returned `profile` and `programAssignment` into `fruitfit.user_core:<userId>` after the authenticated user is known.
+- Program assignment changes clear stale `currentWorkout`; the app recalculates it from the current program.
+- Fixed Health weekly metric mapper regression:
+  - steps week continues to sum `history7d.steps`;
+  - calories week now also uses `history7d.calories` when present;
+  - weekly activity/details render from `history7d` through `buildActivityWeekForUi` instead of falling back to stale generic metric arrays first.
+- No payments, Robokassa, push, backend logic, AI server logic, or Health Connect native reads were changed.
+
+## 2026-06-18 - Android loading theme flicker guard and widget diagnostics
+
+- Added a pre-React theme bootstrap in `index.html`: it reads `fruitfit.theme`, resolves light/dark/system, sets `data-theme`, `color-scheme`, `theme-color`, and preboot background/text CSS variables before the app bundle loads.
+- Updated the React loading screen to use the app theme variables immediately, with a stable `100svh` height and no transition on the loading surface.
+- Added Android light/dark splash background resources: light launch uses `#F7F5EF`, night launch uses `#050805`.
+- Updated the launch theme to use `@color/splashBackground` instead of the old drawable splash background, reducing top-to-bottom flash between native splash and WebView.
+- Diagnostic only for Health widgets, no widget mapper fix yet:
+  - activity widget reads `history7d.steps` and `history7d.calories` through `buildActivityWeekForUi`;
+  - steps detail already prefers `history7d.steps` for the week sum;
+  - calories detail still relies on generic metric week values and does not use `history7d.calories` the same way steps detail does;
+  - missing Monday-Wednesday rows are most likely caused by an incomplete/stale `fruitfit.health:<userId>` snapshot or history cache gating reusing previous week data until a forced native history refresh.
+- Validation:
+  - `npm run build` passed.
+  - `npm run android:sync` passed.
+  - `.\gradlew.bat assembleDebug --no-daemon` passed after clearing locked generated Gradle resource intermediates.
+  - APK built at `android/app/build/outputs/apk/debug/app-debug.apk`.
+  - ADB install was not run because `adb devices` returned no connected devices.
+
+## 2026-06-18 - Security architecture data container isolation
+
+- Added strict user-scoped data containers:
+  - `fruitfit.user_core:<userId>` for profile, access state, subscription-like client state, measurements, avatar, and program assignment;
+  - `fruitfit.health:<userId>` for Health metrics, `history7d`, activity history, and local health fallback history;
+  - `fruitfit.ai_memory:<userId>` for AI Coach chat memory.
+- Kept `userScopedCache` as the low-level envelope validator: every read requires matching `userId`, `savedAt`, and `data`; missing or mismatched users reject cache.
+- Moved profile, access, program assignment, measurements, avatar, paid program lock, health snapshot/history, and AI chat history onto the container layer.
+- Logout now deletes the current user's data containers and legacy scoped sensitive keys before clearing in-memory state.
+- Health widgets and steps detail now use the single validated Health container instead of splitting fallback history into a separate cache key.
+- AI Coach local history now reads only from `ai_memory:<userId>`; UI/Health cache is not used as AI source of truth.
+- Backend `/api/coach` now requires an authenticated user, strips client-provided `system` messages, and builds profile/access/program context server-side from `req.user.id`.
+- No payment, Health Connect native read, FCM, builder, or program content logic was changed.
+
+## 2026-06-18 - Android back navigation native fallback
+
+- Fixed Android hardware/swipe back handling at the navigation layer only.
+- Added a shared JS back handler in `src/App.jsx` that first pops FruitFit's internal route stack, then falls back to home, and only allows app minimize from home.
+- Added a native WebView fallback in `MainActivity` so Android back calls `window.__fruitfitHandleAndroidBack()` even if the Capacitor `App.addListener("backButton")` path is skipped by the system.
+- If the JS handler is not ready yet, native back falls back to WebView history; otherwise it minimizes only when JS explicitly reports `exit`.
+- No Health, payments, FCM, or business logic was changed.
+
+## 2026-06-18 - Questionnaire paid-cycle program behavior
+
+- Audited profile/questionnaire save flow and confirmed `/api/me/profile` only saves profile data; backend does not instantly reassign workout programs on questionnaire edit.
+- Fixed the client-side source of instant paid-program switching: FREE users still build the program from the latest questionnaire, while PAID/VIP users keep the current paid block by server assignment or a user-scoped local paid program lock.
+- Added user-scoped paid program lock under `fruitfit.paidProgramLock:<userId>` so account switching does not leak the locked program between users.
+- Nutrition remains live profile-driven and can refresh immediately after questionnaire changes for both FREE and PAID/VIP users.
+- Payment session creation now falls back to the current saved backend profile snapshot for authenticated app users, while the client still sends only JWT/product metadata.
+- Recurring program assignment now prefers the current user profile for a new billing cycle; first paid assignment continues to use the payment-session snapshot.
+
+## 2026-06-18 - Profile default names and greetings
+
+- Replaced profile name placeholders with `Имя` and `Фамилия` instead of person-specific defaults.
+- Added profile greeting helpers that use only an explicitly entered profile first name.
+- Home greeting now falls back to `Привет, спортсмен!` for male/unknown profile gender and `Привет, спортсменка!` for female profile gender when no first name is entered.
+- AI Coach no longer falls back to auth/provider `profile.name`, so it does not address a user as `Тагир` unless that first name was explicitly entered in the profile.
+- When no first name is entered, the AI Coach welcome copy also avoids the literal creator name and says it was created for FruitFit.
+
+## 2026-06-18 - Health weekly UI mapper
+
+- Audited Android WebView localStorage for the active user and confirmed `fruitfit.health:<userId>` stores date-bound `history7d.steps` and `history7d.calories`.
+- Added a UI-only weekly activity normalizer in `src/components/WidgetGrid.jsx`.
+- Weekly activity widgets now build the displayed 7-day range from local calendar dates and prefer `history7d.steps` / `history7d.calories` by date when those rows exist.
+- `Шаги -> Неделя` now sums the normalized `history7d.steps` rows and only falls back to `steps.detailValue` when weekly history rows are absent.
+- Days with zero values remain visible when the JSON contains weekly rows, so the last days do not disappear just because their value is `0`.
+- No Health Connect native read, backend, recovery, sleep, or payment logic was changed.
+
+## 2026-06-18 - User-scoped sensitive client cache
+
+- Fixed confirmed Android WebView localStorage leakage between accounts.
+- Added `src/data/userScopedCache.js` with envelope storage: `userId`, `savedAt`, and `data`.
+- Moved sensitive caches from global keys to user-scoped keys:
+  - `fruitfit.profile:<userId>`;
+  - `fruitfit.health:<userId>`;
+  - `fruitfit.health.history:<userId>`;
+  - `fruitfit.measurements:<userId>`;
+  - `fruitfit.avatar:<userId>`;
+  - `fruitfit.programAssignment:<userId>`;
+  - `fruitfit.accessState:<userId>`.
+- Legacy global sensitive keys are removed after authenticated user load and ignored by scoped readers.
+- Profile, avatar, measurements, Health snapshot/history, access state, program assignment, and VIP report local fallbacks now reject cache when `currentUser.id` is missing or mismatched.
+- Logout and user switch now clear in-memory sensitive state and dispatch reset events before the UI can render stale profile/health/measurements/program/access data.
+- Added debug logs for cache acceptance/rejection, logout sensitive-state clearing, and login user-switch detection.
+- No backend, Robokassa, builder, admin filters, Health Connect native read logic, or iOS project changes were made.
+
+## 2026-06-18 - Steps detail weekly mapper
+
+- Fixed the `Шаги -> Неделя` detail screen so weekly steps use `health.history7d.steps` when date-bound history exists.
+- Today's steps detail value still prefers `finalDashboardValue` / `dashboardValue` / `today`.
+- Weekly steps total now sums `history7d.steps[].value`; `steps.detailValue` remains only an empty-history fallback.
+- Weekly steps goal is fixed at `70000`, so progress is `weeklySteps / 70000 * 100`.
+- No Health Connect native, HealthKit, backend, recovery, calories, or sleep logic was changed.
+
+## 2026-06-18 - AI Coach local chat history
+
+- Added user-scoped AI Coach chat storage under `fruitfit.aiCoach.chat:<userId>`.
+- Stored chat messages contain `id`, `userId`, `role`, `content`, and `createdAt`.
+- Chat history is pruned to 30 days on open/load, send, and save.
+- AI Coach now shows the welcome message only when the current user's local history is empty.
+- Logout/account switching reloads only the current user's scoped chat history and does not show the previous account's chat.
+- `/api/coach` requests now include the current message and the last 12 local chat messages for the current user.
+- Backend audit: `backend/src/coach.js` already accepts `payload.messages` and sends the last 12 messages to OpenAI, but server-side long-term coach memory/profile/program/health context is not wired yet. Minimal backend follow-up should load memory/context by `req.user.id` and add it to the system prompt without accepting user ids from the body.
+
+## 2026-06-18 - Client workout visibility hard cap
+
+- Added a client-side safety guard in `src/data/accessRules.js` for workout visibility.
+- Admin users still see the full program.
+- Every non-admin is capped after server restrictions are applied: 24-workout programs show at most 12 workouts, and 16-workout programs show at most 8 workouts.
+- Server `visibleWorkoutIds` and `visibleWorkoutCount` are respected first, so the client never expands a backend-limited list.
+- FREE users still use the existing preview logic and hidden workouts are not rendered as locked cards.
+- Workout list and in-workout day navigation now resolve visible workouts back to their original program index, including future non-prefix `visibleWorkoutIds`.
+- Added debug logging for `totalWorkouts`, `serverVisibleCount`, `clientHardCap`, `finalVisibleCount`, `userRole`, and `accessLevel` in dev/debug mode.
+- No Robokassa, backend payment, Health Connect, builder save, admin builder, or exercise catalog changes were made.
+
+## 2026-06-18 - Access card ring progress
+
+- Fixed the profile access ring so finite Pro/VIP access fills proportionally to remaining paid time.
+- When access has `startsAt`/`expiresAt`, the ring uses the exact remaining fraction of that interval.
+- If the backend does not provide a start date, the client falls back to the nearest known tariff duration, including 30 days for monthly access.
+- Free and admin/infinite access keep a fully filled ring with only the infinity symbol.
+- No payment, backend, Health Connect, builder, or program access list changes were made.
+
+## 2026-06-18 - Theme boot flash guard
+
+- Added an inline theme bootstrap in `index.html` so saved `fruitfit.theme` is applied before React and bundled CSS render.
+- The app now also updates `color-scheme` and the browser/native `theme-color` meta when the theme changes.
+- Replaced the white Android launch background with a dark brand splash background to avoid a white flash before WebView content appears.
+- No auth, payment, Health Connect, builder, or program access logic was changed.
+
+## 2026-06-18 - Android in-app back navigation guard
+
+- Audited `src/App.jsx` routing: screens are mapped to hash URLs, navigation uses `history.pushState`, and Android back is handled through `CapacitorApp.addListener("backButton")`.
+- Root cause: the Android back handler relied on `window.history.state` metadata, but auth/cache flows can replace or clear that metadata. When metadata was missing, Android back could treat the app as having no internal route to pop.
+- Added a small in-memory route stack in `App.jsx` that is updated by app navigation, `replace` routes, and browser `popstate`/`hashchange`.
+- Android back and in-app toolbar back now pop the app route stack first; only the home screen falls through to `CapacitorApp.minimizeApp()`.
+- No Health, payment, access, program, builder, or trainer-report logic was changed.
+
 ## 2026-06-16 - iOS local build and Apple HealthKit preparation
 
 - Added Capacitor iOS platform under `ios/` for local Mac/Xcode iPhone installs.
@@ -1273,3 +1609,146 @@ Manual phone checks still needed:
 - Refresh Health Connect activity on the phone and confirm Tuesday receives Tuesday's real steps/active calories instead of shifted cached data.
 - With a real JWT, press payment CTA and confirm backend session creation plus Tilda URL with `?ps=`.
 - Test real account deletion only on a disposable account.
+
+## 2026-06-18 - Health widgets weekly aggregate/source fix
+
+Scope: Android client Health UI/native bridge only.
+
+- Dashboard widgets now request `history_7d` instead of reusing dashboard-only cache, so the weekly activity widget and steps detail screen share the same 7-day data source.
+- `history_7d` refresh no longer reuses a fresh dashboard snapshot; it performs the weekly aggregate read.
+- Health Connect aggregate weekly steps/calories are treated as the primary Auto source, matching Google Health totals.
+- User-selected source is supported through Health Connect `DataOrigin` aggregate filters. For example, selecting `com.xiaomi.wearable` reads Mi Fitness daily aggregate buckets for today/week without raw-record scans.
+- Normal steps/calories reads no longer run raw source diagnostics by default. Diagnostics remain opt-in, which avoids heavy reads on phones with multiple trackers.
+- Weekly UI mapper now keeps source-filtered aggregate buckets instead of filtering them out when samples do not carry per-row source package metadata.
+- Profile source selector persists the selected source and forces a light `history_7d` refresh when changed.
+
+Live ADB verification before device disconnected:
+
+- Installed `android/app/build/outputs/apk/debug/app-debug.apk` on device `8f647179`.
+- `FruitFitHealth.getSteps({ range: "week" })` returned `150455` steps from Health Connect aggregate in about 1.2 seconds.
+- `FruitFitHealth.getSteps({ range: "week", preferredSourcePackage: "com.xiaomi.wearable" })` returned `124137` Mi Fitness steps with all 7 daily buckets, including Tuesday and Wednesday.
+- `FruitFitHealth.getCalories({ range: "week", preferredSourcePackage: "com.xiaomi.wearable" })` returned Mi Fitness active calories with all 7 daily buckets.
+- Raw/source diagnostics were not present in the normal result (`hasSourceSamples: false`), confirming the heavy path is not used for regular widgets.
+
+Validation:
+
+- `npm run build` passed.
+- `npm run android:sync` passed.
+- `.\gradlew.bat assembleDebug --no-daemon` passed.
+- `adb install -r android/app/build/outputs/apk/debug/app-debug.apk` succeeded.
+
+## 2026-06-18 - Client subscription cycle base program guard
+
+Scope: client program-assignment/cache layer only. Payments, AI Coach, push, and health logic were not changed.
+
+- Added client-side `baseProgramId` persistence in `fruitfit.user_core:<userId>.baseProgramId`.
+- `saveProgramAssignment` now normalizes assignments before storing them in `fruitfit.user_core:<userId>.programAssignment`.
+- Cycle logic:
+  - cycle 1 / `first_half`: store the incoming `programId` as `baseProgramId`;
+  - cycle 2 / `second_half`: reuse `baseProgramId` and ignore a different incoming `programId`;
+  - cycle 3+ / `replacement_cycle` and `fresh_program`: allow a new `programId` and update `baseProgramId`.
+- Added migration fallback for existing users: if `baseProgramId` is missing, the client tries `currentWorkout`, `paidProgramLock`, then the previous assignment before accepting a cycle-2 server change.
+- Added race protection for the case where `/api/me/program-assignment` arrives before `/api/me/access`; pending paid-cycle changes preserve the hard base program instead of clearing it.
+- Program changes or delivery-mode changes clear stored `currentWorkout`, allowing the existing current-workout resolver to recalculate it from the normalized assignment.
+- Added debug log `PROGRAM_ASSIGNMENT_CYCLE_GUARD` when the client rejects a cycle-2 program swap.
+
+Validation:
+
+- `npm run build` passed.
+
+## 2026-06-19 - Client currentWorkout server-truth sync
+
+Scope: client current-workout state flow only. Payments, push, Health Connect, and backend logic were not changed.
+
+- Disabled client-side current-workout derivation from dates, assignment start date, cadence, or local selected index.
+- `fruitfit.user_core:<userId>.currentWorkout` is now overwritten only from `/api/me/program-assignment` server `currentWorkout` fields, or cleared when the server does not provide a current workout.
+- `/api/me/program-assignment` parsing now supports both `assignment.currentWorkout` and top-level `currentWorkout` response shapes.
+- Home/Workout UI maps the server current workout to `selectedWorkoutIndex` only for display; cache no longer decides the workout.
+- Opening Workout or Coach refreshes `/api/me/program-assignment` before using workout state.
+- AI Coach now builds `context.currentWorkout` only from the fresh server assignment. UI/cache workout is sent only as debug hint.
+- Added temporary debug logs: `SERVER_WORKOUT`, `CACHE_WORKOUT`, `UI_WORKOUT`, `AI_PAYLOAD_WORKOUT`.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large chunk warning only.
+
+## 2026-06-19 - Client stale workout cache hard reset
+
+Scope: client current-workout/cache reset layer only. Payments, program content, push, Health Connect, and backend AI logic were not changed.
+
+- Added `resetStaleWorkoutState()` to clear stale workout display state before server overwrite.
+- Reset clears:
+  - `fruitfit.user_core:<userId>.currentWorkout`;
+  - `fruitfit.user_core:<userId>.selectedWorkoutIndex`;
+  - legacy `fruitfit.currentWorkout`;
+  - legacy/scoped selected workout/index keys.
+- Reset now runs on:
+  - login;
+  - app start for an already authenticated user;
+  - Workout screen open;
+  - Coach screen open;
+  - manual workout open;
+  - Coach send;
+  - program-assignment update.
+- After reset, only `/api/me/program-assignment` server `currentWorkout` may repopulate cache and UI index.
+- If server `currentWorkout.workoutId` contains a local Inskill course id, the client extracts it and syncs `programAssignment.programId` to that server workout program, preventing stale local course ids like `14503` from overriding a current server workout from `14500`.
+- Existing debug logs now include stale-state reset reasons under `CACHE_WORKOUT`, plus `SERVER_WORKOUT`, `UI_WORKOUT`, and `AI_PAYLOAD_WORKOUT`.
+
+Validation:
+
+- `npm run build` passed.
+- `npm run android:sync` passed.
+- `npm run android:debug` passed.
+- `adb install -r android/app/build/outputs/apk/debug/app-debug.apk` succeeded on device `8f647179`.
+- WebView CDP after launch confirmed:
+  - legacy `fruitfit.currentWorkout` absent;
+  - legacy `fruitfit.selectedWorkoutIndex` absent;
+  - `fruitfit.user_core:<userId>.currentWorkout.programId` is `14500`;
+  - `fruitfit.user_core:<userId>.programAssignment.programId` is `14500`;
+  - home UI shows `Тренировка 9/24` / `Спина, бицепс, пресс` instead of stale `Ноги, плечи`.
+
+## 2026-06-19 - Server-only currentWorkout UI program override
+
+Scope: client current-workout UI selection only. Payments, program content, push, Health Connect, and backend logic were not changed.
+
+- Fixed the remaining admin UI mismatch where server/cache used assignment program `14500`, but the Home hero could still render a profile/default 24-workout program because assigned program selection was gated behind paid/vip access.
+- The app now derives the rendered program id from server `currentWorkout.programId` first, then assignment `programId`, then paid lock fallback.
+- The app now derives the rendered workout index from server `currentWorkout` before building the final program view.
+- Server workout ids that contain a local lesson id are matched by that lesson id before any lesson-number fallback, so a generated server id ending in `175274` maps to local lesson `175274`.
+- `selectedWorkoutIndex` remains only a display pointer; when server currentWorkout exists, UI selection calls are forced back to the server index.
+- Access fallback selection no longer overrides a server currentWorkout index.
+
+Validation:
+
+- `npm run build` passed.
+- `npm run android:sync` passed.
+- `npm run android:debug` passed.
+- `adb install -r android/app/build/outputs/apk/debug/app-debug.apk` succeeded on device `8f647179`.
+- WebView CDP after launch confirmed:
+  - app bundle `index-CjJpBVWr.js`;
+  - legacy workout keys absent;
+  - cache currentWorkout `programId=14500`, `lessonId=175274`, `lessonNumber=8`, `index=7`;
+  - local assignment `programId=14500`;
+  - Home UI shows `Тренировка 8/16` / `Тяговая тяжелая`, matching server workout id `175274`.
+# FruitFit worklog
+
+## 2026-06-19 - Huawei diagnostic APK support
+
+Scope: Android diagnostics and debug packaging only. Payments, AI Coach, program logic, backend, and Health Connect native read limits were not changed.
+
+- Added a native uncaught exception reporter in `MainActivity` that writes the latest Android crash to app cache diagnostics before the process exits.
+- Added `FruitFitHealth.getDeviceDiagnostics()` with Android/EMUI/device metadata, WebView version, Health Connect availability, permission status, installed package checks for Huawei Health/HMS/AppGallery/Wear Engine/common fitness sources, and latest native crash text.
+- Added a separate safe `FruitFitDiagnostics` native plugin without Health Connect framework imports.
+- `MainActivity` now registers `FruitFitHealthPlugin` only when `android.health.connect` framework classes are present; otherwise the app skips Health Connect bridge registration and writes `fruitfit_native_startup.txt`.
+- `getDeviceDiagnostics()` now prefers the safe diagnostics plugin, so Huawei/EMUI devices can report device/WebView/package data even when Health Connect bridge is unavailable.
+- Added Huawei package visibility queries to `AndroidManifest.xml`.
+- Extended the Health debug JSON export with `deviceDiagnostics`, persisted JS boot/runtime errors, and `errors.lastNativeCrash`.
+- Added boot-level JS error persistence in `src/main.jsx` so startup React errors are saved to `fruitfit.client.errors`.
+- Added a boot error screen copy button for sharing saved startup diagnostics when React fails before the normal UI opens.
+- Added `scripts/build-huawei-debug.ps1` and `npm run android:huawei`; the script builds debug assets and copies the APK to `хуавей/FruitFit-huawei-diagnostic-debug.apk`.
+
+Manual check on Huawei:
+
+- Install `хуавей/FruitFit-huawei-diagnostic-debug.apk`.
+- If the app opens: Profile -> Health and activity -> Extended diagnostics -> Refresh -> Share.
+- If the app crashes before UI: collect `adb logcat` plus app cache file `fruitfit_last_native_crash.txt` if ADB is available.

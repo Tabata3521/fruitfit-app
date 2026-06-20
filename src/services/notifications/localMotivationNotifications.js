@@ -1,10 +1,11 @@
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
-import { buildUtcMotivationSchedule } from "../../../shared/motivationMessages.js";
+import { buildUtcPushSchedule, PUSH_CADENCE } from "../../../shared/pushMessages.js";
+import { currentUserId } from "../../data/userScopedCache.js";
 import { registerBackendPushToken, syncMotivationScheduleWithBackend } from "./backendPushBridge.js";
 
 const CHANNEL_ID = "fruitfit_motivation";
-const STORAGE_KEY = "fruitfit.localMotivationNotifications.v1";
+const STORAGE_KEY = "fruitfit.localPushNotifications.v2";
 const RESCHEDULE_AFTER_MS = 6 * 60 * 60_000;
 const NOTIFICATION_SMALL_ICON = "ic_stat_fruitfit_orange";
 const NOTIFICATION_LARGE_ICON = "app_icon_orange_artwork";
@@ -15,14 +16,19 @@ export async function ensureMotivationLockScreenNotifications({ force = false } 
     return { ok: false, status: "web_only", message: "Local notifications are available only in the native app." };
   }
 
-  const stored = readStore();
+  const userId = currentUserId();
+  if (!userId) {
+    return { ok: false, status: "UNAUTHENTICATED", message: "Push notification history is user-scoped." };
+  }
+
+  const stored = readStore(userId);
   if (!force && stored.updatedAt && Date.now() - new Date(stored.updatedAt).getTime() < RESCHEDULE_AFTER_MS) {
     return {
       ok: true,
       status: "already_scheduled",
       scheduled: stored.scheduled?.length || 0,
       backendSync: stored.backendSync || null,
-      nextAt: stored.scheduled?.[0]?.at || null
+      nextAt: stored.scheduled?.[0]?.at || null,
     };
   }
 
@@ -39,19 +45,22 @@ export async function ensureMotivationLockScreenNotifications({ force = false } 
 
   const now = new Date();
   const timezoneOffsetMinutes = -now.getTimezoneOffset();
-  const schedule = buildUtcMotivationSchedule({
+  const schedule = buildUtcPushSchedule({
     now,
-    days: 5,
+    days: 7,
     timezoneOffsetMinutes,
-    previousBody: stored.lastBody || ""
-  }).slice(0, 12);
+    userId,
+    recentMessageIds: recentMessageIdsFromStore(stored, now),
+    recentBodies: recentBodiesFromStore(stored, now),
+    previousBody: stored.lastBody || "",
+  }).slice(0, 14);
 
   const notifications = schedule.map((item, index) => ({
     id: numericNotificationId(item.scheduledAt, index),
     title: "FruitFit",
     body: item.body,
     largeBody: item.body,
-    summaryText: "Спокойное напоминание",
+    summaryText: "Спокойное напоминание FruitFit",
     channelId: CHANNEL_ID,
     smallIcon: NOTIFICATION_SMALL_ICON,
     largeIcon: NOTIFICATION_LARGE_ICON,
@@ -59,33 +68,38 @@ export async function ensureMotivationLockScreenNotifications({ force = false } 
     schedule: { at: new Date(item.scheduledAt) },
     extra: {
       kind: item.kind,
-      source: "local_motivation",
+      source: "local_push_behavior",
       scheduledAt: item.scheduledAt,
-      cadence: "2-3/day"
-    }
+      messageId: item.data?.messageId || "",
+      cadence: PUSH_CADENCE,
+    },
   }));
 
   if (notifications.length) await LocalNotifications.schedule({ notifications });
   const backendSync = await syncBackendSchedule({ timezoneOffsetMinutes });
 
   const nextStore = {
+    userId,
     updatedAt: now.toISOString(),
     lastBody: schedule.at(-1)?.body || stored.lastBody || "",
+    lastSentMessageId: schedule.at(-1)?.data?.messageId || stored.lastSentMessageId || "",
     backendSync,
     scheduled: notifications.map((item) => ({
       id: item.id,
       at: item.schedule.at.toISOString(),
-      body: item.body
-    }))
+      body: item.body,
+      kind: item.extra.kind,
+      messageId: item.extra.messageId,
+    })),
   };
-  writeStore(nextStore);
+  writeStore(userId, nextStore);
 
   return {
     ok: true,
     status: "scheduled",
     scheduled: notifications.length,
     backendSync,
-    nextAt: nextStore.scheduled[0]?.at || null
+    nextAt: nextStore.scheduled[0]?.at || null,
   };
 }
 
@@ -93,12 +107,12 @@ async function ensureChannel() {
   try {
     await LocalNotifications.createChannel({
       id: CHANNEL_ID,
-      name: "FruitFit мотивация",
-      description: "Спокойные напоминания о тренировках и движении.",
+      name: "FruitFit привычки",
+      description: "Мотивация, порядок в зале и мягкие тренировочные напоминания.",
       importance: 4,
       visibility: 1,
       vibration: true,
-      lights: false
+      lights: false,
     });
   } catch (_) {
     // The channel may already exist with user-managed settings.
@@ -108,7 +122,7 @@ async function ensureChannel() {
 async function syncBackendSchedule({ timezoneOffsetMinutes }) {
   const [tokenRegistration, scheduleSync] = await Promise.all([
     registerBackendPushToken({ platform: "android", provider: "fcm" }),
-    syncMotivationScheduleWithBackend({ days: 7, timezoneOffsetMinutes })
+    syncMotivationScheduleWithBackend({ days: 7, timezoneOffsetMinutes }),
   ]);
   return { tokenRegistration, scheduleSync };
 }
@@ -131,20 +145,41 @@ function numericNotificationId(iso, index) {
   return 700_000_000 + (Number(compact) % 100_000_000) + index;
 }
 
-function readStore() {
+function scopedStorageKey(userId) {
+  return `${STORAGE_KEY}:${userId}`;
+}
+
+function readStore(userId) {
   if (typeof localStorage === "undefined") return {};
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {};
+    const value = JSON.parse(localStorage.getItem(scopedStorageKey(userId)) || "{}") || {};
+    return value.userId && value.userId !== userId ? {} : value;
   } catch (_) {
     return {};
   }
 }
 
-function writeStore(value) {
+function writeStore(userId, value) {
   if (typeof localStorage === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+    localStorage.setItem(scopedStorageKey(userId), JSON.stringify({ ...value, userId }));
   } catch (_) {
     // Scheduling status is useful, but not critical for app startup.
   }
+}
+
+function recentMessageIdsFromStore(stored = {}, now = new Date()) {
+  return recentScheduledItems(stored, now).map((item) => item.messageId).filter(Boolean);
+}
+
+function recentBodiesFromStore(stored = {}, now = new Date()) {
+  return recentScheduledItems(stored, now).map((item) => item.body).filter(Boolean);
+}
+
+function recentScheduledItems(stored = {}, now = new Date()) {
+  const since = now.getTime() - 7 * 86_400_000;
+  return (stored.scheduled || []).filter((item) => {
+    const at = new Date(item.at || 0).getTime();
+    return Number.isFinite(at) && at >= since;
+  });
 }

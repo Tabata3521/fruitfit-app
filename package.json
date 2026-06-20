@@ -18,7 +18,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "android:sync": "powershell -ExecutionPolicy Bypass -File scripts/sync-android.ps1",
     "ios:sync": "npm run build && npx cap sync ios",
-    "android:debug": "powershell -ExecutionPolicy Bypass -File scripts/build-android-debug.ps1"
+    "android:debug": "powershell -ExecutionPolicy Bypass -File scripts/build-android-debug.ps1",
+    "android:huawei": "powershell -ExecutionPolicy Bypass -File scripts/build-huawei-debug.ps1"
   },
   "dependencies": {
     "@capacitor/android": "8.4.0",

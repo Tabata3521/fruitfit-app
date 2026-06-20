@@ -158,19 +158,29 @@ function nearestCaloriesTarget(targets = [], preferred = 1800) {
 
 function allowedCaloriesTargets(targets = [], preferred = 1800) {
   const base = nearestCaloriesTarget(targets, preferred);
-  const targetSet = new Set(targets.map(Number).filter(Number.isFinite));
-  const options = [base - 200, base, base + 200].filter((value) => targetSet.has(value));
-  return options.length ? options : [base];
+  return [base];
 }
 
-function hasUnrestrictedNutritionAccess(access) {
+const ADMIN_NUTRITION_EMAILS = new Set(["meyvaliev3521@gmail.com"]);
+
+function normalizedEmail(value = "") {
+  return String(value || "").trim().toLowerCase();
+}
+
+function allCaloriesTargets(targets = []) {
+  return [...new Set(targets.map(Number).filter(Number.isFinite))].sort((a, b) => a - b);
+}
+
+function hasUnrestrictedNutritionAccess(access, user = null) {
   const status = String(access?.status || access?.plan || access?.role || "").toLowerCase();
   const role = String(access?.role || "").toLowerCase();
-  return Boolean(access?.isAdmin || access?.isTrainer || status === "admin" || status === "trainer" || role === "admin" || role === "trainer");
+  const email = normalizedEmail(user?.email || user?.username || access?.email || access?.user?.email);
+  return Boolean(access?.isAdmin || access?.isTrainer || status === "admin" || status === "trainer" || role === "admin" || role === "trainer" || ADMIN_NUTRITION_EMAILS.has(email));
 }
 
-export default function NutritionScreen({ onNavigate, profile, access, showBack = false, onBack }) {
+export default function NutritionScreen({ onNavigate, profile, access, user, showBack = false, onBack }) {
   const { loading, data } = useNutritionData();
+  const unrestrictedNutrition = useMemo(() => hasUnrestrictedNutritionAccess(access, user), [access, user]);
   const [filters, setFilters] = useState(() => ({
     ...defaultFilters,
     ration: dietTypeToRation[profile?.dietType] || defaultFilters.ration,
@@ -178,40 +188,41 @@ export default function NutritionScreen({ onNavigate, profile, access, showBack 
   }));
   const mealTypeOptions = useMemo(() => ["", ...(data?.filters?.mealTypes || [])], [data]);
   const dayOptions = useMemo(() => sortNutritionDays(data?.filters?.days || []), [data]);
-  const unrestrictedNutrition = hasUnrestrictedNutritionAccess(access);
   const lockedRation = useMemo(() => {
     const rations = data?.filters?.rations || [];
     const preferred = dietTypeToRation[profile?.dietType] || defaultFilters.ration;
+    if (unrestrictedNutrition) {
+      if (rations.includes(filters.ration)) return filters.ration;
+      if (rations.includes(preferred)) return preferred;
+      return rations[0] || preferred;
+    }
     return rations.includes(preferred) ? preferred : preferred;
-  }, [data, profile?.dietType]);
+  }, [data, filters.ration, profile?.dietType, unrestrictedNutrition]);
   const allowedCalories = useMemo(() => (
-    allowedCaloriesTargets(data?.filters?.caloriesTargets || [], profile?.recommendedCaloriesTarget || profile?.calculatedCalories || defaultFilters.caloriesTarget)
-  ), [data, profile?.recommendedCaloriesTarget, profile?.calculatedCalories]);
+    unrestrictedNutrition
+      ? allCaloriesTargets(data?.filters?.caloriesTargets || [])
+      : allowedCaloriesTargets(data?.filters?.caloriesTargets || [], profile?.recommendedCaloriesTarget || profile?.calculatedCalories || defaultFilters.caloriesTarget)
+  ), [data, profile?.recommendedCaloriesTarget, profile?.calculatedCalories, unrestrictedNutrition]);
   const activeFilters = useMemo(() => {
-    const rations = data?.filters?.rations || [];
     const calorieTargets = data?.filters?.caloriesTargets || [];
     const days = dayOptions;
     const mealTypes = data?.filters?.mealTypes || [];
     const selectedCalories = Number(filters.caloriesTarget);
-    if (unrestrictedNutrition) {
-      return {
-        ration: rations.includes(filters.ration) ? filters.ration : (rations[0] || filters.ration || defaultFilters.ration),
-        caloriesTarget: calorieTargets.includes(selectedCalories) ? selectedCalories : (calorieTargets.includes(1800) ? 1800 : calorieTargets[0] || defaultFilters.caloriesTarget),
-        day: days.includes(filters.day) ? filters.day : (days.includes("Понедельник") ? "Понедельник" : days[0] || filters.day),
-        mealType: !filters.mealType || mealTypes.includes(filters.mealType) ? filters.mealType : "",
-      };
-    }
+    const caloriesTarget = unrestrictedNutrition && allowedCalories.includes(selectedCalories)
+      ? selectedCalories
+      : (allowedCalories[0] || nearestCaloriesTarget(calorieTargets, defaultFilters.caloriesTarget));
     return {
       ration: lockedRation,
-      caloriesTarget: allowedCalories.includes(selectedCalories) ? selectedCalories : (allowedCalories[1] || allowedCalories[0] || nearestCaloriesTarget(calorieTargets, defaultFilters.caloriesTarget)),
+      caloriesTarget,
       day: days.includes(filters.day) ? filters.day : (days.includes("Понедельник") ? "Понедельник" : days[0] || filters.day),
       mealType: !filters.mealType || mealTypes.includes(filters.mealType) ? filters.mealType : "",
     };
-  }, [data, filters, lockedRation, allowedCalories, unrestrictedNutrition, dayOptions]);
+  }, [data, filters, lockedRation, allowedCalories, dayOptions, unrestrictedNutrition]);
   const plan = useMemo(() => getMealPlan(data, activeFilters), [data, activeFilters]);
+  const rationOptions = unrestrictedNutrition ? (data?.filters?.rations || [activeFilters.ration]) : [activeFilters.ration];
 
   function update(key, value) {
-    if (key === "ration" && !unrestrictedNutrition) return;
+    if (!unrestrictedNutrition && (key === "ration" || key === "caloriesTarget")) return;
     setFilters((current) => ({ ...current, [key]: key === "caloriesTarget" ? Number(value) : value }));
   }
 
@@ -247,8 +258,8 @@ export default function NutritionScreen({ onNavigate, profile, access, showBack 
         </section>
 
         <section className="mt-4 space-y-4 rounded-[24px] border border-appBorder bg-appCard/80 p-4 shadow-sm">
-          <ChoiceChips label="Тип питания" value={activeFilters.ration} options={unrestrictedNutrition ? data?.filters?.rations || [activeFilters.ration] : [activeFilters.ration]} onChange={(value) => update("ration", value)} />
-          <ChoiceChips label="Калорийность плана" value={activeFilters.caloriesTarget} options={unrestrictedNutrition ? data?.filters?.caloriesTargets || [activeFilters.caloriesTarget] : allowedCalories} onChange={(value) => update("caloriesTarget", value)} />
+          <ChoiceChips label="Тип питания" value={activeFilters.ration} options={rationOptions} onChange={(value) => update("ration", value)} />
+          <ChoiceChips label="Калорийность плана" value={activeFilters.caloriesTarget} options={allowedCalories} onChange={(value) => update("caloriesTarget", value)} />
           <ChoiceChips label="День" value={activeFilters.day} options={dayOptions.length ? dayOptions : [activeFilters.day]} onChange={(value) => update("day", value)} />
           <ChoiceChips label="Прием пищи" value={activeFilters.mealType} options={mealTypeOptions} onChange={(value) => update("mealType", value)} />
         </section>

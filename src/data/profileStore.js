@@ -1,10 +1,16 @@
+import { readUserCoreField, writeUserCoreField } from "./dataContainers";
+import { currentUserId } from "./userScopedCache";
+
 export const PROFILE_STORAGE_KEY = "fruitfit.profile";
+export const PROFILE_DRAFT_STORAGE_KEY = "fruitfit.profile.draft";
+export const PROFILE_FIRST_NAME_PLACEHOLDER = "Имя";
+export const PROFILE_LAST_NAME_PLACEHOLDER = "Фамилия";
 
 export const profileDefaults = {
   firstName: "",
   lastName: "",
   avatar: "",
-  gender: "female",
+  gender: "",
   age: "30",
   height: "170",
   weight: "70",
@@ -17,6 +23,43 @@ export const profileDefaults = {
   recommendedCaloriesTarget: 1800,
   onboardingCompleted: false,
 };
+
+const QUESTIONNAIRE_PROFILE_FIELDS = [
+  "firstName",
+  "lastName",
+  "gender",
+  "age",
+  "height",
+  "weight",
+  "goal",
+  "experience",
+  "trainingFrequency",
+  "restrictions",
+  "dietType",
+  "calculatedCalories",
+  "recommendedCaloriesTarget",
+  "onboardingCompleted",
+];
+
+function cleanProfileNamePart(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  const normalized = text.toLowerCase();
+  if (normalized === PROFILE_FIRST_NAME_PLACEHOLDER.toLowerCase()) return "";
+  if (normalized === PROFILE_LAST_NAME_PLACEHOLDER.toLowerCase()) return "";
+  return text;
+}
+
+export function profileFirstNameForGreeting(profile = {}) {
+  return cleanProfileNamePart(profile.firstName || profile.first_name).split(/\s+/).find(Boolean) || "";
+}
+
+export function profileGreetingName(profile = {}) {
+  const firstName = profileFirstNameForGreeting(profile);
+  if (firstName) return firstName;
+  if (profile.gender === "female") return "спортсменка";
+  return "спортсмен";
+}
 
 export const profileOptions = {
   gender: [
@@ -131,10 +174,89 @@ export function normalizeProfile(raw = {}) {
   };
 }
 
+function profileUserId() {
+  return currentUserId();
+}
+
+function pickQuestionnaireProfile(profile = {}) {
+  const normalized = normalizeProfile(profile);
+  return QUESTIONNAIRE_PROFILE_FIELDS.reduce((next, field) => {
+    next[field] = normalized[field];
+    return next;
+  }, {});
+}
+
+function meaningfulProfileValue(value) {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value === "number") return Number.isFinite(value);
+  return Boolean(value);
+}
+
+export function readPreAuthProfileDraft() {
+  if (typeof window === "undefined") return null;
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PROFILE_DRAFT_STORAGE_KEY) || "null");
+    if (!parsed || typeof parsed !== "object") return null;
+    return normalizeProfile(parsed);
+  } catch (_) {
+    return null;
+  }
+}
+
+export function savePreAuthProfileDraft(profile = {}) {
+  if (typeof window === "undefined") return null;
+  const draft = pickQuestionnaireProfile(profile);
+  localStorage.setItem(PROFILE_DRAFT_STORAGE_KEY, JSON.stringify({
+    ...draft,
+    savedAt: new Date().toISOString(),
+  }));
+  return draft;
+}
+
+export function clearPreAuthProfileDraft() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(PROFILE_DRAFT_STORAGE_KEY);
+}
+
+export function hasMeaningfulPreAuthProfileDraft(draft = readPreAuthProfileDraft()) {
+  if (!draft) return false;
+  return Boolean(draft.onboardingCompleted)
+    || ["gender", "goal", "experience", "trainingFrequency", "restrictions", "dietType", "age", "height", "weight"]
+      .some((field) => meaningfulProfileValue(draft[field]));
+}
+
+function serverFieldIsFilled(serverProfile = {}, field) {
+  if (!Object.prototype.hasOwnProperty.call(serverProfile || {}, field)) return false;
+  return meaningfulProfileValue(serverProfile[field]);
+}
+
+export function mergeProfileDraftWithServer(serverProfile = {}, draftProfile = {}) {
+  const server = normalizeProfile(serverProfile || {});
+  const draft = normalizeProfile(draftProfile || {});
+  const serverCompleted = Boolean(serverProfile?.onboardingCompleted || serverProfile?.onboarding_completed);
+  const merged = { ...server };
+
+  QUESTIONNAIRE_PROFILE_FIELDS.forEach((field) => {
+    if (field === "onboardingCompleted") {
+      merged.onboardingCompleted = serverCompleted || Boolean(draft.onboardingCompleted);
+      return;
+    }
+    if (serverCompleted && serverFieldIsFilled(serverProfile, field)) return;
+    if (serverFieldIsFilled(serverProfile, field)) return;
+    if (meaningfulProfileValue(draft[field])) merged[field] = draft[field];
+  });
+
+  return normalizeProfile(merged);
+}
+
 export function loadProfile() {
   if (typeof window === "undefined") return profileDefaults;
   try {
-    return normalizeProfile(JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY) || "null") || {});
+    const id = profileUserId();
+    if (!id) return normalizeProfile(readPreAuthProfileDraft() || {});
+    const cached = readUserCoreField("profile", id, null);
+    return normalizeProfile(cached || {});
   } catch (_) {
     return profileDefaults;
   }
@@ -143,7 +265,11 @@ export function loadProfile() {
 export function saveProfile(profile) {
   const withCalories = { ...profile, ...calculateMifflinCalories(profile) };
   const normalized = normalizeProfile(withCalories);
-  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(normalized));
+  if (profileUserId()) {
+    writeUserCoreField("profile", normalized);
+  } else {
+    savePreAuthProfileDraft(normalized);
+  }
   window.dispatchEvent(new CustomEvent("fruitfit:profile-updated", { detail: normalized }));
   return normalized;
 }
@@ -169,7 +295,7 @@ export function validateProfile(profile) {
 }
 
 export function profileSummary(profile) {
-  const gender = profile.gender === "male" ? "мужская" : "женская";
+  const gender = profile.gender === "male" ? "мужская" : profile.gender === "female" ? "женская" : "персональная";
   return `${gender} программа • ${profile.goal} • ${profile.trainingFrequency}`;
 }
 

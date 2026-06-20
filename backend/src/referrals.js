@@ -21,7 +21,14 @@ const CODE_WORDS = [
 
 referralsRouter.get("/me/code", requireUser, async (req, res) => {
   const code = await ensureReferralCodeForUser(req.user.id);
-  res.json({ referralCode: serializeReferralCode(code) });
+  const summary = await loadReferralSummary(req.user.id, code);
+  res.json(serializeReferralDashboard(code, summary));
+});
+
+referralsRouter.get("/me", requireUser, async (req, res) => {
+  const code = await ensureReferralCodeForUser(req.user.id);
+  const summary = await loadReferralSummary(req.user.id, code);
+  res.json(serializeReferralDashboard(code, summary));
 });
 
 referralsRouter.post("/apply", requireUser, async (req, res) => {
@@ -111,10 +118,15 @@ referralsRouter.post("/validate", async (req, res) => {
 
 export async function ensureReferralCodeForUser(userId) {
   const existing = await query(
-    `SELECT *
-     FROM referral_codes
-     WHERE owner_user_id = $1 AND kind = 'user_referral'
-     ORDER BY created_at ASC
+    `SELECT rc.*
+     FROM referral_codes rc
+     LEFT JOIN referral_uses ru ON ru.referral_code_id = rc.id
+     WHERE rc.owner_user_id = $1
+       AND (rc.kind = 'user_referral' OR rc.status = 'active')
+     GROUP BY rc.id
+     ORDER BY COUNT(ru.id) DESC,
+              CASE WHEN rc.kind = 'user_referral' THEN 0 ELSE 1 END,
+              rc.created_at ASC
      LIMIT 1`,
     [userId]
   );
@@ -133,10 +145,15 @@ export async function ensureReferralCodeForUser(userId) {
     } catch (error) {
       if (error.code === "23505") {
         const raced = await query(
-          `SELECT *
-           FROM referral_codes
-           WHERE owner_user_id = $1 AND kind = 'user_referral'
-           ORDER BY created_at ASC
+          `SELECT rc.*
+           FROM referral_codes rc
+           LEFT JOIN referral_uses ru ON ru.referral_code_id = rc.id
+           WHERE rc.owner_user_id = $1
+             AND (rc.kind = 'user_referral' OR rc.status = 'active')
+           GROUP BY rc.id
+           ORDER BY COUNT(ru.id) DESC,
+                    CASE WHEN rc.kind = 'user_referral' THEN 0 ELSE 1 END,
+                    rc.created_at ASC
            LIMIT 1`,
           [userId]
         );
@@ -148,6 +165,51 @@ export async function ensureReferralCodeForUser(userId) {
   }
 
   throw referralError(500, "Could not generate referral code", "REFERRAL_CODE_GENERATION_FAILED");
+}
+
+async function loadReferralSummary(userId, referralCode = null) {
+  const codeId = referralCode?.id || null;
+  const statsResult = await query(
+    `SELECT
+       COUNT(ru.id)::int AS invited_count,
+       COUNT(ru.id) FILTER (WHERE ru.status = 'qualified')::int AS paid_count,
+       COUNT(ru.id) FILTER (
+         WHERE COALESCE(ru.meta->>'bonus_granted', ru.meta->>'bonusGranted') = 'true'
+       )::int AS bonus_granted_count,
+       COALESCE(SUM(
+         CASE
+           WHEN COALESCE(ru.meta->>'bonus_granted', ru.meta->>'bonusGranted') = 'true'
+             THEN COALESCE(
+               CASE WHEN NULLIF(ru.meta->>'bonus_days', '') ~ '^[0-9]+$' THEN (ru.meta->>'bonus_days')::int END,
+               CASE WHEN NULLIF(ru.meta->>'bonusDays', '') ~ '^[0-9]+$' THEN (ru.meta->>'bonusDays')::int END,
+               CASE WHEN NULLIF(ru.meta->>'rewardDays', '') ~ '^[0-9]+$' THEN (ru.meta->>'rewardDays')::int END,
+               14
+             )
+           ELSE 0
+         END
+       ), 0)::int AS bonus_days_total,
+       MAX(COALESCE(ru.qualified_at, ru.updated_at, ru.applied_at)) FILTER (
+         WHERE COALESCE(ru.meta->>'bonus_granted', ru.meta->>'bonusGranted') = 'true'
+            OR ru.status = 'qualified'
+       ) AS last_bonus_at
+     FROM referral_uses ru
+     WHERE ru.referrer_user_id = $1
+       AND ($2::bigint IS NULL OR ru.referral_code_id = $2)`,
+    [userId, codeId]
+  );
+  const usesResult = await query(
+    `SELECT *
+     FROM referral_uses
+     WHERE referrer_user_id = $1
+       AND ($2::bigint IS NULL OR referral_code_id = $2)
+     ORDER BY COALESCE(qualified_at, updated_at, applied_at) DESC
+     LIMIT 50`,
+    [userId, codeId]
+  );
+  return {
+    stats: statsResult.rows[0] || {},
+    uses: usesResult.rows
+  };
 }
 
 export async function ensureReferralUseForPaymentSession(client, { session, promoCode = null, source = "payment_session" }) {
@@ -545,14 +607,72 @@ function bonusInfoForReferralCode(row = {}) {
   if (!row) return null;
   const rewardType = row.reward_type || null;
   const rewardValue = Number(row.reward_value || 0);
-  if (!rewardType || rewardValue <= 0) return null;
+  if (!rewardType || rewardValue <= 0) {
+    return {
+      days: 14,
+      rewardType: "access_days",
+      rewardValue: 14
+    };
+  }
   return {
+    days: rewardType === "access_days" || rewardType === "manual_bonus" ? rewardValue : 14,
     rewardType,
     rewardValue
   };
 }
 
+function serializeReferralDashboard(referralCode, summary = {}) {
+  const stats = summary.stats || {};
+  const invitedCount = Number(stats.invited_count || 0);
+  const paidCount = Number(stats.paid_count || 0);
+  const bonusGrantedCount = Number(stats.bonus_granted_count || 0);
+  const bonusDaysTotal = Number(stats.bonus_days_total || 0);
+  const referralUses = (summary.uses || []).map(serializeReferralUse);
+
+  return {
+    referralCode: serializeReferralCode(referralCode),
+    referral_code: referralCode?.code || null,
+    code: referralCode?.code || null,
+    invitedCount,
+    invited_count: invitedCount,
+    paidCount,
+    paid_count: paidCount,
+    bonusDaysTotal,
+    bonus_days_total: bonusDaysTotal,
+    lastBonusAt: toIso(stats.last_bonus_at),
+    last_bonus_at: toIso(stats.last_bonus_at),
+    bonusGranted: bonusGrantedCount > 0,
+    bonus_granted: bonusGrantedCount > 0,
+    bonusInfo: {
+      ...bonusInfoForReferralCode(referralCode),
+      days: 14,
+      totalDays: bonusDaysTotal
+    },
+    stats: {
+      invitedCount,
+      invited_count: invitedCount,
+      referralsCount: invitedCount,
+      paidCount,
+      paid_count: paidCount,
+      paymentsCount: paidCount,
+      qualifiedCount: paidCount,
+      bonusGrantedCount,
+      bonus_granted_count: bonusGrantedCount,
+      bonusDaysTotal,
+      bonus_days_total: bonusDaysTotal,
+      lastBonusAt: toIso(stats.last_bonus_at),
+      last_bonus_at: toIso(stats.last_bonus_at)
+    },
+    referralUses,
+    referral_uses: referralUses
+  };
+}
+
 function serializeReferralUse(row = {}) {
+  const discountApplied = Number(row.discount_amount || 0) > 0
+    || boolMeta(row.meta?.discountApplied)
+    || boolMeta(row.meta?.discount_applied);
+  const bonusGranted = boolMeta(row.meta?.bonusGranted) || boolMeta(row.meta?.bonus_granted);
   return {
     id: row.id ? Number(row.id) : null,
     referralCodeId: row.referral_code_id ? Number(row.referral_code_id) : null,
@@ -566,10 +686,19 @@ function serializeReferralUse(row = {}) {
     discountType: row.discount_type,
     discountValue: Number(row.discount_value || 0),
     discountAmount: Number(row.discount_amount || 0),
+    discountApplied,
+    discount_applied: discountApplied,
+    bonusGranted,
+    bonus_granted: bonusGranted,
     status: row.status,
     appliedAt: toIso(row.applied_at),
     qualifiedAt: toIso(row.qualified_at)
   };
+}
+
+function boolMeta(value) {
+  if (value === true) return true;
+  return String(value || "").toLowerCase() === "true";
 }
 
 function toIso(value) {

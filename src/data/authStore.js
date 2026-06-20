@@ -3,6 +3,10 @@ const TOKEN_KEY = "fruitfit.authToken";
 const ACCESS_KEY = "fruitfit.accessState";
 const PROGRAM_ASSIGNMENT_KEY = "fruitfit.programAssignment";
 import { deleteJson, getJson, postJson, putJson } from "../services/nativeHttp";
+import { clearCurrentUserContainers, readUserCoreField, writeUserCoreField } from "./dataContainers";
+import { resetStaleWorkoutState, serverCurrentWorkoutFromAssignment } from "./dataAccess";
+import { clearPreAuthProfileDraft, hasMeaningfulPreAuthProfileDraft, mergeProfileDraftWithServer, normalizeProfile, readPreAuthProfileDraft } from "./profileStore";
+import { clearSensitiveInMemoryState, currentUserId, removeLegacySensitiveCache } from "./userScopedCache";
 
 const API_BASE_URL = String(import.meta.env.VITE_FRUITFIT_API_URL || "https://api.tagirfruit.ru").replace(/\/$/, "");
 
@@ -22,7 +26,7 @@ export function loadAuthUser() {
 export function loadAccessState() {
   if (typeof window === "undefined") return null;
   try {
-    return JSON.parse(localStorage.getItem(ACCESS_KEY) || "null");
+    return readUserCoreField("accessState", currentUserId(), null);
   } catch (_) {
     return null;
   }
@@ -31,20 +35,182 @@ export function loadAccessState() {
 export function loadProgramAssignment() {
   if (typeof window === "undefined") return null;
   try {
-    return JSON.parse(localStorage.getItem(PROGRAM_ASSIGNMENT_KEY) || "null");
+    return readUserCoreField("programAssignment", currentUserId(), null);
   } catch (_) {
     return null;
   }
 }
 
+function cleanProgramId(value) {
+  return String(value || "").trim();
+}
+
+function programIdFromAssignment(assignment = null) {
+  return cleanProgramId(assignment?.programId || assignment?.program_id || assignment?.id);
+}
+
+function assignmentTitle(assignment = null) {
+  return assignment?.programTitle || assignment?.program_title || assignment?.title || null;
+}
+
+function accessMeta(access = null) {
+  return access?.meta && typeof access.meta === "object" ? access.meta : {};
+}
+
+function assignmentMeta(assignment = null) {
+  return assignment?.meta && typeof assignment.meta === "object" ? assignment.meta : {};
+}
+
+function cycleNumberFrom(access = null, assignment = null) {
+  const meta = { ...accessMeta(access), ...assignmentMeta(assignment) };
+  const value = meta.subscriptionCycleNumber
+    || meta.subscription_cycle_number
+    || meta.cycleNumber
+    || meta.cycle_number
+    || meta.cycle
+    || assignment?.subscriptionCycleNumber
+    || assignment?.subscription_cycle_number;
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? Math.round(number) : null;
+}
+
+function deliveryModeFrom(access = null, assignment = null) {
+  const meta = { ...accessMeta(access), ...assignmentMeta(assignment) };
+  const explicit = assignment?.deliveryMode
+    || assignment?.delivery_mode
+    || meta.deliveryMode
+    || meta.delivery_mode
+    || meta.lastDeliveryMode
+    || meta.last_delivery_mode;
+  const value = String(explicit || "").trim();
+  if (value) return value;
+  const cycleNumber = cycleNumberFrom(access, assignment);
+  if (cycleNumber === 1) return "first_half";
+  if (cycleNumber === 2) return "second_half";
+  if (cycleNumber && cycleNumber >= 3) return "replacement_cycle";
+  return "";
+}
+
+function canReplaceProgram(deliveryMode = "", cycleNumber = null) {
+  const mode = String(deliveryMode || "").trim();
+  return mode === "replacement_cycle" || mode === "fresh_program" || (cycleNumber != null && cycleNumber >= 3);
+}
+
+function readProgramCycleFallbacks(previous = null) {
+  const paidProgramLock = readUserCoreField("paidProgramLock", currentUserId(), null) || {};
+  return [
+    readUserCoreField("baseProgramId", currentUserId(), ""),
+    cleanProgramId(paidProgramLock.programId || paidProgramLock.program_id),
+    programIdFromAssignment(previous),
+  ].map(cleanProgramId).filter(Boolean);
+}
+
+function readHardBaseProgramId() {
+  const paidProgramLock = readUserCoreField("paidProgramLock", currentUserId(), null) || {};
+  return [
+    readUserCoreField("baseProgramId", currentUserId(), ""),
+    cleanProgramId(paidProgramLock.programId || paidProgramLock.program_id),
+  ].map(cleanProgramId).find(Boolean) || "";
+}
+
+function normalizeProgramAssignmentForCycle(assignment = null, { previous = loadProgramAssignment(), access = loadAccessState() } = {}) {
+  if (!assignment) return null;
+  const incomingProgramId = programIdFromAssignment(assignment);
+  if (!incomingProgramId) return assignment;
+
+  const cycleNumber = cycleNumberFrom(access, assignment);
+  const deliveryMode = deliveryModeFrom(access, assignment);
+  const fallbackBaseProgramId = readProgramCycleFallbacks(previous)[0] || "";
+  const hardBaseProgramId = readHardBaseProgramId();
+  const preservePendingCycleBase = !deliveryMode && cycleNumber == null && hardBaseProgramId && incomingProgramId !== hardBaseProgramId;
+  const isSecondCycle = deliveryMode === "second_half" || cycleNumber === 2;
+  const isFirstCycle = deliveryMode === "first_half" || cycleNumber === 1;
+  const replaceAllowed = canReplaceProgram(deliveryMode, cycleNumber);
+  const baseProgramId = isSecondCycle
+    ? (fallbackBaseProgramId || incomingProgramId)
+    : (replaceAllowed || isFirstCycle ? incomingProgramId : (fallbackBaseProgramId || incomingProgramId));
+  const effectiveProgramId = (isSecondCycle || preservePendingCycleBase) && baseProgramId ? baseProgramId : incomingProgramId;
+  const previousTitle = programIdFromAssignment(previous) === effectiveProgramId ? assignmentTitle(previous) : null;
+  const title = previousTitle || assignmentTitle(assignment);
+  const originalProgramId = incomingProgramId !== effectiveProgramId ? incomingProgramId : (assignment.originalProgramId || assignment.original_program_id || null);
+  const nowIso = new Date().toISOString();
+  const normalizedMeta = {
+    ...assignmentMeta(assignment),
+    baseProgramId,
+    deliveryMode,
+    delivery_mode: deliveryMode,
+    subscriptionCycleNumber: cycleNumber,
+    clientCycleGuard: true,
+    normalizedAt: nowIso,
+    ...(originalProgramId ? { clientOriginalProgramId: originalProgramId } : {}),
+  };
+  const normalized = {
+    ...assignment,
+    programId: effectiveProgramId,
+    program_id: effectiveProgramId,
+    programTitle: title,
+    deliveryMode,
+    delivery_mode: deliveryMode,
+    baseProgramId,
+    subscriptionCycleNumber: cycleNumber,
+    meta: normalizedMeta,
+  };
+
+  if (baseProgramId) {
+    writeUserCoreField("baseProgramId", baseProgramId);
+  }
+  if (incomingProgramId !== effectiveProgramId) {
+    console.info("[FruitFit Program] PROGRAM_ASSIGNMENT_CYCLE_GUARD", {
+      cycleNumber,
+      deliveryMode,
+      incomingProgramId,
+      baseProgramId,
+      effectiveProgramId,
+    });
+  }
+  return normalized;
+}
+
+function assignmentFromProgramAssignmentResponse(data = {}) {
+  const payload = data && typeof data === "object" ? data : {};
+  const assignment = payload.assignment
+    || payload.programAssignment
+    || payload.program_assignment
+    || (payload.programId || payload.program_id ? payload : null);
+  if (!assignment || typeof assignment !== "object") return assignment;
+  const currentWorkout = payload.currentWorkout
+    || payload.current_workout
+    || payload.todayWorkout
+    || payload.today_workout
+    || payload.activeWorkout
+    || payload.active_workout
+    || null;
+  if (!currentWorkout || assignment.currentWorkout || assignment.current_workout) return assignment;
+  return { ...assignment, currentWorkout };
+}
+
 export function saveAuthUser(user) {
+  const previous = loadAuthUser();
   if (!user) {
+    const id = currentUserId();
+    if (id) clearCurrentUserContainers(id);
     localStorage.removeItem(AUTH_KEY);
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(PROGRAM_ASSIGNMENT_KEY);
+    removeLegacySensitiveCache();
+    clearSensitiveInMemoryState();
   } else {
+    const previousId = String(previous?.id || previous?.userId || previous?.user_id || "").trim();
+    const nextId = String(user?.id || user?.userId || user?.user_id || "").trim();
+    const switched = Boolean(previousId && nextId && previousId !== nextId);
+    if (switched) {
+      console.info("[FruitFit cache] LOGIN_USER_SWITCH_DETECTED", { previousUserId: previousId, currentUserId: nextId });
+    }
+    removeLegacySensitiveCache();
     localStorage.setItem(AUTH_KEY, JSON.stringify({ ...user, updatedAt: new Date().toISOString() }));
+    if (nextId) resetStaleWorkoutState({ userId: nextId, reason: "login" });
+    if (switched) clearSensitiveInMemoryState();
   }
   window.dispatchEvent(new CustomEvent("fruitfit:auth-updated", { detail: user }));
   if (!user) window.dispatchEvent(new CustomEvent("fruitfit:access-updated", { detail: null }));
@@ -55,21 +221,80 @@ export function saveAuthUser(user) {
 export function saveAccessState(access) {
   if (!access) {
     localStorage.removeItem(ACCESS_KEY);
+    writeUserCoreField("accessState", null);
   } else {
-    localStorage.setItem(ACCESS_KEY, JSON.stringify({ ...access, updatedAt: new Date().toISOString() }));
+    writeUserCoreField("accessState", { ...access, updatedAt: new Date().toISOString() });
+    const currentAssignment = loadProgramAssignment();
+    if (currentAssignment) {
+      saveProgramAssignment(currentAssignment, { access });
+    }
   }
   window.dispatchEvent(new CustomEvent("fruitfit:access-updated", { detail: access }));
   return access;
 }
 
-export function saveProgramAssignment(assignment) {
+export function saveProgramAssignment(assignment, options = {}) {
+  const previous = loadProgramAssignment();
+  const normalizedAssignment = normalizeProgramAssignmentForCycle(assignment, { previous, access: options.access || loadAccessState() });
   if (!assignment) {
     localStorage.removeItem(PROGRAM_ASSIGNMENT_KEY);
+    resetStaleWorkoutState({ reason: "program-assignment-empty" });
+    writeUserCoreField("programAssignment", null);
+    writeUserCoreField("currentWorkout", null);
   } else {
-    localStorage.setItem(PROGRAM_ASSIGNMENT_KEY, JSON.stringify({ ...assignment, updatedAt: new Date().toISOString() }));
+    const previousProgramId = String(previous?.programId || previous?.program_id || "").trim();
+    const previousDeliveryMode = deliveryModeFrom(null, previous);
+    const nextDeliveryMode = deliveryModeFrom(null, normalizedAssignment);
+    resetStaleWorkoutState({ reason: "program-assignment-update" });
+    const serverWorkout = serverCurrentWorkoutFromAssignment(normalizedAssignment);
+    const serverWorkoutProgramId = cleanProgramId(serverWorkout?.programId || serverWorkout?.program_id);
+    const normalizedProgramId = cleanProgramId(normalizedAssignment?.programId || normalizedAssignment?.program_id);
+    const shouldUseServerWorkoutProgram = Boolean(serverWorkoutProgramId && serverWorkoutProgramId !== normalizedProgramId);
+    const assignmentToStore = shouldUseServerWorkoutProgram
+      ? {
+        ...normalizedAssignment,
+        programId: serverWorkoutProgramId,
+        program_id: serverWorkoutProgramId,
+        baseProgramId: serverWorkoutProgramId,
+        meta: {
+          ...(normalizedAssignment.meta || {}),
+          baseProgramId: serverWorkoutProgramId,
+          serverWorkoutProgramId,
+          clientProgramIdSyncedFromCurrentWorkout: true,
+          previousClientProgramId: normalizedProgramId || null,
+        },
+      }
+      : normalizedAssignment;
+    const nextProgramId = String(assignmentToStore?.programId || assignmentToStore?.program_id || "").trim();
+    if (shouldUseServerWorkoutProgram) {
+      writeUserCoreField("baseProgramId", serverWorkoutProgramId);
+      console.info("[FruitFit currentWorkout] SERVER_WORKOUT", {
+        source: "program-id-sync-from-current-workout",
+        previousProgramId: normalizedProgramId || null,
+        serverWorkoutProgramId,
+        workoutId: serverWorkout?.workoutId || null,
+        title: serverWorkout?.title || null,
+      });
+    }
+    writeUserCoreField("programAssignment", { ...assignmentToStore, updatedAt: new Date().toISOString() });
+    writeUserCoreField("currentWorkout", serverWorkout);
+    console.info("[FruitFit currentWorkout] SERVER_WORKOUT", {
+      source: "/api/me/program-assignment",
+      programId: nextProgramId || null,
+      workoutId: serverWorkout?.workoutId || null,
+      title: serverWorkout?.title || null,
+      deliveryMode: nextDeliveryMode || null,
+    });
+    console.info("[FruitFit currentWorkout] CACHE_WORKOUT", {
+      action: serverWorkout ? "overwrite_server_value" : "clear_stale_value",
+      previousProgramId: previousProgramId || null,
+      nextProgramId: nextProgramId || null,
+      deliveryModeChanged: previousDeliveryMode !== nextDeliveryMode,
+    });
   }
-  window.dispatchEvent(new CustomEvent("fruitfit:program-assignment-updated", { detail: assignment || null }));
-  return assignment || null;
+  const savedAssignment = assignment ? loadProgramAssignment() : null;
+  window.dispatchEvent(new CustomEvent("fruitfit:program-assignment-updated", { detail: savedAssignment || null }));
+  return savedAssignment || null;
 }
 
 export function setAuthToken(token) {
@@ -103,7 +328,10 @@ export async function fetchMe() {
       return null;
     }
     const data = res.data || {};
-    if (data.user) return saveAuthUser(data.user);
+    const savedUser = data.user ? saveAuthUser(data.user) : null;
+    if (data.programAssignment) saveProgramAssignment(data.programAssignment);
+    if (data.profile) writeUserCoreField("profile", data.profile);
+    if (savedUser) return savedUser;
   } catch (err) {
     console.error("[FruitFit Auth] fetchMe failed", err);
   }
@@ -151,6 +379,58 @@ export async function saveServerProfile(profile) {
     console.error("[FruitFit Auth] saveServerProfile failed", err);
   }
   return null;
+}
+
+function profilesEqualForTransfer(left = {}, right = {}) {
+  const a = normalizeProfile(left);
+  const b = normalizeProfile(right);
+  return [
+    "firstName",
+    "lastName",
+    "gender",
+    "age",
+    "height",
+    "weight",
+    "goal",
+    "experience",
+    "trainingFrequency",
+    "restrictions",
+    "dietType",
+    "calculatedCalories",
+    "recommendedCaloriesTarget",
+    "onboardingCompleted",
+  ].every((field) => String(a[field] ?? "") === String(b[field] ?? ""));
+}
+
+export async function transferPreAuthProfileDraft({ reason = "auth" } = {}) {
+  const draft = readPreAuthProfileDraft();
+  if (!hasMeaningfulPreAuthProfileDraft(draft) || !getAuthToken()) return { transferred: false, reason: "no_draft" };
+
+  const serverProfile = await fetchProfile();
+  const mergedProfile = mergeProfileDraftWithServer(serverProfile || {}, draft);
+  if (serverProfile && profilesEqualForTransfer(serverProfile, mergedProfile)) {
+    writeUserCoreField("profile", normalizeProfile(serverProfile));
+    return { transferred: false, reason: "server_profile_already_filled", profile: normalizeProfile(serverProfile) };
+  }
+
+  const savedProfile = await saveServerProfile(mergedProfile);
+  if (!savedProfile) return { transferred: false, reason: "backend_save_failed" };
+
+  const normalizedSaved = normalizeProfile(savedProfile);
+  writeUserCoreField("profile", normalizedSaved);
+  clearPreAuthProfileDraft();
+  resetStaleWorkoutState({ reason: `preauth-profile-transfer-${reason}` });
+  saveProgramAssignment(null);
+  const [user, assignment] = await Promise.all([
+    fetchMe(),
+    fetchProgramAssignment(),
+  ]);
+  console.info("[FruitFit Profile] PRE_AUTH_PROFILE_DRAFT_TRANSFERRED", {
+    reason,
+    userId: String(user?.id || user?.userId || user?.user_id || currentUserId() || "").trim() || null,
+    assignmentProgramId: assignment?.programId || assignment?.program_id || null,
+  });
+  return { transferred: true, profile: normalizedSaved, assignment, user };
 }
 
 export async function fetchMeasurements() {
@@ -225,16 +505,51 @@ export async function fetchPaymentSubscription() {
       cache: "no-store"
     });
     if (!res.ok) return null;
-    return res.data?.subscription || null;
+    return normalizePaymentSubscription(res.data);
   } catch (err) {
     console.error("[FruitFit Auth] fetchPaymentSubscription failed", err);
   }
   return null;
 }
 
-export async function cancelPaymentSubscription(reason = "client_request") {
+export async function fetchPaymentSubscriptionCancelUrl() {
   if (!getAuthToken()) {
     throw new Error("Для отмены подписки нужно войти в аккаунт.");
+  }
+  const res = await getJson(apiUrl("/api/payments/subscription/cancel-url"), {
+    credentials: "include",
+    headers: authHeaders(),
+    cache: "no-store"
+  });
+  if (!res.ok) {
+    if (res.status === 401) {
+      saveAuthUser(null);
+      throw new Error("Сессия истекла. Войдите снова, чтобы отменить подписку.");
+    }
+    if (res.status === 404) {
+      return {
+        subscription: null,
+        canCancel: false,
+        can_cancel: false,
+        message: "Активная подписка не найдена."
+      };
+    }
+    throw new Error(res.data?.error || res.data?.message || "Не удалось проверить статус подписки");
+  }
+  return normalizeSubscriptionCancelInfo(res.data);
+}
+
+export async function cancelPaymentSubscription(reason = "client_request", preflightCancelInfo = null) {
+  if (!getAuthToken()) {
+    throw new Error("Для отмены подписки нужно войти в аккаунт.");
+  }
+  const cancelInfo = preflightCancelInfo || await fetchPaymentSubscriptionCancelUrl();
+  if (cancelInfo && cancelInfo.canCancel === false) {
+    return {
+      ...cancelInfo,
+      skipped: true,
+      subscription: cancelInfo.subscription || null
+    };
   }
   const res = await postJson(apiUrl("/api/payments/subscription/cancel"), {
     reason
@@ -249,7 +564,85 @@ export async function cancelPaymentSubscription(reason = "client_request") {
     }
     throw new Error(res.data?.error || res.data?.message || "Не удалось отменить подписку");
   }
-  return res.data || { subscription: null };
+  const payload = normalizeSubscriptionCancelInfo(res.data);
+  return {
+    ...payload,
+    cancelInfo,
+    subscription: payload.subscription || normalizePaymentSubscription(res.data),
+    robokassaUnsubscribeUrl: payload.robokassaUnsubscribeUrl || cancelInfo?.robokassaUnsubscribeUrl || "",
+    robokassa_unsubscribe_url: payload.robokassaUnsubscribeUrl || cancelInfo?.robokassaUnsubscribeUrl || ""
+  };
+}
+
+function normalizePaymentSubscription(payload = null) {
+  const raw = payload?.subscription || payload;
+  if (!raw || typeof raw !== "object") return null;
+  const status = String(raw.status || "").toLowerCase();
+  if (!status || status === "none") return null;
+  const nextPaymentDate = raw.nextPaymentDate || raw.next_payment_date || raw.nextChargeAt || raw.recurringNextChargeAt || null;
+  const paidUntil = raw.paidUntil || raw.paid_until || raw.accessUntil || raw.access_expires_at || null;
+  const canCancel = raw.canCancel ?? raw.can_cancel ?? Boolean(["active", "pending", "past_due"].includes(status) && nextPaymentDate);
+  const cancelMode = raw.cancelMode || raw.cancel_mode || "";
+  const externalCancelRequired = raw.externalCancelRequired ?? raw.external_cancel_required ?? false;
+  const robokassaUnsubscribeUrl = raw.robokassaUnsubscribeUrl
+    || raw.robokassa_unsubscribe_url
+    || raw.cancelUrl
+    || raw.cancel_url
+    || raw.url
+    || "";
+  return {
+    ...raw,
+    status: raw.status || status,
+    recurringEnabled: raw.recurringEnabled ?? raw.recurring_enabled ?? Boolean(["active", "pending", "past_due"].includes(status) && nextPaymentDate),
+    canCancel: Boolean(canCancel),
+    can_cancel: Boolean(canCancel),
+    nextPaymentDate,
+    next_payment_date: raw.next_payment_date || nextPaymentDate,
+    nextChargeAt: raw.nextChargeAt || nextPaymentDate,
+    paidUntil,
+    paid_until: raw.paid_until || paidUntil,
+    cancelledAt: raw.cancelledAt || raw.cancelled_at || null,
+    cancelled_at: raw.cancelled_at || raw.cancelledAt || null,
+    cancelMode,
+    cancel_mode: cancelMode,
+    externalCancelRequired: Boolean(externalCancelRequired),
+    external_cancel_required: Boolean(externalCancelRequired),
+    cancelUrlAvailable: Boolean(raw.cancelUrlAvailable ?? raw.cancel_url_available ?? robokassaUnsubscribeUrl),
+    cancel_url_available: Boolean(raw.cancel_url_available ?? raw.cancelUrlAvailable ?? robokassaUnsubscribeUrl),
+    robokassaUnsubscribeUrl,
+    robokassa_unsubscribe_url: robokassaUnsubscribeUrl,
+    periodDays: raw.periodDays || raw.period_days || null,
+    amount: Number(raw.amount || 0)
+  };
+}
+
+function normalizeSubscriptionCancelInfo(payload = null) {
+  const subscription = normalizePaymentSubscription(payload);
+  const raw = payload && typeof payload === "object" ? payload : {};
+  const robokassaUnsubscribeUrl = raw.robokassaUnsubscribeUrl
+    || raw.robokassa_unsubscribe_url
+    || raw.cancelUrl
+    || raw.cancel_url
+    || subscription?.robokassaUnsubscribeUrl
+    || "";
+  const canCancel = raw.canCancel ?? raw.can_cancel ?? subscription?.canCancel ?? false;
+  const cancelMode = raw.cancelMode || raw.cancel_mode || subscription?.cancelMode || "";
+  const externalCancelRequired = raw.externalCancelRequired ?? raw.external_cancel_required ?? subscription?.externalCancelRequired ?? false;
+  return {
+    ...raw,
+    subscription,
+    canCancel: Boolean(canCancel),
+    can_cancel: Boolean(canCancel),
+    cancelMode,
+    cancel_mode: cancelMode,
+    externalCancelRequired: Boolean(externalCancelRequired),
+    external_cancel_required: Boolean(externalCancelRequired),
+    robokassaUnsubscribeUrl,
+    robokassa_unsubscribe_url: robokassaUnsubscribeUrl,
+    paidUntil: raw.paidUntil || raw.paid_until || subscription?.paidUntil || null,
+    paid_until: raw.paid_until || raw.paidUntil || subscription?.paidUntil || null,
+    message: raw.message || ""
+  };
 }
 
 export async function fetchReferralInfo() {
@@ -317,7 +710,7 @@ export async function fetchProgramAssignment() {
       if (res.status === 401) saveAuthUser(null);
       return null;
     }
-    return saveProgramAssignment(res.data?.assignment || null);
+    return saveProgramAssignment(assignmentFromProgramAssignmentResponse(res.data || {}));
   } catch (err) {
     console.error("[FruitFit Auth] fetchProgramAssignment failed", err);
   }

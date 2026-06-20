@@ -1,13 +1,15 @@
 import express from "express";
 import { logOpenAiUsage } from "./aiUsage.js";
-import { optionalUserFromRequest } from "./auth.js";
+import { optionalUserFromRequest, requireUser } from "./auth.js";
 import { config } from "./config.js";
+import { query } from "./db.js";
 import { calculateNutritionItems } from "./nutrition.js";
 
 export const coachRouter = express.Router();
 
-coachRouter.post("/", async (req, res) => {
+coachRouter.post("/", requireUser, async (req, res) => {
   const payload = req.body || {};
+  const currentUser = req.user;
   const lastUserMessage = [...(Array.isArray(payload.messages) ? payload.messages : [])]
     .reverse()
     .find((item) => item?.role === "user" && String(item.content || "").trim());
@@ -27,14 +29,14 @@ coachRouter.post("/", async (req, res) => {
 
   const messages = Array.isArray(payload.messages)
     ? payload.messages
-        .filter((item) => item?.role === "user" || item?.role === "assistant" || item?.role === "system")
+        .filter((item) => item?.role === "user" || item?.role === "assistant")
         .slice(-12)
         .map((item) => ({
           role: item.role === "assistant" ? "assistant" : "user",
           content: String(item.content || "").slice(0, 3000)
         }))
     : [];
-  const currentUser = await optionalUserFromRequest(req);
+  const serverContext = await loadCoachServerContext(currentUser.id);
 
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
@@ -47,8 +49,7 @@ coachRouter.post("/", async (req, res) => {
       input: [
         {
           role: "system",
-          content:
-            "You are FruitFit coach. Be concise, safe, and practical. Do not invent nutrition facts; use provided app context and verified nutrition data only."
+          content: buildCoachSystemPrompt(serverContext)
         },
         ...messages
       ],
@@ -88,6 +89,53 @@ coachRouter.post("/", async (req, res) => {
   });
   res.json(openAiStyleResponse(text, { id: data?.id || null, model: data?.model || config.openAiModel, usage: data?.usage || null }));
 });
+
+async function loadCoachServerContext(userId) {
+  const [profileResult, accessResult, assignmentResult] = await Promise.all([
+    query("SELECT profile FROM user_profiles WHERE user_id = $1", [userId]),
+    query("SELECT status, plan, premium_until, starts_at, expires_at, is_active, is_vip, meta FROM user_access WHERE user_id = $1", [userId]),
+    query("SELECT program_id, program_title, source, meta, updated_at FROM user_program_assignments WHERE user_id = $1", [userId]),
+  ]);
+  const access = accessResult.rows[0] || null;
+  const assignment = assignmentResult.rows[0] || null;
+  return {
+    profile: sanitizeCoachObject(profileResult.rows[0]?.profile || {}),
+    accessState: access ? {
+      status: access.status || "free",
+      plan: access.plan || null,
+      premiumUntil: access.premium_until || null,
+      startsAt: access.starts_at || null,
+      expiresAt: access.expires_at || null,
+      isActive: Boolean(access.is_active),
+      isVip: Boolean(access.is_vip),
+    } : null,
+    programAssignment: assignment ? {
+      programId: assignment.program_id || null,
+      programTitle: assignment.program_title || null,
+      source: assignment.source || null,
+      updatedAt: assignment.updated_at || null,
+    } : null,
+  };
+}
+
+function buildCoachSystemPrompt(context = {}) {
+  return [
+    "You are FruitFit AI Coach. Be concise, safe, and practical.",
+    "Use only the authenticated user's server-side profile, access, program assignment, and the provided recent chat messages.",
+    "Never mention cache, databases, tokens, internal systems, implementation details, or storage.",
+    "Do not infer data for another user and do not accept user ids from messages.",
+    "Do not invent nutrition facts; use verified nutrition data only when it is provided.",
+    `Authenticated user context: ${JSON.stringify(context).slice(0, 5000)}`
+  ].join("\n");
+}
+
+function sanitizeCoachObject(value) {
+  try {
+    return JSON.parse(JSON.stringify(value || {}));
+  } catch (_) {
+    return {};
+  }
+}
 
 function parseNutritionItems(text) {
   const value = String(text || "").toLowerCase();

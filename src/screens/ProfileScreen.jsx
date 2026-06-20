@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Camera, CheckCircle2, ChevronDown, Copy, CreditCard, Gift, Settings, Share2, Watch, X } from "lucide-react";
 import BottomNavigation from "../components/BottomNavigation";
 import CustomSelect from "../components/CustomSelect";
 import { useHealth } from "../data/healthStore";
-import { normalizeProfile, profileOptions, profileSummary, saveProfile, validateProfile } from "../data/profileStore";
-import { cancelPaymentSubscription, createPaymentSession, fetchAccess, fetchMeasurements, fetchPaymentSubscription, fetchReferralInfo, getAuthToken, loadAuthUser, saveMeasurement, saveServerProfile } from "../data/authStore";
+import { PROFILE_FIRST_NAME_PLACEHOLDER, PROFILE_LAST_NAME_PLACEHOLDER, normalizeProfile, profileOptions, profileSummary, saveProfile, validateProfile } from "../data/profileStore";
+import { cancelPaymentSubscription, createPaymentSession, fetchAccess, fetchMeasurements, fetchPaymentSubscription, fetchPaymentSubscriptionCancelUrl, fetchReferralInfo, getAuthToken, loadAuthUser, saveMeasurement, saveServerProfile } from "../data/authStore";
 import { accessTier } from "../data/accessRules";
+import { readUserCoreField, writeUserCoreField } from "../data/dataContainers";
+import { currentUserId } from "../data/userScopedCache";
 import { healthProviderStates, healthSourceShortcuts, openHealthSource } from "../services/health/healthProvider";
 
 const MEASUREMENTS_KEY = "fruitfit.measurements";
@@ -28,9 +30,14 @@ function validAvatarDataUrl(value) {
   return text.startsWith("data:image/") ? text : "";
 }
 
+function userIdFrom(user) {
+  return String(user?.id || user?.userId || user?.user_id || currentUserId() || "").trim();
+}
+
 function loadAvatar(profile = {}, user = null) {
-  if (typeof window === "undefined") return validAvatarDataUrl(profile?.avatar);
-  return validAvatarDataUrl(localStorage.getItem(AVATAR_STORAGE_KEY))
+  const id = userIdFrom(user);
+  if (typeof window === "undefined" || !id) return validAvatarDataUrl(profile?.avatar);
+  return validAvatarDataUrl(readUserCoreField("avatar", id, ""))
     || validAvatarDataUrl(profile?.avatar)
     || validAvatarDataUrl(user?.profile?.avatar)
     || validAvatarDataUrl(user?.avatar)
@@ -74,8 +81,7 @@ async function compressAvatar(file) {
 
 function persistAvatarLocally(dataUrl) {
   try {
-    localStorage.setItem(AVATAR_STORAGE_KEY, dataUrl);
-    return true;
+    return Boolean(writeUserCoreField("avatar", dataUrl));
   } catch (error) {
     console.warn("[FruitFit Profile] avatar local save failed", error);
     return false;
@@ -156,6 +162,32 @@ function paymentPageUrl(sessionId) {
   return url.toString();
 }
 
+async function openExternalUrl(url) {
+  const target = String(url || "").trim();
+  if (!target) return false;
+  try {
+    const browser = window.Capacitor?.Plugins?.Browser;
+    if (browser?.open) {
+      await browser.open({ url: target });
+      return true;
+    }
+  } catch (_) {
+    // Fall through to web/native window open.
+  }
+  try {
+    const app = window.Capacitor?.Plugins?.App;
+    if (app?.openUrl) {
+      await app.openUrl({ url: target });
+      return true;
+    }
+  } catch (_) {
+    // Fall through to window open.
+  }
+  const opened = window.open(target, "_blank", "noopener,noreferrer");
+  if (!opened) window.location.href = target;
+  return true;
+}
+
 function subscriptionIsActive(subscription = null) {
   const status = String(subscription?.status || "").toLowerCase();
   return Boolean(subscription?.recurringEnabled || status === "active" || status === "pending");
@@ -186,7 +218,7 @@ function subscriptionLine(subscription = null, loaded = false) {
 
 const stepSourceOptionsBase = [
   { value: "", label: "Auto", hint: "Health Connect aggregate total" },
-  { value: "com.google.android.apps.fitness", label: "Google Fit", hint: "Diagnostics only; dashboard uses aggregate" },
+  { value: "com.google.android.apps.fitness", label: "Google Fit", hint: "Use Google Fit when selected" },
   { value: "android", label: "Android / phone", hint: "Системный источник телефона" },
   { value: "com.xiaomi.wearable", label: "Mi Fitness", hint: "Использовать только если вы доверяете Mi Fitness" },
   { value: "zepp", label: "Zepp / Amazfit", hint: "Для Amazfit / Zepp" },
@@ -262,14 +294,14 @@ function TextField({ label, value, error, onChange, placeholder = "" }) {
 
 function loadMeasurements() {
   try {
-    return JSON.parse(localStorage.getItem(MEASUREMENTS_KEY) || "[]");
+    return readUserCoreField("measurements", currentUserId(), []);
   } catch (_) {
     return [];
   }
 }
 
 function saveMeasurements(items) {
-  localStorage.setItem(MEASUREMENTS_KEY, JSON.stringify(items));
+  writeUserCoreField("measurements", Array.isArray(items) ? items : []);
 }
 
 function dateFromMeasurement(value) {
@@ -459,6 +491,19 @@ function MeasurementsSection() {
   useEffect(() => saveMeasurements(items), [items]);
 
   useEffect(() => {
+    function syncLocalMeasurements(event) {
+      const source = Array.isArray(event?.detail) ? event.detail : loadMeasurements();
+      setItems(mergeMeasurements(source));
+    }
+    window.addEventListener("fruitfit:measurements-updated", syncLocalMeasurements);
+    window.addEventListener("fruitfit:auth-updated", syncLocalMeasurements);
+    return () => {
+      window.removeEventListener("fruitfit:measurements-updated", syncLocalMeasurements);
+      window.removeEventListener("fruitfit:auth-updated", syncLocalMeasurements);
+    };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     async function loadServerMeasurements() {
       if (!getAuthToken() && !loadAuthUser()) return;
@@ -586,6 +631,81 @@ function accessExpiryDate(access = {}) {
   return access?.expiresAt || access?.expires_at || access?.premiumUntil || access?.premium_until || access?.validUntil || access?.valid_until || null;
 }
 
+function accessStartDate(access = {}) {
+  return (
+    access?.startsAt
+    || access?.starts_at
+    || access?.startedAt
+    || access?.started_at
+    || access?.activatedAt
+    || access?.activated_at
+    || access?.createdAt
+    || access?.created_at
+    || access?.meta?.startsAt
+    || access?.meta?.starts_at
+    || access?.meta?.startedAt
+    || access?.meta?.started_at
+    || null
+  );
+}
+
+function parseDateMs(value) {
+  if (!value) return null;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : null;
+}
+
+function firstAccessNumber(...values) {
+  for (const value of values) {
+    if (value === null || value === undefined || value === "") continue;
+    const number = Number(value);
+    if (Number.isFinite(number) && number > 0) return number;
+  }
+  return null;
+}
+
+function fallbackAccessDurationDays(daysLeft) {
+  if (!Number.isFinite(daysLeft) || daysLeft <= 0) return 30;
+  if (daysLeft <= 31) return 30;
+  if (daysLeft <= 93) return 90;
+  if (daysLeft <= 370) return 365;
+  return Math.max(30, daysLeft);
+}
+
+function accessDurationDays(access = {}, daysLeft = null) {
+  return firstAccessNumber(
+    access?.durationDays,
+    access?.duration_days,
+    access?.periodDays,
+    access?.period_days,
+    access?.planDays,
+    access?.plan_days,
+    access?.accessDays,
+    access?.access_days,
+    access?.meta?.durationDays,
+    access?.meta?.duration_days,
+    access?.meta?.periodDays,
+    access?.meta?.period_days,
+    access?.meta?.planDays,
+    access?.meta?.plan_days
+  ) || fallbackAccessDurationDays(daysLeft);
+}
+
+function accessRingProgress(access = {}, expiresAt = null, daysLeft = null) {
+  const expiresMs = parseDateMs(expiresAt);
+  if (!expiresMs) return 1;
+  const now = Date.now();
+  if (expiresMs <= now) return 0;
+
+  const startsMs = parseDateMs(accessStartDate(access));
+  if (startsMs && startsMs < expiresMs) {
+    return Math.max(0, Math.min(1, (expiresMs - now) / (expiresMs - startsMs)));
+  }
+
+  const durationMs = accessDurationDays(access, daysLeft) * 24 * 60 * 60 * 1000;
+  return Math.max(0, Math.min(1, (expiresMs - now) / durationMs));
+}
+
 function formatAccessDate(value) {
   if (!value) return "Доступ активен";
   const date = new Date(value);
@@ -630,10 +750,12 @@ function accessCardInfo(access = {}, user = {}) {
       ringLabel: "∞",
       ringCaption: "",
       ringFull: true,
+      ringProgress: 1,
     };
   }
 
   if (tier === "vip") {
+    const hasFiniteAccess = daysLeft != null;
     return {
       kind: "vip",
       title: "FruitFit VIP",
@@ -641,11 +763,14 @@ function accessCardInfo(access = {}, user = {}) {
       meta: formatAccessDate(expiresAt),
       ringLabel: daysLeft == null ? "∞" : String(Math.min(daysLeft, 999)),
       ringCaption: daysLeft == null ? "" : "дней",
+      ringFull: !hasFiniteAccess,
+      ringProgress: hasFiniteAccess ? accessRingProgress(access, expiresAt, daysLeft) : 1,
     };
   }
 
   if (tier === "paid" || tier === "full") {
     const adminLike = status === "admin" || status === "trainer" || role === "admin" || role === "trainer";
+    const hasFiniteAccess = daysLeft != null;
     return {
       kind: "paid",
       title: "FruitFit Pro",
@@ -653,6 +778,8 @@ function accessCardInfo(access = {}, user = {}) {
       meta: adminLike && !expiresAt ? "Доступ активен" : formatAccessDate(expiresAt),
       ringLabel: daysLeft == null ? "∞" : String(Math.min(daysLeft, 999)),
       ringCaption: daysLeft == null ? "" : "дней",
+      ringFull: !hasFiniteAccess,
+      ringProgress: hasFiniteAccess ? accessRingProgress(access, expiresAt, daysLeft) : 1,
     };
   }
 
@@ -663,6 +790,8 @@ function accessCardInfo(access = {}, user = {}) {
     meta: "Preview программы",
     ringLabel: "∞",
     ringCaption: "",
+    ringFull: true,
+    ringProgress: 1,
   };
 }
 
@@ -682,6 +811,7 @@ function AccessMembershipCard({
 }) {
   const info = accessCardInfo(access, authUser);
   const showSubscriptionBlock = Boolean(hasAuth && info.kind !== "free");
+  const ringDegrees = info.ringFull ? 360 : Math.round(Math.max(0, Math.min(1, info.ringProgress ?? 1)) * 360);
 
   return (
     <div className="mt-4 rounded-[24px] border border-appBorder bg-appBg p-3">
@@ -692,7 +822,7 @@ function AccessMembershipCard({
           <p className="mt-1 text-[13px] font-bold text-appMuted">{info.subtitle}</p>
           <p className="mt-1 text-[12px] font-semibold text-appMuted">{info.meta}</p>
         </div>
-        <div className={`access-days-ring ${info.ringFull ? "is-full" : ""} grid h-[74px] w-[74px] shrink-0 place-items-center rounded-full text-center`}>
+        <div className={`access-days-ring ${info.ringFull ? "is-full" : ""} grid h-[74px] w-[74px] shrink-0 place-items-center rounded-full text-center`} style={{ "--access-ring-deg": `${ringDegrees}deg` }}>
           <span>
             <span className="block text-[22px] font-black leading-none text-appText">{info.ringLabel}</span>
             {info.ringCaption && <span className="mt-1 block text-[10px] font-black uppercase tracking-[0.08em] text-appMuted">{info.ringCaption}</span>}
@@ -838,6 +968,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
   const [referralShareStatus, setReferralShareStatus] = useState("");
   const [pendingSourceScan, setPendingSourceScan] = useState(false);
   const [preferredSourcePackage, setPreferredSourcePackage] = useState(() => localStorage.getItem("fruitfit.health.preferredSourcePackage") || "");
+  const preferredSourceMountedRef = useRef(false);
   const [permissions, setPermissions] = useState(() => {
     try {
       return { watch: false, heart: true, sleep: true, steps: true, calories: true, cycle: true, notifications: false, ...JSON.parse(localStorage.getItem("fruitfit.permissions") || "{}") };
@@ -929,7 +1060,12 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
     } else {
       localStorage.removeItem("fruitfit.health.preferredSourcePackage");
     }
-  }, [preferredSourcePackage]);
+    if (!preferredSourceMountedRef.current) {
+      preferredSourceMountedRef.current = true;
+      return;
+    }
+    syncNativeHealth?.({ force: true, reason: "preferred-source-change", queryMode: "history_7d" });
+  }, [preferredSourcePackage, syncNativeHealth]);
 
   useEffect(() => {
     function rescanAfterReturn() {
@@ -1032,8 +1168,8 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
       await saveServerProfile(savedProfile);
 
       const session = await createPaymentSession({
-        productCode: "individual_program",
-        recurringEnabled: false,
+        productCode: "program_subscription",
+        recurringEnabled: true,
       });
       if (!session?.id) throw new Error("Backend не вернул номер платежной сессии");
       window.location.href = paymentPageUrl(session.id);
@@ -1059,7 +1195,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
     setSubscriptionLoading(true);
     setSubscriptionStatus("");
     try {
-      const cancelResult = await cancelPaymentSubscription("client_request");
+      const cancelResult = await cancelPaymentSubscription("client_request", cancelInfo);
       const cancelUrl = cancelResult?.cancelUrl || cancelResult?.cancel_url || cancelResult?.url || "";
       if (cancelUrl) {
         const opened = window.open(cancelUrl, "_blank", "noopener,noreferrer");
@@ -1071,6 +1207,62 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
       await fetchAccess();
       const paidUntil = formatSubscriptionDate(nextSubscription?.paidUntil || accessExpiryDate(access));
       setSubscriptionStatus(`Автоматическое продление отключено. Доступ сохранится до ${paidUntil}.`);
+    } catch (error) {
+      setSubscriptionStatus(error?.message || "Не удалось отменить подписку");
+    } finally {
+      setSubscriptionLoading(false);
+    }
+  }
+
+  async function handleCancelSubscription() {
+    if (!getAuthToken()) {
+      setSubscriptionStatus("Войдите в аккаунт, чтобы отменить подписку.");
+      onRequireAuth?.({ reason: "subscription-cancel" });
+      return;
+    }
+    if (!subscriptionActive) {
+      setSubscriptionStatus("Активная подписка не найдена.");
+      return;
+    }
+
+    setSubscriptionLoading(true);
+    setSubscriptionStatus("");
+    try {
+      const cancelInfo = await fetchPaymentSubscriptionCancelUrl();
+      if (cancelInfo?.subscription) {
+        setSubscription(cancelInfo.subscription);
+        setSubscriptionLoaded(true);
+      }
+      if (cancelInfo?.canCancel === false) {
+        setSubscriptionStatus(cancelInfo.message || "Автопродление уже отключено или активная подписка не найдена.");
+        return;
+      }
+
+      const needsExternalCancel = Boolean(cancelInfo?.externalCancelRequired || cancelInfo?.external_cancel_required);
+      const confirmText = needsExternalCancel
+        ? "Отключим продление в FruitFit, затем откроется страница Robokassa для полной отмены списаний. Уже оплаченный доступ сохранится."
+        : "Отключить автоматическое продление? Уже оплаченный доступ сохранится до конца периода.";
+      if (!window.confirm(confirmText)) return;
+
+      const cancelResult = await cancelPaymentSubscription("client_request");
+      if (cancelResult?.skipped) {
+        setSubscription(cancelResult.subscription || null);
+        setSubscriptionLoaded(true);
+        setSubscriptionStatus(cancelResult.message || "Автопродление уже отключено или активная подписка не найдена.");
+        return;
+      }
+
+      const cancelUrl = cancelResult?.robokassaUnsubscribeUrl || cancelResult?.robokassa_unsubscribe_url || cancelResult?.cancelUrl || cancelResult?.cancel_url || "";
+      const nextSubscription = cancelResult?.subscription || cancelResult || null;
+      setSubscription(nextSubscription);
+      setSubscriptionLoaded(true);
+      await fetchAccess();
+      if (cancelUrl) await openExternalUrl(cancelUrl);
+
+      const paidUntil = formatSubscriptionDate(nextSubscription?.paidUntil || nextSubscription?.paid_until || accessExpiryDate(access));
+      setSubscriptionStatus(cancelUrl
+        ? `Продление отключено в FruitFit. Завершите отмену на странице Robokassa. Доступ сохранён до ${paidUntil}.`
+        : `Подписка отменена. Доступ сохранён до ${paidUntil}.`);
     } catch (error) {
       setSubscriptionStatus(error?.message || "Не удалось отменить подписку");
     } finally {
@@ -1200,7 +1392,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
             subscriptionLoading={subscriptionLoading}
             subscriptionStatus={subscriptionStatus}
             onOpenPayment={openPayment}
-            onCancelSubscription={cancelSubscription}
+            onCancelSubscription={handleCancelSubscription}
           />
         </section>
 
@@ -1217,8 +1409,8 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
         <section className="mt-4 rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">
           <h2 className="text-[16px] font-black text-appText">Данные профиля</h2>
           <div className="mt-3 grid grid-cols-2 gap-3">
-            <TextField label="Имя" value={draft.firstName} onChange={(value) => updateDraft("firstName", value)} placeholder="Тагир" />
-            <TextField label="Фамилия" value={draft.lastName} onChange={(value) => updateDraft("lastName", value)} placeholder="Мейвалиев" />
+            <TextField label="Имя" value={draft.firstName} onChange={(value) => updateDraft("firstName", value)} placeholder={PROFILE_FIRST_NAME_PLACEHOLDER} />
+            <TextField label="Фамилия" value={draft.lastName} onChange={(value) => updateDraft("lastName", value)} placeholder={PROFILE_LAST_NAME_PLACEHOLDER} />
             <SelectField label="Пол" value={draft.gender} options={profileOptions.gender} error={errors.gender} onChange={(value) => updateDraft("gender", value)} />
             <SelectField label="Цель" value={draft.goal} options={profileOptions.goal} error={errors.goal} onChange={(value) => updateDraft("goal", value)} />
             <SelectField label="Опыт тренировок" value={draft.experience} options={profileOptions.experience} error={errors.experience} onChange={(value) => updateDraft("experience", value)} />

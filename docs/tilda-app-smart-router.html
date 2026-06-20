@@ -1,0 +1,539 @@
+<!-- FruitFit /app smart redirect router for a Tilda HTML block. No secrets here. -->
+<div id="fruitfit-app-router" class="ff-app-router">
+  <main class="ff-shell" aria-live="polite">
+    <section class="ff-panel">
+      <div class="ff-brand">
+        <div class="ff-mark" aria-hidden="true"><img src="data:image/jpeg;base64,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" alt="" /></div>
+        <div>
+          <div class="ff-name">FruitFit</div>
+          <div class="ff-caption">smart app router</div>
+        </div>
+      </div>
+
+      <div class="ff-status-pill" id="ff-device-pill">&#1054;&#1087;&#1088;&#1077;&#1076;&#1077;&#1083;&#1103;&#1077;&#1084; &#1091;&#1089;&#1090;&#1088;&#1086;&#1081;&#1089;&#1090;&#1074;&#1086;</div>
+
+      <h1 id="ff-title">FruitFit &#1079;&#1072;&#1075;&#1088;&#1091;&#1078;&#1072;&#1077;&#1090;&#1089;&#1103;...</h1>
+      <p id="ff-message">
+        &#1045;&#1089;&#1083;&#1080; &#1087;&#1088;&#1080;&#1083;&#1086;&#1078;&#1077;&#1085;&#1080;&#1077; &#1085;&#1077; &#1086;&#1090;&#1082;&#1088;&#1099;&#1083;&#1086;&#1089;&#1100; &#1072;&#1074;&#1090;&#1086;&#1084;&#1072;&#1090;&#1080;&#1095;&#1077;&#1089;&#1082;&#1080;, &#1080;&#1089;&#1087;&#1086;&#1083;&#1100;&#1079;&#1091;&#1081;&#1090;&#1077; &#1082;&#1085;&#1086;&#1087;&#1082;&#1091; &#1085;&#1080;&#1078;&#1077; &#1080;&#1083;&#1080; &#1086;&#1090;&#1082;&#1088;&#1086;&#1081;&#1090;&#1077; PWA.
+      </p>
+
+      <div class="ff-loader" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+
+      <div class="ff-actions">
+        <button class="ff-button ff-button-primary" id="ff-open-app" type="button">&#1054;&#1090;&#1082;&#1088;&#1099;&#1090;&#1100; &#1087;&#1088;&#1080;&#1083;&#1086;&#1078;&#1077;&#1085;&#1080;&#1077;</button>
+        <a class="ff-button ff-button-secondary" id="ff-open-pwa" href="https://client.tagirfruit.ru/auth/success">&#1054;&#1090;&#1082;&#1088;&#1099;&#1090;&#1100; PWA</a>
+        <a class="ff-button ff-button-secondary ff-hidden" id="ff-store-link" href="#" rel="noopener">&#1054;&#1090;&#1082;&#1088;&#1099;&#1090;&#1100; &#1084;&#1072;&#1075;&#1072;&#1079;&#1080;&#1085;</a>
+        <a class="ff-button ff-button-secondary ff-hidden" id="ff-apk-link" href="#" rel="noopener">&#1057;&#1082;&#1072;&#1095;&#1072;&#1090;&#1100; &#1087;&#1088;&#1080;&#1083;&#1086;&#1078;&#1077;&#1085;&#1080;&#1077;</a>
+      </div>
+
+      <div class="ff-desktop" id="ff-desktop-panel" hidden>
+        <div class="ff-qr-wrap">
+          <img id="ff-qr" alt="QR-&#1082;&#1086;&#1076; &#1076;&#1083;&#1103; &#1086;&#1090;&#1082;&#1088;&#1099;&#1090;&#1080;&#1103; FruitFit &#1085;&#1072; &#1090;&#1077;&#1083;&#1077;&#1092;&#1086;&#1085;&#1077;" />
+        </div>
+        <div>
+          <h2>&#1054;&#1090;&#1082;&#1088;&#1086;&#1081;&#1090;&#1077; &#1085;&#1072; &#1090;&#1077;&#1083;&#1077;&#1092;&#1086;&#1085;&#1077;</h2>
+          <p>&#1054;&#1090;&#1089;&#1082;&#1072;&#1085;&#1080;&#1088;&#1091;&#1081;&#1090;&#1077; QR-&#1082;&#1086;&#1076; &#1082;&#1072;&#1084;&#1077;&#1088;&#1086;&#1081; &#1090;&#1077;&#1083;&#1077;&#1092;&#1086;&#1085;&#1072;. &#1057;&#1090;&#1088;&#1072;&#1085;&#1080;&#1094;&#1072; &#1089;&#1072;&#1084;&#1072; &#1087;&#1086;&#1087;&#1088;&#1086;&#1073;&#1091;&#1077;&#1090; &#1086;&#1090;&#1082;&#1088;&#1099;&#1090;&#1100; &#1087;&#1088;&#1080;&#1083;&#1086;&#1078;&#1077;&#1085;&#1080;&#1077; &#1080;&#1083;&#1080; &#1087;&#1088;&#1077;&#1076;&#1083;&#1086;&#1078;&#1080;&#1090; &#1073;&#1077;&#1079;&#1086;&#1087;&#1072;&#1089;&#1085;&#1099;&#1081; fallback.</p>
+        </div>
+      </div>
+
+      <p class="ff-note" id="ff-note">
+        &#1045;&#1089;&#1083;&#1080; &#1087;&#1088;&#1080;&#1083;&#1086;&#1078;&#1077;&#1085;&#1080;&#1077; &#1085;&#1077; &#1086;&#1090;&#1082;&#1088;&#1099;&#1083;&#1086;&#1089;&#1100; &#8212; &#1074;&#1077;&#1088;&#1085;&#1080;&#1090;&#1077;&#1089;&#1100; &#1074; &#1087;&#1088;&#1080;&#1083;&#1086;&#1078;&#1077;&#1085;&#1080;&#1077; &#1080;&#1083;&#1080; &#1080;&#1089;&#1087;&#1086;&#1083;&#1100;&#1079;&#1091;&#1081;&#1090;&#1077; PWA.
+      </p>
+    </section>
+  </main>
+</div>
+
+<style>
+  #fruitfit-app-router,
+  #fruitfit-app-router * {
+    box-sizing: border-box;
+  }
+
+  #fruitfit-app-router {
+    --bg: #07150c;
+    --panel: rgba(16, 34, 22, 0.88);
+    --panel-strong: rgba(21, 45, 29, 0.96);
+    --line: rgba(191, 243, 107, 0.22);
+    --text: #f6fbef;
+    --muted: rgba(246, 251, 239, 0.68);
+    --accent: #bdf769;
+    --accent-strong: #91cc45;
+    --orange: #ff8b3d;
+    min-height: 100vh;
+    margin: 0;
+    color: var(--text);
+    background:
+      radial-gradient(circle at 20% 20%, rgba(139, 204, 72, 0.12), transparent 32%),
+      radial-gradient(circle at 80% 10%, rgba(255, 139, 61, 0.09), transparent 28%),
+      linear-gradient(180deg, #061108 0%, #0b1c11 58%, #07150c 100%);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  #fruitfit-app-router .ff-shell {
+    width: min(100%, 980px);
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: clamp(22px, 4vw, 54px);
+    display: grid;
+    place-items: center;
+  }
+
+  #fruitfit-app-router .ff-panel {
+    width: 100%;
+    padding: clamp(24px, 5vw, 54px);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.055), transparent 42%),
+      var(--panel);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+  }
+
+  #fruitfit-app-router .ff-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 34px;
+  }
+
+  #fruitfit-app-router .ff-mark {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #020402;
+    box-shadow: 0 12px 34px rgba(255, 139, 61, 0.24);
+  }
+
+  #fruitfit-app-router .ff-mark img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  #fruitfit-app-router .ff-name {
+    font-size: 22px;
+    font-weight: 850;
+    line-height: 1.05;
+  }
+
+  #fruitfit-app-router .ff-caption {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  #fruitfit-app-router .ff-status-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    padding: 8px 14px;
+    border: 1px solid rgba(189, 247, 105, 0.32);
+    border-radius: 999px;
+    color: var(--accent);
+    background: rgba(189, 247, 105, 0.08);
+    font-size: 14px;
+    font-weight: 750;
+  }
+
+  #fruitfit-app-router h1 {
+    max-width: 760px;
+    margin: 22px 0 0;
+    font-size: clamp(42px, 8vw, 82px);
+    line-height: 0.96;
+    font-weight: 900;
+    letter-spacing: 0;
+  }
+
+  #fruitfit-app-router p {
+    margin: 18px 0 0;
+    color: var(--muted);
+    font-size: clamp(17px, 2.8vw, 23px);
+    line-height: 1.5;
+  }
+
+  #fruitfit-app-router .ff-loader {
+    display: flex;
+    gap: 8px;
+    margin-top: 28px;
+  }
+
+  #fruitfit-app-router .ff-loader span {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: ffPulse 1.1s infinite ease-in-out;
+  }
+
+  #fruitfit-app-router .ff-loader span:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+
+  #fruitfit-app-router .ff-loader span:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+
+  @keyframes ffPulse {
+    0%, 100% { opacity: 0.32; transform: translateY(0); }
+    50% { opacity: 1; transform: translateY(-5px); }
+  }
+
+  #fruitfit-app-router .ff-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 34px;
+  }
+
+  #fruitfit-app-router .ff-button {
+    min-height: 52px;
+    padding: 15px 19px;
+    border: 0;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #15220f;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 850;
+    line-height: 1.15;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease;
+  }
+
+  #fruitfit-app-router .ff-button:hover {
+    transform: translateY(-1px);
+  }
+
+  #fruitfit-app-router .ff-button-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  }
+
+  #fruitfit-app-router .ff-button-secondary {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.095);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  #fruitfit-app-router .ff-desktop {
+    margin-top: 34px;
+    padding: 18px;
+    display: grid;
+    grid-template-columns: 168px 1fr;
+    gap: 18px;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: 20px;
+    background: var(--panel-strong);
+  }
+
+  #fruitfit-app-router .ff-desktop[hidden] {
+    display: none;
+  }
+
+  #fruitfit-app-router .ff-qr-wrap {
+    width: 168px;
+    height: 168px;
+    padding: 10px;
+    border-radius: 18px;
+    background: #fff;
+  }
+
+  #fruitfit-app-router .ff-qr-wrap img {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  #fruitfit-app-router h2 {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.15;
+  }
+
+  #fruitfit-app-router .ff-desktop p {
+    margin-top: 8px;
+    font-size: 16px;
+  }
+
+  #fruitfit-app-router .ff-note {
+    max-width: 760px;
+    margin-top: 24px;
+    color: rgba(246, 251, 239, 0.56);
+    font-size: 15px;
+  }
+
+  #fruitfit-app-router .ff-hidden {
+    display: none;
+  }
+
+  @media (max-width: 620px) {
+    #fruitfit-app-router .ff-shell {
+      padding: 18px;
+      place-items: stretch;
+    }
+
+    #fruitfit-app-router .ff-panel {
+      min-height: calc(100vh - 36px);
+      border-radius: 22px;
+    }
+
+    #fruitfit-app-router .ff-actions {
+      display: grid;
+    }
+
+    #fruitfit-app-router .ff-button {
+      width: 100%;
+    }
+
+    #fruitfit-app-router .ff-desktop {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  (function () {
+    var CONFIG = {
+      appName: "FruitFit",
+      defaultEvent: "auth_success",
+      routes: {
+        auth_success: {
+          appPath: "auth/success",
+          webUrl: "https://client.tagirfruit.ru/auth/success"
+        },
+        email_verify: {
+          appPath: "auth/email/verify",
+          webUrl: "https://client.tagirfruit.ru/email/verify"
+        },
+        password_reset: {
+          appPath: "auth/email/reset-password",
+          webUrl: "https://client.tagirfruit.ru/email/reset-password"
+        }
+      },
+      apkUrl: "https://client.tagirfruit.ru/downloads/fruitfit-latest.apk",
+      appStoreUrl: "",
+      googlePlayUrl: "",
+      appGalleryUrl: "",
+      androidPackage: "com.tagirfruit.fruitfit",
+      autoOpenDelayMs: 260,
+      fallbackDelayMs: 1600
+    };
+
+    var params = new URLSearchParams(window.location.search || "");
+    var route = resolveRoute(params);
+    var safeExtraParams = buildSafeForwardParams(params);
+    var deepLink = appendQuery("fruitfit://" + route.appPath, safeExtraParams);
+    var webFallbackUrl = appendQuery(route.webUrl, safeExtraParams);
+    var pwaUrl = webFallbackUrl;
+    var apkUrl = readSafeUrlParam(params, "apk") || CONFIG.apkUrl;
+    var appStoreUrl = readSafeUrlParam(params, "appStore") || CONFIG.appStoreUrl;
+    var googlePlayUrl = readSafeUrlParam(params, "googlePlay") || CONFIG.googlePlayUrl;
+    var appGalleryUrl = readSafeUrlParam(params, "appGallery") || CONFIG.appGalleryUrl;
+
+    var el = {
+      title: document.getElementById("ff-title"),
+      message: document.getElementById("ff-message"),
+      pill: document.getElementById("ff-device-pill"),
+      openApp: document.getElementById("ff-open-app"),
+      openPwa: document.getElementById("ff-open-pwa"),
+      store: document.getElementById("ff-store-link"),
+      apk: document.getElementById("ff-apk-link"),
+      desktopPanel: document.getElementById("ff-desktop-panel"),
+      qr: document.getElementById("ff-qr"),
+      note: document.getElementById("ff-note")
+    };
+
+    var device = detectDevice();
+    var intentUrl = buildAndroidIntent(device, route);
+
+    el.openPwa.href = pwaUrl;
+    el.openApp.addEventListener("click", function () {
+      openApp(device, true);
+    });
+
+    if (apkUrl) {
+      el.apk.href = apkUrl;
+      el.apk.classList.remove("ff-hidden");
+    }
+
+    renderInitialState(device);
+
+    if (!device.isDesktop) {
+      window.setTimeout(function () {
+        openApp(device, false);
+      }, CONFIG.autoOpenDelayMs);
+    }
+
+    window.setTimeout(function () {
+      renderFallbackState(device);
+    }, CONFIG.fallbackDelayMs);
+
+    function detectDevice() {
+      var ua = navigator.userAgent || "";
+      var uaLower = ua.toLowerCase();
+      var platform = navigator.platform || "";
+      var isIpadOs = platform === "MacIntel" && navigator.maxTouchPoints > 1;
+      var isIOS = /iphone|ipad|ipod/i.test(ua) || isIpadOs;
+      var isAndroid = /android/i.test(ua);
+      var isHuawei = /huawei|honor|harmonyos|hmscore|hms/i.test(uaLower);
+
+      return {
+        ua: ua,
+        isIOS: isIOS,
+        isAndroid: isAndroid,
+        isHuawei: isHuawei,
+        isDesktop: !isIOS && !isAndroid
+      };
+    }
+
+    function renderInitialState(device) {
+      if (device.isIOS) {
+        el.pill.textContent = "iOS \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e";
+        el.title.textContent = "\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0435\u043c FruitFit";
+        el.message.textContent = "\u0421\u0435\u0439\u0447\u0430\u0441 \u043f\u043e\u043f\u0440\u043e\u0431\u0443\u0435\u043c \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435. \u0415\u0441\u043b\u0438 \u043e\u043d\u043e \u043d\u0435 \u043e\u0442\u043a\u0440\u044b\u043b\u043e\u0441\u044c, \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 App Store \u0438\u043b\u0438 PWA.";
+        setupStoreButton(appStoreUrl, "App Store");
+        return;
+      }
+
+      if (device.isAndroid && device.isHuawei) {
+        el.pill.textContent = "Huawei / HMS \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e";
+        el.title.textContent = "\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0435\u043c FruitFit";
+        el.message.textContent = "\u0421\u0435\u0439\u0447\u0430\u0441 \u043f\u043e\u043f\u0440\u043e\u0431\u0443\u0435\u043c \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435. \u0415\u0441\u043b\u0438 \u043e\u043d\u043e \u043d\u0435 \u043e\u0442\u043a\u0440\u044b\u043b\u043e\u0441\u044c, \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 AppGallery, APK \u0438\u043b\u0438 PWA.";
+        setupStoreButton(appGalleryUrl, "AppGallery");
+        return;
+      }
+
+      if (device.isAndroid) {
+        el.pill.textContent = "Android \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e";
+        el.title.textContent = "\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0435\u043c FruitFit";
+        el.message.textContent = "\u0421\u0435\u0439\u0447\u0430\u0441 \u043f\u043e\u043f\u0440\u043e\u0431\u0443\u0435\u043c \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435. \u0415\u0441\u043b\u0438 \u043e\u043d\u043e \u043d\u0435 \u043e\u0442\u043a\u0440\u044b\u043b\u043e\u0441\u044c, \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 Google Play, APK \u0438\u043b\u0438 PWA.";
+        setupStoreButton(googlePlayUrl, "Google Play");
+        return;
+      }
+
+      el.pill.textContent = "Desktop / Web";
+      el.title.textContent = "FruitFit \u043d\u0430 \u0442\u0435\u043b\u0435\u0444\u043e\u043d\u0435";
+      el.message.textContent = "\u041e\u0442\u0441\u043a\u0430\u043d\u0438\u0440\u0443\u0439\u0442\u0435 QR-\u043a\u043e\u0434 \u0438\u043b\u0438 \u043e\u0442\u043a\u0440\u043e\u0439\u0442\u0435 PWA \u0432 \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0435.";
+      el.openApp.textContent = "\u041e\u0442\u043a\u0440\u044b\u0442\u044c PWA";
+      el.desktopPanel.hidden = false;
+      el.qr.src = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=12&data=" + encodeURIComponent(window.location.href);
+    }
+
+    function renderFallbackState(device) {
+      if (document.hidden) return;
+
+      if (device.isDesktop) {
+        el.note.textContent = "\u0415\u0441\u043b\u0438 QR \u043d\u0435 \u043e\u0442\u043a\u0440\u044b\u043b\u0441\u044f, \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 \u043a\u043d\u043e\u043f\u043a\u0443 PWA \u0438\u043b\u0438 \u0441\u043a\u0430\u0447\u0430\u0439\u0442\u0435 APK.";
+        return;
+      }
+
+      el.title.textContent = "FruitFit \u0437\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u0442\u0441\u044f...";
+      el.message.textContent = "\u0415\u0441\u043b\u0438 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435 \u043d\u0435 \u043e\u0442\u043a\u0440\u044b\u043b\u043e\u0441\u044c \u2014 \u0432\u0435\u0440\u043d\u0438\u0442\u0435\u0441\u044c \u0432 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435 \u0438\u043b\u0438 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 PWA.";
+
+      if (device.isIOS && !appStoreUrl) {
+        el.note.textContent = "\u041f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435 \u0441\u043a\u043e\u0440\u043e \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u043e \u0432 App Store. \u0421\u0435\u0439\u0447\u0430\u0441 \u043c\u043e\u0436\u043d\u043e \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c PWA.";
+      } else if (device.isAndroid && device.isHuawei && !appGalleryUrl) {
+        el.note.textContent = "\u0415\u0441\u043b\u0438 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435 \u043d\u0435 \u043e\u0442\u043a\u0440\u044b\u043b\u043e\u0441\u044c, \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 PWA \u0438\u043b\u0438 \u0441\u043a\u0430\u0447\u0430\u0439\u0442\u0435 APK.";
+      } else if (device.isAndroid && !googlePlayUrl) {
+        el.note.textContent = "\u0415\u0441\u043b\u0438 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435 \u043d\u0435 \u043e\u0442\u043a\u0440\u044b\u043b\u043e\u0441\u044c, \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 PWA \u0438\u043b\u0438 \u0441\u043a\u0430\u0447\u0430\u0439\u0442\u0435 APK.";
+      }
+    }
+
+    function setupStoreButton(url, label) {
+      if (!url) return;
+      el.store.href = url;
+      el.store.textContent = label;
+      el.store.classList.remove("ff-hidden");
+    }
+
+    function openApp(device, manual) {
+      if (device.isDesktop) {
+        window.location.href = pwaUrl;
+        return;
+      }
+
+      if (device.isAndroid) {
+        window.location.href = intentUrl;
+        return;
+      }
+
+      window.location.href = deepLink;
+
+      if (manual && device.isIOS && appStoreUrl) {
+        window.setTimeout(function () {
+          if (!document.hidden) window.location.href = appStoreUrl;
+        }, CONFIG.fallbackDelayMs);
+      }
+    }
+
+    function resolveRoute(sourceParams) {
+      var eventName = String(sourceParams.get("event") || CONFIG.defaultEvent || "").trim().toLowerCase().replace(/-/g, "_");
+      if (eventName === "verify_email") eventName = "email_verify";
+      if (eventName === "reset_password") eventName = "password_reset";
+      return CONFIG.routes[eventName] || CONFIG.routes[CONFIG.defaultEvent];
+    }
+
+    function buildAndroidIntent(device, route) {
+      var storeFallback = "";
+
+      if (device.isHuawei && appGalleryUrl) {
+        storeFallback = appGalleryUrl;
+      } else if (googlePlayUrl) {
+        storeFallback = googlePlayUrl;
+      } else {
+        storeFallback = webFallbackUrl || pwaUrl;
+      }
+
+      return [
+        "intent://",
+        route.appPath,
+        safeExtraParams ? "?" + safeExtraParams : "",
+        "#Intent;scheme=fruitfit;package=",
+        CONFIG.androidPackage,
+        ";S.browser_fallback_url=",
+        encodeURIComponent(storeFallback),
+        ";end"
+      ].join("");
+    }
+
+    function buildSafeForwardParams(sourceParams) {
+      var blocked = {
+        event: true,
+        appStore: true,
+        googlePlay: true,
+        appGallery: true,
+        apk: true
+      };
+      var forwarded = new URLSearchParams();
+      sourceParams.forEach(function (value, key) {
+        if (!blocked[key]) forwarded.append(key, value);
+      });
+      return forwarded.toString();
+    }
+
+    function appendQuery(url, query) {
+      if (!query) return url;
+      return url + (url.indexOf("?") === -1 ? "?" : "&") + query;
+    }
+
+    function readSafeUrlParam(sourceParams, key) {
+      var value = sourceParams.get(key);
+      if (!value) return "";
+      try {
+        var parsed = new URL(value);
+        return parsed.protocol === "https:" ? parsed.toString() : "";
+      } catch (error) {
+        return "";
+      }
+    }
+  })();
+</script>

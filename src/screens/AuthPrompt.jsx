@@ -5,6 +5,7 @@ import {
   fetchAccess,
   saveAuthUser,
   setAuthToken,
+  transferPreAuthProfileDraft,
 } from "../data/authStore";
 import { getDeviceRegistrationPayloadAsync, registerDevice } from "../data/deviceStore";
 import { postJson } from "../services/nativeHttp";
@@ -60,6 +61,7 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
     if (result?.token) setAuthToken(result.token);
     if (result?.user) saveAuthUser(result.user);
     await registerDevice();
+    await transferPreAuthProfileDraft({ reason: "auth-prompt" });
     await fetchAccess();
     onComplete?.(result?.user || null);
   }
