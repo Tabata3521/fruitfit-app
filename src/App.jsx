@@ -20,12 +20,18 @@ import SettingsScreen from "./screens/SettingsScreen";
 import WorkoutScreen from "./screens/WorkoutScreen";
 import WorkoutsScreen from "./screens/WorkoutsScreen";
 import { HealthDetailScreen, LectureDetailScreen } from "./components/WidgetGrid";
+import { registerFirebaseMessagingPush } from "./services/notifications/firebaseMessagingPush";
 
 const FruitFitOrientation = registerPlugin("FruitFitOrientation");
 const SKIP_AUTH_KEY = "fruitfit.authSkipped";
 const PAID_PROGRAM_LOCK_KEY = "fruitfit.paidProgramLock";
 const LEGACY_SELECTED_WORKOUT_STATE_KEY = "fruitfit.selectedWorkoutState";
 const SELECTED_WORKOUT_STATE_FIELD = "selectedWorkoutState";
+
+function registerDeviceAndPush() {
+  registerDevice().catch(() => {});
+  registerFirebaseMessagingPush().catch(() => {});
+}
 
 const healthRoutes = {
   "health:heart": "#/health/heart-rate",
@@ -569,13 +575,13 @@ function AppContent() {
     setAuthToken(token);
     localStorage.removeItem(SKIP_AUTH_KEY);
     setAuthSkipped(false);
-    registerDevice().catch(() => {});
+    registerDeviceAndPush();
     if (cleanUrl) {
       window.history.replaceState(null, "", window.location.pathname + window.location.search);
     }
     const user = await fetchMe();
     if (user) {
-      registerDevice().catch(() => {});
+      registerDeviceAndPush();
       await transferPreAuthProfileDraft({ reason: "token-auth" });
       const [access, serverProfile, assignment] = await Promise.all([
         fetchAccess(),
@@ -628,7 +634,7 @@ function AppContent() {
       // Validate session on load
       fetchMe().then(async (user) => {
         if (user) {
-          registerDevice().catch(() => {});
+          registerDeviceAndPush();
           await transferPreAuthProfileDraft({ reason: "existing-session" });
           const [access, serverProfile, assignment] = await Promise.all([
             fetchAccess(),

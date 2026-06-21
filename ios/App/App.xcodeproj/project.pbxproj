@@ -25,6 +25,7 @@
 		7A1C000F2F10000000000001 /* FruitFitIconApple@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C000E2F10000000000001 /* FruitFitIconApple@3x.png */; };
 		7A1C00112F10000000000001 /* FruitFitIconStrawberry@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C00102F10000000000001 /* FruitFitIconStrawberry@2x.png */; };
 		7A1C00132F10000000000001 /* FruitFitIconStrawberry@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C00122F10000000000001 /* FruitFitIconStrawberry@3x.png */; };
+		7A1C00152F10000000000001 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C00142F10000000000001 /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +48,7 @@
 		7A1C000E2F10000000000001 /* FruitFitIconApple@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "FruitFitIconApple@3x.png"; sourceTree = "<group>"; };
 		7A1C00102F10000000000001 /* FruitFitIconStrawberry@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "FruitFitIconStrawberry@2x.png"; sourceTree = "<group>"; };
 		7A1C00122F10000000000001 /* FruitFitIconStrawberry@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "FruitFitIconStrawberry@3x.png"; sourceTree = "<group>"; };
+		7A1C00142F10000000000001 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -90,6 +92,7 @@
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
 				504EC3131FED79650016851F /* Info.plist */,
+				7A1C00142F10000000000001 /* GoogleService-Info.plist */,
 				7A1C00042F10000000000001 /* FruitFitIconOrange@2x.png */,
 				7A1C00062F10000000000001 /* FruitFitIconOrange@3x.png */,
 				7A1C00082F10000000000001 /* FruitFitIconPear@2x.png */,
@@ -144,6 +147,12 @@
 							com.apple.HealthKit = {
 								enabled = 1;
 							};
+							com.apple.BackgroundModes = {
+								enabled = 1;
+							};
+							com.apple.Push = {
+								enabled = 1;
+							};
 						};
 					};
 				};
@@ -181,6 +190,7 @@
 				504EC30F1FED79650016851F /* Assets.xcassets in Resources */,
 				7A1C00072F10000000000001 /* FruitFitIconOrange@3x.png in Resources */,
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
+				7A1C00152F10000000000001 /* GoogleService-Info.plist in Resources */,
 				7A1C000D2F10000000000001 /* FruitFitIconApple@2x.png in Resources */,
 				7A1C00132F10000000000001 /* FruitFitIconStrawberry@3x.png in Resources */,
 				7A1C00092F10000000000001 /* FruitFitIconPear@2x.png in Resources */,

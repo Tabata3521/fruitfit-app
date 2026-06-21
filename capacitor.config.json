@@ -8,6 +8,9 @@
     "hostname": "client.tagirfruit.ru"
   },
   "plugins": {
+    "FirebaseMessaging": {
+      "presentationOptions": ["alert", "badge", "sound"]
+    },
     "LocalNotifications": {
       "smallIcon": "ic_stat_fruitfit_orange",
       "iconColor": "#FF7A2F"

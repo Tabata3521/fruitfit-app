@@ -1,5 +1,25 @@
 # WORKLOG - FruitFit Food Database & Nutrition Parser
 
+## 2026-06-21 - Firebase iOS push notifications setup
+
+Scope: iOS Firebase Cloud Messaging setup on the `ios-first-build` branch. Backend, Android native project, Robokassa, payments, Health Connect/HealthKit aggregation, and app architecture were not changed.
+
+- Added the Firebase iOS app for bundle id `com.tagirfruit.fruitfit` in project `fruitfit`.
+- Added `ios/App/App/GoogleService-Info.plist` for the iOS app.
+- Added `@capacitor-firebase/messaging` and Firebase Web SDK dependencies for iOS FCM token support.
+- Added iOS Firebase Messaging plugin configuration with foreground presentation options.
+- Added Push Notifications entitlement and Background Modes `remote-notification`.
+- Added AppDelegate remote-notification callbacks required by the Firebase Messaging Capacitor plugin.
+- Added iOS-only FCM token registration after successful auth/session restore; token registration posts to `/api/push/register-token` with `provider=fcm` and `platform=ios`.
+- Kept Android push delivery untouched in this branch.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large chunk warning only.
+- `npx cap sync ios` passed after switching away from Windows-blocked SPM symlink mode.
+- `ios/App/CapApp-SPM/Package.swift` was normalized to Mac-safe forward-slash paths after sync.
+- Verified bundle id is `com.tagirfruit.fruitfit` in Capacitor config, Xcode project, and `GoogleService-Info.plist`.
+
 ## 2026-06-21 - Move step source settings out of profile diagnostics
 
 Scope: client Profile/Settings health UI on the `ios-first-build` branch only. Health native reads, backend, payments, AI Coach, push delivery, and Xcode signing were not changed.

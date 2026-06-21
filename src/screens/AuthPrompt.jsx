@@ -8,6 +8,7 @@ import {
   transferPreAuthProfileDraft,
 } from "../data/authStore";
 import { getDeviceRegistrationPayloadAsync, registerDevice } from "../data/deviceStore";
+import { registerFirebaseMessagingPush } from "../services/notifications/firebaseMessagingPush";
 import { postJson } from "../services/nativeHttp";
 
 const SKIP_AUTH_KEY = "fruitfit.authSkipped";
@@ -61,6 +62,7 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
     if (result?.token) setAuthToken(result.token);
     if (result?.user) saveAuthUser(result.user);
     await registerDevice();
+    registerFirebaseMessagingPush().catch(() => {});
     await transferPreAuthProfileDraft({ reason: "auth-prompt" });
     await fetchAccess();
     onComplete?.(result?.user || null);
