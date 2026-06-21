@@ -1,5 +1,23 @@
 # WORKLOG - FruitFit Food Database & Nutrition Parser
 
+## 2026-06-21 - Android Firebase Messaging sync
+
+Scope: Android Firebase Cloud Messaging setup on the `ios-first-build` branch. Huawei-specific build scripts, backend, payments, Robokassa, Health Connect aggregation, and iOS Firebase plist were not changed.
+
+- Reused the same Firebase Messaging token registration layer for Android and iOS.
+- Added Android `google-services.json` for package `com.tagirfruit.fruitfit` in Firebase project `fruitfit`.
+- Added Android 13+ `POST_NOTIFICATIONS` permission.
+- Ran Capacitor Android sync so `@capacitor-firebase/messaging` is included in Android Gradle settings/build files.
+- Added Android notification channels for admin and motivation notifications through Firebase Messaging.
+- Did not add the legacy `@capacitor/push-notifications` plugin.
+
+Validation:
+
+- `npx cap sync android` passed and reported `@capacitor-firebase/messaging`, `@capacitor/app`, `@capacitor/local-notifications`, and `@capgo/capacitor-health`.
+- Android Firebase config matches project number `518207427141` and package `com.tagirfruit.fruitfit`.
+- Android `assembleDebug` passed with the shared local JDK/Android SDK from the main Android workspace.
+- `npx cap sync ios` was rerun after the shared push service update; `Package.swift` paths were normalized back to Mac-safe forward slashes.
+
 ## 2026-06-21 - Firebase iOS push notifications setup
 
 Scope: iOS Firebase Cloud Messaging setup on the `ios-first-build` branch. Backend, Android native project, Robokassa, payments, Health Connect/HealthKit aggregation, and app architecture were not changed.

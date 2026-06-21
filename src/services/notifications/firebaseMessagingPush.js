@@ -4,15 +4,21 @@ import { apiUrl, getAuthToken } from "../../data/authStore";
 import { getDeviceId, getDeviceRegistrationPayloadAsync } from "../../data/deviceStore";
 import { postJson } from "../nativeHttp";
 
-const LAST_TOKEN_KEY = "fruitfit.push.fcmToken.ios.v1";
-const LAST_REGISTERED_AT_KEY = "fruitfit.push.fcmToken.ios.registeredAt.v1";
+function tokenKey(platform) {
+  return `fruitfit.push.fcmToken.${platform}.v1`;
+}
+
+function registeredAtKey(platform) {
+  return `fruitfit.push.fcmToken.${platform}.registeredAt.v1`;
+}
 
 let listenersReady = false;
 let registrationPromise = null;
 
 export async function registerFirebaseMessagingPush({ force = false } = {}) {
-  if (!Capacitor.isNativePlatform?.() || Capacitor.getPlatform?.() !== "ios") {
-    return { ok: false, status: "ios_only" };
+  const platform = Capacitor.getPlatform?.() || "web";
+  if (!Capacitor.isNativePlatform?.() || !["android", "ios"].includes(platform)) {
+    return { ok: false, status: "native_push_unavailable", platform };
   }
   if (!getAuthToken()) {
     return { ok: false, status: "UNAUTHENTICATED" };
@@ -28,7 +34,9 @@ export async function registerFirebaseMessagingPush({ force = false } = {}) {
 }
 
 async function runRegistration() {
+  const platform = Capacitor.getPlatform?.() || "web";
   await ensureListeners();
+  await ensureAndroidChannels(platform);
 
   let permissions = await FirebaseMessaging.checkPermissions();
   if (permissions.receive !== "granted") {
@@ -42,7 +50,7 @@ async function runRegistration() {
   const token = String(result?.token || "").trim();
   if (!token) return { ok: false, status: "NO_FCM_TOKEN" };
 
-  return persistFcmToken(token);
+  return persistFcmToken(token, platform);
 }
 
 async function ensureListeners() {
@@ -53,9 +61,9 @@ async function ensureListeners() {
     const token = String(event?.token || "").trim();
     if (!token) return;
     try {
-      await persistFcmToken(token);
+      await persistFcmToken(token, Capacitor.getPlatform?.() || "native");
     } catch (error) {
-      console.warn("[FruitFit iOS Push] FCM token registration failed", error?.message || error);
+      console.warn("[FruitFit Push] FCM token registration failed", error?.message || error);
     }
   });
 
@@ -68,16 +76,47 @@ async function ensureListeners() {
   });
 }
 
-async function persistFcmToken(token) {
+async function ensureAndroidChannels(platform) {
+  if (platform !== "android" || typeof FirebaseMessaging.createChannel !== "function") return;
+  const channels = [
+    {
+      id: "fruitfit_admin",
+      name: "FruitFit",
+      description: "Admin notifications from FruitFit",
+    },
+    {
+      id: "fruitfit_motivation",
+      name: "FruitFit Motivation",
+      description: "Motivation and training reminders",
+    },
+  ];
+
+  for (const channel of channels) {
+    try {
+      await FirebaseMessaging.createChannel({
+        ...channel,
+        importance: 4,
+        visibility: 1,
+        lights: true,
+        vibration: true,
+      });
+    } catch (error) {
+      console.warn("[FruitFit Push] channel create failed", channel.id, error?.message || error);
+    }
+  }
+}
+
+async function persistFcmToken(token, platform) {
   const authToken = getAuthToken();
   if (!authToken) return { ok: false, status: "UNAUTHENTICATED" };
 
   const device = await getDeviceRegistrationPayloadAsync();
-  const previousToken = safeLocalStorageGet(LAST_TOKEN_KEY);
+  const normalizedPlatform = platform || Capacitor.getPlatform?.() || "native";
+  const previousToken = safeLocalStorageGet(tokenKey(normalizedPlatform));
   const response = await postJson(apiUrl("/api/push/register-token"), {
     token,
     provider: "fcm",
-    platform: "ios",
+    platform: normalizedPlatform,
     deviceId: getDeviceId(),
     appVersion: device.appVersion || device.app_version || "",
     locale: navigator.language || "",
@@ -94,8 +133,8 @@ async function persistFcmToken(token) {
   });
 
   if (response.ok) {
-    safeLocalStorageSet(LAST_TOKEN_KEY, token);
-    safeLocalStorageSet(LAST_REGISTERED_AT_KEY, new Date().toISOString());
+    safeLocalStorageSet(tokenKey(normalizedPlatform), token);
+    safeLocalStorageSet(registeredAtKey(normalizedPlatform), new Date().toISOString());
   }
   return response;
 }
