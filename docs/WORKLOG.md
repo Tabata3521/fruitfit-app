@@ -1,5 +1,19 @@
 # WORKLOG - FruitFit Food Database & Nutrition Parser
 
+## 2026-06-21 - Referral copy text update
+
+Scope: client profile referral block on the `ios-first-build` branch only. Referral backend, payments, push delivery, AI Coach, HealthKit, and Xcode signing were not changed.
+
+- Updated the referral block headline from generic referral/program wording to `Делись промокодом: тебе 14 дней, другу 1000 ₽!`.
+- Updated explanatory referral copy to say the user shares a promo code.
+- Changed the bonus card label to `Ваш бонус` and text to `14 дней премиума`.
+- Reworded the bottom explanation to use `промокод` instead of program-sharing language.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large chunk warning only.
+- iOS install was not run on Windows; pull/build/sync is required on Mac.
+
 ## 2026-06-21 - iOS push message library parity
 
 Scope: shared push content library for the `ios-first-build` branch only. iOS/APNs token setup, backend push delivery, payments, AI Coach, HealthKit, and app signing were not changed.

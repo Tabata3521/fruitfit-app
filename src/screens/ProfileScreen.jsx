@@ -891,10 +891,10 @@ function ReferralProgramSection({
         </span>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[16px] font-black text-appText">Реферальная программа</h2>
+            <h2 className="text-[20px] font-black leading-tight text-appText">Делись промокодом: тебе 14 дней, другу 1000 ₽!</h2>
           </div>
-          <p className="mt-1 text-[13px] leading-5 text-appMuted">
-            Пригласи друга: он получит скидку 1000 ₽ на оплату, а ты получишь 2 недели платного доступа после его оплаты.
+          <p className="mt-2 text-[13px] leading-5 text-appMuted">
+            Пригласи друга — поделись промокодом. Когда он использует твой код для первой оплаты, он получит скидку 1000 ₽, а тебе зачислится 14 дней премиум-доступа.
           </p>
         </div>
       </div>
@@ -909,8 +909,8 @@ function ReferralProgramSection({
           <p className="mt-1 text-[14px] font-black text-appText">{formatReferralCount(summary.invitedCount)}</p>
         </div>
         <div className="rounded-[18px] border border-appBorder bg-appBg p-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.1em] text-appMuted">Бонус: 14 дней</p>
-          <p className="mt-1 text-[14px] font-black text-appText">{formatReferralCount(summary.bonusDays)} дней</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.1em] text-appMuted">Ваш бонус</p>
+          <p className="mt-1 text-[14px] font-black leading-tight text-appText">{formatReferralCount(summary.bonusDays)} дней премиума</p>
         </div>
       </div>
 
@@ -936,7 +936,7 @@ function ReferralProgramSection({
       <div className="mt-3 rounded-[18px] border border-appBorder bg-appBg p-3">
         <p className="text-[12px] font-black text-appText">Бонус за приглашение</p>
         <p className="mt-1 text-[12px] leading-5 text-appMuted">
-          Друг вводит твой код на странице оплаты. Скидку применяет backend, а бонус доступа начисляется после успешной оплаты.
+          Как это работает: друг вводит твой промокод при оплате, скидка применяется автоматически, а твой бонус зачисляется после подтверждения.
         </p>
       </div>
     </section>
