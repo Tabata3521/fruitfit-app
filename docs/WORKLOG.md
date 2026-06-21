@@ -1,5 +1,22 @@
 # WORKLOG - FruitFit Food Database & Nutrition Parser
 
+## 2026-06-21 - iOS push message library parity
+
+Scope: shared push content library for the `ios-first-build` branch only. iOS/APNs token setup, backend push delivery, payments, AI Coach, HealthKit, and app signing were not changed.
+
+- Replaced `daily_motivation` with the current 50-message motivation set used by the Android client.
+- Replaced `discipline_gym_etiquette` with the current 15-message gym order/cleanup set.
+- Added `weekly_progress_praise` with 10 conditional weekly positive reinforcement messages.
+- Added `female_cycle_messages` with 12 conditional cycle-aware messages grouped by `phase`.
+- Kept `clarification_messages` unchanged.
+
+Validation:
+
+- `node -e "import('./shared/pushMessages.js')..."` passed and reported message counts: `50 / 15 / 35 / 10 / 12`.
+- `npm install` passed in the clean iOS branch clone.
+- `npm run build` passed. Existing Vite large chunk warning only.
+- `npx cap sync ios` passed on Windows; `ios/App/CapApp-SPM/Package.swift` paths were kept in Mac-safe forward-slash format.
+
 ## 2026-06-20 - Admin nutrition unrestricted ration and calories
 
 Scope: client nutrition screen only. Payments, Robokassa, email auth, Health Connect, AI Coach, program assignment, and backend were not changed.
