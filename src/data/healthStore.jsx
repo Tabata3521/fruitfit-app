@@ -1863,6 +1863,7 @@ function sourceKind(source = {}) {
   if (raw.includes("com.huami") || raw.includes("zepp") || raw.includes("amazfit")) return "zepp";
   if (raw.includes("fitbit")) return "fitbit";
   if (raw.includes("com.sec.android.app.shealth") || raw.includes("samsung")) return "samsung";
+  if (raw.includes("apple") || raw.includes("healthkit")) return "apple";
   return "other";
 }
 
@@ -1877,6 +1878,7 @@ function sourceMatchesPreference(source = {}, preference = "") {
   if ((value.includes("huami") || value.includes("zepp") || value.includes("amazfit")) && kind === "zepp") return true;
   if (value.includes("fitbit") && kind === "fitbit") return true;
   if ((value.includes("samsung") || value.includes("shealth")) && kind === "samsung") return true;
+  if ((value.includes("apple") || value.includes("healthkit")) && kind === "apple") return true;
   return false;
 }
 

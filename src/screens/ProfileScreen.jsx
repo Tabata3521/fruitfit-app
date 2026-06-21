@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Camera, CheckCircle2, ChevronDown, Copy, CreditCard, Gift, Settings, Share2, Watch, X } from "lucide-react";
 import BottomNavigation from "../components/BottomNavigation";
@@ -9,7 +9,7 @@ import { cancelPaymentSubscription, createPaymentSession, fetchAccess, fetchMeas
 import { accessTier } from "../data/accessRules";
 import { readUserCoreField, writeUserCoreField } from "../data/dataContainers";
 import { currentUserId } from "../data/userScopedCache";
-import { healthProviderStates, healthSourceShortcuts, openHealthSource } from "../services/health/healthProvider";
+import { healthProviderStates } from "../services/health/healthProvider";
 
 const MEASUREMENTS_KEY = "fruitfit.measurements";
 const AVATAR_STORAGE_KEY = "fruitfit.avatar";
@@ -214,48 +214,6 @@ function subscriptionLine(subscription = null, loaded = false) {
   if (!loaded) return "Проверяем статус автопродления...";
   if (!subscription) return "Активное автопродление не найдено";
   return `Статус: ${subscriptionStatusLabel(subscription)} · Следующая оплата: ${formatSubscriptionDate(subscription.nextChargeAt)}`;
-}
-
-const stepSourceOptionsBase = [
-  { value: "", label: "Auto", hint: "Apple Health aggregate total" },
-  { value: "com.google.android.apps.fitness", label: "Google Fit", hint: "Use Google Fit when selected" },
-  { value: "android", label: "Android / phone", hint: "Системный источник телефона" },
-  { value: "com.xiaomi.wearable", label: "Mi Fitness", hint: "Использовать только если вы доверяете Mi Fitness" },
-  { value: "zepp", label: "Zepp / Amazfit", hint: "Для Amazfit / Zepp" },
-  { value: "fitbit", label: "Fitbit", hint: "Для Fitbit" },
-  { value: "com.sec.android.app.shealth", label: "Samsung Health", hint: "Для Samsung Health", onlyWhenPresent: true },
-];
-
-function profileSourceKind(source = {}) {
-  const raw = `${String(source.sourcePackage || "").toLowerCase()} ${String(source.sourceName || "").toLowerCase()}`;
-  if (raw.includes("com.google.android.apps.fitness") || raw.includes("google fit")) return "google";
-  if (!source.sourcePackage || raw.includes("android") || raw.includes("health connect aggregate")) return "android";
-  if (raw.includes("com.xiaomi.wearable") || raw.includes("xiaomi") || raw.includes("mi fitness")) return "mi";
-  if (raw.includes("huami") || raw.includes("zepp") || raw.includes("amazfit")) return "zepp";
-  if (raw.includes("fitbit")) return "fitbit";
-  if (raw.includes("samsung") || raw.includes("shealth")) return "samsung";
-  return "other";
-}
-
-function profileSourceMatchesPreference(source = {}, value = "") {
-  const rawValue = String(value || "").toLowerCase();
-  const rawPackage = String(source.sourcePackage || "").toLowerCase();
-  const kind = profileSourceKind(source);
-  if (!rawValue) return true;
-  if (rawPackage === rawValue) return true;
-  if (rawValue === "android" && kind === "android") return true;
-  if (rawValue.includes("google") && kind === "google") return true;
-  if ((rawValue.includes("xiaomi") || rawValue.includes("mi")) && kind === "mi") return true;
-  if ((rawValue.includes("zepp") || rawValue.includes("huami") || rawValue.includes("amazfit")) && kind === "zepp") return true;
-  if (rawValue.includes("fitbit") && kind === "fitbit") return true;
-  if ((rawValue.includes("samsung") || rawValue.includes("shealth")) && kind === "samsung") return true;
-  return false;
-}
-
-function stepSourceOptionTotal(option, sources = []) {
-  if (!option.value) return null;
-  const source = sources.find((item) => profileSourceMatchesPreference(item, option.value));
-  return source ? Number(source.total || source.convertedValue || source.value || 0) : null;
 }
 
 function FieldError({ error }) {
@@ -944,15 +902,12 @@ function ReferralProgramSection({
 }
 
 export default function ProfileScreen({ profile, access, onProfileChange, theme, onThemeChange, onNavigate, onRestartQuiz, onRequireAuth }) {
-  const { health, availability, syncing, requestConnection, syncNativeHealth, buildHealthDebugReport } = useHealth();
+  const { health, availability, syncing, requestConnection, syncNativeHealth } = useHealth();
   const [avatar, setAvatar] = useState(() => loadAvatar(profile, loadAuthUser()));
   const [draft, setDraft] = useState(() => normalizeProfile(profile));
   const [errors, setErrors] = useState({});
   const [saved, setSaved] = useState(false);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
-  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
-  const [healthDebug, setHealthDebug] = useState(null);
-  const [healthDebugStatus, setHealthDebugStatus] = useState("");
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState("");
   const [subscription, setSubscription] = useState(null);
@@ -966,9 +921,6 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
   const [referralLoading, setReferralLoading] = useState(false);
   const [referralCopyStatus, setReferralCopyStatus] = useState("");
   const [referralShareStatus, setReferralShareStatus] = useState("");
-  const [pendingSourceScan, setPendingSourceScan] = useState(false);
-  const [preferredSourcePackage, setPreferredSourcePackage] = useState(() => localStorage.getItem("fruitfit.health.preferredSourcePackage") || "");
-  const preferredSourceMountedRef = useRef(false);
   const [permissions, setPermissions] = useState(() => {
     try {
       return { watch: false, heart: true, sleep: true, steps: true, calories: true, cycle: true, notifications: false, ...JSON.parse(localStorage.getItem("fruitfit.permissions") || "{}") };
@@ -1053,33 +1005,6 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
   useEffect(() => {
     localStorage.setItem("fruitfit.permissions", JSON.stringify(permissions));
   }, [permissions]);
-
-  useEffect(() => {
-    if (preferredSourcePackage) {
-      localStorage.setItem("fruitfit.health.preferredSourcePackage", preferredSourcePackage);
-    } else {
-      localStorage.removeItem("fruitfit.health.preferredSourcePackage");
-    }
-    if (!preferredSourceMountedRef.current) {
-      preferredSourceMountedRef.current = true;
-      return;
-    }
-    syncNativeHealth?.({ force: true, reason: "preferred-source-change", queryMode: "history_7d" });
-  }, [preferredSourcePackage, syncNativeHealth]);
-
-  useEffect(() => {
-    function rescanAfterReturn() {
-      if (!pendingSourceScan) return;
-      setPendingSourceScan(false);
-      refreshHealthData();
-    }
-    window.addEventListener("focus", rescanAfterReturn);
-    document.addEventListener("visibilitychange", rescanAfterReturn);
-    return () => {
-      window.removeEventListener("focus", rescanAfterReturn);
-      document.removeEventListener("visibilitychange", rescanAfterReturn);
-    };
-  }, [pendingSourceScan, requestConnection, syncNativeHealth]);
 
   async function onAvatar(event) {
     const file = event.target.files?.[0];
@@ -1293,67 +1218,6 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
     }
   }
 
-  async function refreshHealthDebug() {
-    if (!buildHealthDebugReport) return;
-    setHealthDebugStatus("Собираю диагностику...");
-    try {
-      const report = await buildHealthDebugReport();
-      setHealthDebug(report);
-      setHealthDebugStatus("Диагностика обновлена");
-    } catch (error) {
-      setHealthDebugStatus(error?.message || "Не удалось собрать диагностику");
-    }
-  }
-
-  async function openSource(sourceId) {
-    setHealthDebugStatus("");
-    try {
-      const result = await openHealthSource(sourceId);
-      setHealthDebugStatus(result?.message || "Открыл источник данных");
-      setPendingSourceScan(true);
-      window.setTimeout(() => requestConnection?.(), 900);
-    } catch (error) {
-      setHealthDebugStatus(error?.message || "Не удалось открыть источник данных");
-    }
-  }
-
-  async function copyHealthDebug() {
-    try {
-      const report = healthDebug || await buildHealthDebugReport?.();
-      if (!report) return;
-      await Promise.resolve(navigator.clipboard?.writeText(JSON.stringify(report, null, 2)));
-      setHealthDebug(report);
-      setHealthDebugStatus("JSON скопирован");
-    } catch (_) {
-      setHealthDebugStatus("Не удалось скопировать JSON");
-    }
-  }
-
-  async function shareHealthDebug() {
-    try {
-      const report = healthDebug || await buildHealthDebugReport?.();
-      if (!report) return;
-      const json = JSON.stringify(report, null, 2);
-      const fileName = report.fileName || "fruitfit_health_debug.json";
-      setHealthDebug(report);
-      if (navigator.share && window.File) {
-        const file = new File([json], fileName, { type: "application/json" });
-        await navigator.share({ title: "FruitFit health debug", files: [file] });
-        setHealthDebugStatus("Отчёт передан в системное меню");
-        return;
-      }
-      await Promise.resolve(navigator.clipboard?.writeText(json));
-      setHealthDebugStatus("Share недоступен, JSON скопирован");
-    } catch (_) {
-      setHealthDebugStatus("Не удалось поделиться JSON");
-    }
-  }
-
-  const stepSources = health?.steps?.sources || [];
-  const stepSourceOptions = stepSourceOptionsBase.filter((option) => !option.onlyWhenPresent || stepSources.some((source) => profileSourceMatchesPreference(source, option.value)));
-  const selectedStepSource = stepSourceOptions.find((option) => option.value === preferredSourcePackage)
-    || stepSourceOptions.find((option) => preferredSourcePackage && stepSources.some((source) => profileSourceMatchesPreference(source, preferredSourcePackage) && profileSourceMatchesPreference(source, option.value)))
-    || stepSourceOptions[0];
   const profileDisplayName = [draft.firstName, draft.lastName]
     .map((value) => String(value || "").trim())
     .filter(Boolean)
@@ -1476,100 +1340,6 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
                     <button type="button" onClick={refreshHealthData} className="mt-3 h-10 w-full rounded-full bg-appGreen text-[12px] font-black text-[#181F19]">
                       {syncing ? "Обновляем..." : "Подключить или обновить"}
                     </button>
-                  </div>
-                  <div className="rounded-[18px] border border-appBorder bg-appBg p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-[12px] font-black text-appText">Расширенная диагностика</p>
-                        <p className="mt-1 text-[11px] leading-4 text-appMuted">
-                          Источники, raw JSON и технические проверки скрыты из обычного режима.
-                        </p>
-                      </div>
-                      {healthDebug?.fileName && <span className="shrink-0 rounded-full bg-appCard px-2 py-1 text-[10px] font-bold text-appMuted">JSON</span>}
-                    </div>
-                    <button type="button" onClick={() => setDiagnosticsOpen((value) => !value)} className="mt-3 h-10 w-full rounded-full border border-appBorder bg-appCard text-[12px] font-black text-appText">
-                      {diagnosticsOpen ? "Скрыть диагностику" : "Расширенная диагностика"}
-                    </button>
-                    {diagnosticsOpen && (
-                      <>
-                        <div className="mt-3 grid grid-cols-2 gap-2">
-                          {healthSourceShortcuts.map((source) => (
-                            <button
-                              key={source.id}
-                              type="button"
-                              onClick={() => openSource(source.id)}
-                              className="min-h-11 rounded-2xl border border-appBorder bg-appCard px-3 text-left transition active:scale-[0.98]"
-                            >
-                              <span className="block text-[11px] font-black text-appText">{source.label}</span>
-                              <span className="mt-0.5 block text-[10px] leading-3 text-appMuted">{source.hint}</span>
-                            </button>
-                          ))}
-                        </div>
-                        <div className="mt-3 rounded-[16px] border border-appBorder bg-appCard/70 p-2">
-                          <div className="flex items-start justify-between gap-2 px-1">
-                            <div>
-                              <p className="text-[11px] font-black uppercase tracking-[0.08em] text-appMuted">Источник шагов</p>
-                              <p className="mt-0.5 text-[10px] leading-3 text-appMuted">Сейчас: {selectedStepSource?.label || "Auto"}</p>
-                            </div>
-                            {health.steps?.today > 0 && <span className="shrink-0 rounded-full bg-appBg px-2 py-1 text-[10px] font-black text-appText">{Number(health.steps.today || 0).toLocaleString("ru-RU")}</span>}
-                          </div>
-                          <div className="mt-2 grid grid-cols-2 gap-1.5">
-                            {stepSourceOptions.map((option) => {
-                              const total = stepSourceOptionTotal(option, stepSources);
-                              const active = preferredSourcePackage === option.value || (!preferredSourcePackage && !option.value);
-                              return (
-                                <button
-                                  key={option.value || "auto"}
-                                  type="button"
-                                  onClick={() => setPreferredSourcePackage(option.value)}
-                                  className={`min-h-12 rounded-xl px-3 py-2 text-left transition active:scale-[0.98] ${active ? "bg-appGreen text-[#181F19]" : "bg-appBg text-appText"}`}
-                                >
-                                  <span className="block truncate text-[11px] font-black">{option.label}</span>
-                                  <span className="mt-0.5 block truncate text-[10px] font-semibold opacity-75">{total == null ? option.hint : total.toLocaleString("ru-RU")}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                        {health?.steps?.selectedSourceReason && (
-                          <p className="mt-2 rounded-2xl bg-appCard px-3 py-2 text-[11px] font-semibold text-appMuted">
-                            {health.steps.selectedSourceReason}
-                          </p>
-                        )}
-                        <div className="mt-3 grid grid-cols-3 gap-2">
-                          <button type="button" onClick={refreshHealthDebug} className="min-h-10 rounded-2xl border border-appBorder bg-appCard px-2 text-[11px] font-black text-appText">
-                            Обновить
-                          </button>
-                          <button type="button" onClick={copyHealthDebug} className="min-h-10 rounded-2xl border border-appBorder bg-appCard px-2 text-[11px] font-black text-appText">
-                            Скопировать
-                          </button>
-                          <button type="button" onClick={shareHealthDebug} className="min-h-10 rounded-2xl bg-appGreen px-2 text-[11px] font-black text-[#181F19]">
-                            Поделиться
-                          </button>
-                        </div>
-                        {healthDebugStatus && <p className="mt-2 text-[11px] font-bold text-appMuted">{healthDebugStatus}</p>}
-                        {healthDebug && (
-                          <pre className="mt-3 max-h-36 overflow-auto rounded-2xl bg-black/10 p-3 text-[10px] leading-4 text-appMuted">
-                            {JSON.stringify({
-                              fileName: healthDebug.fileName,
-                              status: healthDebug.healthConnect?.healthConnectSdkStatus,
-                              heartRate: healthDebug.heartRate,
-                              steps: {
-                                preferredSource: healthDebug.steps?.preferredSource,
-                                aggregateToday: healthDebug.steps?.aggregateToday,
-                                finalDashboardValue: healthDebug.steps?.finalDashboardValue,
-                                selectedSource: healthDebug.steps?.selectedSource,
-                                selectedSourceReason: healthDebug.steps?.selectedSourceReason,
-                                autoStrategy: healthDebug.steps?.autoStrategy,
-                                suspiciousHighSources: healthDebug.steps?.suspiciousHighSources,
-                                rejectedSources: healthDebug.steps?.rejectedSources,
-                                sourcesToday: healthDebug.steps?.sourcesToday,
-                              },
-                            }, null, 2)}
-                          </pre>
-                        )}
-                      </>
-                    )}
                   </div>
                   <p className="rounded-[18px] border border-appBorder bg-appBg px-3 py-2 text-[11px] font-semibold leading-4 text-appMuted">
                     Тумблеры ниже управляют тем, какие подключённые данные FruitFit учитывает в рекомендациях. Разрешения на чтение меняются в самом Apple Health.

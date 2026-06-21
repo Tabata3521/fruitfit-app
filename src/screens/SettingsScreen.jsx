@@ -11,6 +11,7 @@ import {
   Moon,
   RefreshCcw,
   ShieldCheck,
+  SlidersHorizontal,
   Sun,
   Trash2,
   Unlink,
@@ -59,6 +60,52 @@ const PHOTO_TYPES = [
   { id: "back", label: "Сзади" },
 ];
 const PHOTO_PREVIEW_CACHE_KEY = "fruitfit.progressPhotoPreviews";
+const STEP_SOURCE_STORAGE_KEY = "fruitfit.health.preferredSourcePackage";
+
+const stepSourceOptionsBase = [
+  { value: "", label: "Auto", hint: "Автоматический выбор FruitFit" },
+  { value: "com.google.android.apps.fitness", label: "Google Fit", hint: "Если шаги точнее в Google Fit" },
+  { value: "android", label: "Android / phone", hint: "Системный источник телефона" },
+  { value: "com.xiaomi.wearable", label: "Mi Fitness", hint: "Xiaomi Watch / Mi Fitness" },
+  { value: "zepp", label: "Zepp / Amazfit", hint: "Amazfit / Zepp" },
+  { value: "fitbit", label: "Fitbit", hint: "Fitbit" },
+  { value: "com.sec.android.app.shealth", label: "Samsung Health", hint: "Samsung Health", onlyWhenPresent: true },
+  { value: "apple", label: "Apple Health", hint: "iPhone / Apple Watch", onlyWhenPresent: true },
+];
+
+function settingsSourceKind(source = {}) {
+  const raw = `${String(source.sourcePackage || "").toLowerCase()} ${String(source.sourceName || source.source || "").toLowerCase()}`;
+  if (raw.includes("com.google.android.apps.fitness") || raw.includes("google fit")) return "google";
+  if (!source.sourcePackage || raw.includes("android") || raw.includes("health connect aggregate")) return "android";
+  if (raw.includes("com.xiaomi.wearable") || raw.includes("xiaomi") || raw.includes("mi fitness")) return "mi";
+  if (raw.includes("huami") || raw.includes("zepp") || raw.includes("amazfit")) return "zepp";
+  if (raw.includes("fitbit")) return "fitbit";
+  if (raw.includes("samsung") || raw.includes("shealth")) return "samsung";
+  if (raw.includes("apple") || raw.includes("healthkit")) return "apple";
+  return "other";
+}
+
+function settingsSourceMatchesPreference(source = {}, value = "") {
+  const rawValue = String(value || "").toLowerCase();
+  const rawPackage = String(source.sourcePackage || "").toLowerCase();
+  const kind = settingsSourceKind(source);
+  if (!rawValue) return true;
+  if (rawPackage === rawValue) return true;
+  if (rawValue === "android" && kind === "android") return true;
+  if (rawValue.includes("google") && kind === "google") return true;
+  if ((rawValue.includes("xiaomi") || rawValue.includes("mi")) && kind === "mi") return true;
+  if ((rawValue.includes("zepp") || rawValue.includes("huami") || rawValue.includes("amazfit")) && kind === "zepp") return true;
+  if (rawValue.includes("fitbit") && kind === "fitbit") return true;
+  if ((rawValue.includes("samsung") || rawValue.includes("shealth")) && kind === "samsung") return true;
+  if ((rawValue.includes("apple") || rawValue.includes("healthkit")) && kind === "apple") return true;
+  return false;
+}
+
+function stepSourceOptionTotal(option, sources = []) {
+  if (!option.value) return null;
+  const source = sources.find((item) => settingsSourceMatchesPreference(item, option.value));
+  return source ? Number(source.total || source.convertedValue || source.value || 0) : null;
+}
 
 function loadPhotoPreviewCache() {
   if (typeof window === "undefined") return {};
@@ -107,6 +154,65 @@ function ThemeSection({ theme, onThemeChange }) {
             {label}
           </button>
         ))}
+      </div>
+    </section>
+  );
+}
+
+function StepSourceSettingsSection({ health, preferredSourcePackage, onPreferredSourceChange }) {
+  const stepSources = health?.steps?.sources || [];
+  const stepSourceOptions = stepSourceOptionsBase.filter((option) => !option.onlyWhenPresent || stepSources.some((source) => settingsSourceMatchesPreference(source, option.value)));
+  const selectedStepSource = stepSourceOptions.find((option) => option.value === preferredSourcePackage)
+    || stepSourceOptions.find((option) => preferredSourcePackage && stepSources.some((source) => settingsSourceMatchesPreference(source, preferredSourcePackage) && settingsSourceMatchesPreference(source, option.value)))
+    || stepSourceOptions[0];
+  const stepsToday = Number(health?.steps?.today || 0);
+
+  return (
+    <section className="rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-appGreen/15 text-appGreen">
+          <SlidersHorizontal size={18} />
+        </span>
+        <div className="min-w-0">
+          <h2 className="text-[16px] font-black text-appText">Расширенные настройки активности</h2>
+          <p className="mt-1 text-[12px] leading-5 text-appMuted">
+            Выберите более точный источник шагов, если часы, браслет или приложение дублируют данные. Обычно можно оставить Auto.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-[18px] border border-appBorder bg-appBg p-3">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.08em] text-appMuted">Источник шагов</p>
+            <p className="mt-1 text-[12px] font-bold text-appText">Сейчас: {selectedStepSource?.label || "Auto"}</p>
+          </div>
+          {stepsToday > 0 && <span className="shrink-0 rounded-full bg-appCard px-2 py-1 text-[10px] font-black text-appText">{stepsToday.toLocaleString("ru-RU")}</span>}
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {stepSourceOptions.map((option) => {
+            const total = stepSourceOptionTotal(option, stepSources);
+            const active = preferredSourcePackage === option.value || (!preferredSourcePackage && !option.value);
+            return (
+              <button
+                key={option.value || "auto"}
+                type="button"
+                onClick={() => onPreferredSourceChange(option.value)}
+                className={`min-h-14 rounded-2xl px-3 py-2 text-left transition active:scale-[0.98] ${active ? "bg-appGreen text-[#181F19]" : "border border-appBorder bg-appCard text-appText"}`}
+              >
+                <span className="block truncate text-[12px] font-black">{option.label}</span>
+                <span className="mt-1 block truncate text-[10px] font-semibold opacity-75">{total == null ? option.hint : total.toLocaleString("ru-RU")}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {health?.steps?.selectedSourceReason && (
+          <p className="mt-3 rounded-2xl bg-appCard px-3 py-2 text-[11px] font-semibold leading-4 text-appMuted">
+            {health.steps.selectedSourceReason}
+          </p>
+        )}
       </div>
     </section>
   );
@@ -510,7 +616,9 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
     workoutFeeling: 7,
     comment: "",
   });
+  const [preferredSourcePackage, setPreferredSourcePackage] = useState(() => (typeof window === "undefined" ? "" : localStorage.getItem(STEP_SOURCE_STORAGE_KEY) || ""));
   const telegramWidgetRef = useRef(null);
+  const preferredSourceMountedRef = useRef(false);
   const telegramBot = sanitizeTelegramBot(import.meta.env.VITE_TELEGRAM_BOT_USERNAME || "fruitfit_auth_bot");
   const hasAuth = Boolean(getAuthToken() || authUser);
   const progressPhotosEnabled = canUseProgressPhotos(authUser, accessState);
@@ -565,6 +673,20 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
   const latestReportMeasurements = reportMeasurementsFrom(latestReport?.measurements || []);
   const measurementPreview = latestReportMeasurements.length ? latestReportMeasurements : localReportMeasurements;
   const reportHealthPreview = useMemo(() => buildReportHealthSnapshot(health), [health]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (preferredSourcePackage) {
+      localStorage.setItem(STEP_SOURCE_STORAGE_KEY, preferredSourcePackage);
+    } else {
+      localStorage.removeItem(STEP_SOURCE_STORAGE_KEY);
+    }
+    if (!preferredSourceMountedRef.current) {
+      preferredSourceMountedRef.current = true;
+      return;
+    }
+    syncNativeHealth?.({ force: true, reason: "settings-preferred-source-change", queryMode: "history_7d" });
+  }, [preferredSourcePackage, syncNativeHealth]);
 
   useEffect(() => {
     let cancelled = false;
@@ -915,6 +1037,11 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
         <div className="mt-2.5 space-y-3">
           <AppIconSettings compact />
           <ThemeSection theme={theme} onThemeChange={onThemeChange} />
+          <StepSourceSettingsSection
+            health={health}
+            preferredSourcePackage={preferredSourcePackage}
+            onPreferredSourceChange={setPreferredSourcePackage}
+          />
 
           {progressPhotosEnabled && (
             <section className="rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">

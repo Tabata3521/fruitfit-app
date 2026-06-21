@@ -1,5 +1,22 @@
 # WORKLOG - FruitFit Food Database & Nutrition Parser
 
+## 2026-06-21 - Move step source settings out of profile diagnostics
+
+Scope: client Profile/Settings health UI on the `ios-first-build` branch only. Health native reads, backend, payments, AI Coach, push delivery, and Xcode signing were not changed.
+
+- Removed the expanded diagnostics block from the profile health section.
+- Removed profile UI access to raw health JSON generation/copy/share.
+- Moved step source selection into Settings as the advanced activity source settings section.
+- Updated the description to explain this is for choosing a more accurate step source when devices/apps duplicate step data.
+- Source changes still save to `fruitfit.health.preferredSourcePackage` and trigger a 7-day health resync.
+- Added Apple Health/HealthKit preference recognition to source matching.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large chunk warning only.
+- `npx cap sync ios` passed on Windows; `ios/App/CapApp-SPM/Package.swift` was restored to Mac-safe forward-slash paths before commit.
+- iOS install was not run on Windows; pull/build/sync is required on Mac.
+
 ## 2026-06-21 - Referral copy text update
 
 Scope: client profile referral block on the `ios-first-build` branch only. Referral backend, payments, push delivery, AI Coach, HealthKit, and Xcode signing were not changed.
