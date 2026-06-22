@@ -1,0 +1,42 @@
+﻿FruitFit RuStore release build report
+Date: 2026-06-22
+Branch: ios-first-build
+Commit: ebf5843 feat: sync android firebase messaging
+Package: com.tagirfruit.fruitfit
+Version: 1.9
+Version code: 10
+Min SDK: 26
+Target SDK: 36
+Build type: release
+Artifact: FruitFit-1.9-rustore-release-signed.apk
+SHA-256: 5E2CF44F12DDB59675AE92736EC3535A4D134927F9A84B680CDA4ACE733E8B49
+
+Build commands:
+- powershell -ExecutionPolicy Bypass -File scripts/sync-android.ps1
+- android/gradlew.bat assembleRelease
+- zipalign -p -f 4 app-release-unsigned.apk FruitFit-1.9-rustore-release-aligned.apk
+- apksigner sign ... FruitFit-1.9-rustore-release-signed.apk
+- apksigner verify --verbose --print-certs FruitFit-1.9-rustore-release-signed.apk
+
+Signing verification:
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): true
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=FruitFit RuStore Release, OU=Release, O=FruitFit, L=Moscow, ST=Moscow, C=RU
+Signer #1 certificate SHA-256 digest: c22cd9149845bdb4f8e917239f3345ec29bc776125bb01eeb84cb413e04cc3a1
+Signer #1 certificate SHA-1 digest: 418e662a50910edcc8994ad705f3edb1f848ca6d
+Signer #1 certificate MD5 digest: b0ad042e1e1b546874d35872234dc1a2
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 4096
+Signer #1 public key SHA-256 digest: d6e67a9ad4aba7ad81ece114e2aefb662f95b6c207e4ff6cc3f1e185a15beeba
+Signer #1 public key SHA-1 digest: ab10c2a7992e9a8637c70f77f94a6e76e1ef0a8f
+Signer #1 public key MD5 digest: 2064cc92f60e737c9ac47616f229e726
+
+
+Important signing note:
+A new RuStore release key was generated for this build because the password for the older local release-test keystore was not recoverable from local project files/logs. If this APK is uploaded as the first RuStore release, keep the keystore and SIGNING-KEEP-PRIVATE.txt in this folder for all future updates. Do not publish the keystore or password.
