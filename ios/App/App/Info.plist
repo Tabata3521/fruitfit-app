@@ -78,6 +78,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSHealthShareUsageDescription</key>
 	<string>FruitFit uses Apple Health data to show steps, activity, sleep, heart rate, and recovery inside the app.</string>
 	<key>NSHealthUpdateUsageDescription</key>
