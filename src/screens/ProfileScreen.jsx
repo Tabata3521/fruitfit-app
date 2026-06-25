@@ -15,6 +15,7 @@ import { registerFirebaseMessagingPush } from "../services/notifications/firebas
 const MEASUREMENTS_KEY = "fruitfit.measurements";
 const AVATAR_STORAGE_KEY = "fruitfit.avatar";
 const PAYMENT_PAGE_URL = String(import.meta.env.VITE_FRUITFIT_PAYMENT_URL || "https://tagirfruit.ru/payment");
+const IOS_PUSH_TOKEN_KEY = "fruitfit.push.fcmToken.ios.v1";
 
 const permissionItems = [
   { id: "watch", label: "Смарт-часы", permissionKey: null },
@@ -43,6 +44,15 @@ function loadAvatar(profile = {}, user = null) {
     || validAvatarDataUrl(user?.profile?.avatar)
     || validAvatarDataUrl(user?.avatar)
     || "";
+}
+
+function hasStoredIosPushToken() {
+  if (typeof window === "undefined") return false;
+  try {
+    return Boolean(localStorage.getItem(IOS_PUSH_TOKEN_KEY));
+  } catch (_) {
+    return false;
+  }
 }
 
 function readImageFile(file) {
@@ -109,6 +119,26 @@ function permissionLine(item, availability, active) {
   if (availability?.state === healthProviderStates.NOT_INSTALLED) return "Появится после настройки Apple Health";
   if (availability?.state === healthProviderStates.NOT_SUPPORTED) return "Доступно в приложении на Android";
   return "Нужен доступ в Apple Health";
+}
+
+function notificationRegistrationMessage(result) {
+  if (!result) return "";
+  if (result.ok) {
+    if (result.data?.fcmConfigured === false) {
+      return "Уведомления разрешены, но отправка пока недоступна.";
+    }
+    return "Уведомления включены.";
+  }
+  if (result.status === "UNAUTHENTICATED") return "Войдите в аккаунт, чтобы включить уведомления.";
+  if (result.status === "native_push_unavailable") return "Уведомления доступны только в приложении на телефоне.";
+  if (result.status === "NO_FCM_TOKEN") return "Не удалось включить уведомления. Попробуйте ещё раз.";
+  if (result.status === "permission_missing") {
+    if (result.permissions?.receive === "denied") {
+      return "Откройте Настройки > FruitFit > Уведомления и включите разрешение.";
+    }
+    return "Разрешение не выдано. Нажмите ещё раз и выберите «Разрешить».";
+  }
+  return "Не удалось включить уведомления. Попробуйте позже.";
 }
 
 function healthConnectionHint(availability, syncing) {
@@ -924,11 +954,15 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
   const [referralShareStatus, setReferralShareStatus] = useState("");
   const [permissions, setPermissions] = useState(() => {
     try {
-      return { watch: false, heart: true, sleep: true, steps: true, calories: true, cycle: true, notifications: false, ...JSON.parse(localStorage.getItem("fruitfit.permissions") || "{}") };
+      const stored = JSON.parse(localStorage.getItem("fruitfit.permissions") || "{}");
+      return { watch: false, heart: true, sleep: true, steps: true, calories: true, cycle: true, ...stored, notifications: Boolean(stored.notifications || hasStoredIosPushToken()) };
     } catch (_) {
-      return { watch: false, heart: true, sleep: true, steps: true, calories: true, cycle: true, notifications: false };
+      return { watch: false, heart: true, sleep: true, steps: true, calories: true, cycle: true, notifications: hasStoredIosPushToken() };
     }
   });
+  const [notificationStatus, setNotificationStatus] = useState(() => (
+    hasStoredIosPushToken() ? "Уведомления включены." : ""
+  ));
 
   useEffect(() => {
     const normalized = normalizeProfile(profile);
@@ -1097,7 +1131,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
         productCode: "program_subscription",
         recurringEnabled: true,
       });
-      if (!session?.id) throw new Error("Backend не вернул номер платежной сессии");
+      if (!session?.id) throw new Error("Не удалось подготовить оплату. Попробуйте позже.");
       window.location.href = paymentPageUrl(session.id);
     } catch (error) {
       setPaymentStatus(error?.message || "Не удалось открыть оплату");
@@ -1213,14 +1247,28 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
   async function togglePermission(item) {
     if (item.id === "cycle" && draft.gender === "male") return;
     const shouldEnable = !permissions[item.id];
+
+    if (item.id === "notifications") {
+      if (!shouldEnable) {
+        setPermissions((current) => ({ ...current, notifications: false }));
+        setNotificationStatus("Уведомления выключены в FruitFit. Системное разрешение можно изменить в настройках iPhone.");
+        return;
+      }
+      setNotificationStatus("Запрашиваем разрешение на уведомления...");
+      const result = await registerFirebaseMessagingPush({ force: true }).catch((error) => ({
+        ok: false,
+        status: "CLIENT_ERROR",
+        message: error?.message || String(error || "client error"),
+      }));
+      const connected = Boolean(result?.ok);
+      setPermissions((current) => ({ ...current, notifications: connected }));
+      setNotificationStatus(notificationRegistrationMessage(result));
+      return;
+    }
+
     setPermissions((current) => ({ ...current, [item.id]: shouldEnable }));
     if (shouldEnable && ["watch", "heart", "sleep", "steps", "calories"].includes(item.id)) {
       await requestConnection?.();
-    }
-    if (shouldEnable && item.id === "notifications") {
-      registerFirebaseMessagingPush({ force: true }).catch((error) => {
-        console.warn("[FruitFit Push] profile notification registration failed", error?.message || error);
-      });
     }
   }
 
@@ -1365,6 +1413,11 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
                       </button>
                     );
                   })}
+                  {notificationStatus && (
+                    <p className="rounded-[18px] border border-appBorder bg-appBg px-3 py-2 text-[11px] font-semibold leading-4 text-appMuted">
+                      {notificationStatus}
+                    </p>
+                  )}
                 </div>
               </motion.div>
             )}

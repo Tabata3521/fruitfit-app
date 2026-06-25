@@ -79,11 +79,11 @@ const androidStepSourceOptions = [
 const iosStepSourceOptions = [
   { value: "", label: "Auto", hint: "Apple Health выбирает актуальный источник" },
   { value: "apple", label: "Apple Health", hint: "iPhone / Apple Watch" },
-  { value: "apple_watch", label: "Apple Watch", hint: "Через Apple Health", onlyWhenPresent: true },
-  { value: "fitbit", label: "Fitbit", hint: "Через Apple Health", onlyWhenPresent: true },
-  { value: "whoop", label: "WHOOP", hint: "Через Apple Health", onlyWhenPresent: true },
-  { value: "garmin", label: "Garmin", hint: "Через Apple Health", onlyWhenPresent: true },
-  { value: "oura", label: "Oura", hint: "Через Apple Health", onlyWhenPresent: true },
+  { value: "apple_watch", label: "Apple Watch", hint: "Через Apple Health", missingHint: "Нет данных в Apple Health" },
+  { value: "fitbit", label: "Fitbit", hint: "Через Apple Health", missingHint: "Нет данных в Apple Health" },
+  { value: "whoop", label: "WHOOP", hint: "Через Apple Health", missingHint: "Нет данных в Apple Health" },
+  { value: "garmin", label: "Garmin", hint: "Через Apple Health", missingHint: "Нет данных в Apple Health" },
+  { value: "oura", label: "Oura", hint: "Через Apple Health", missingHint: "Нет данных в Apple Health" },
 ];
 
 const stepSourceOptionsBase = IS_IOS_PLATFORM ? iosStepSourceOptions : androidStepSourceOptions;
@@ -185,7 +185,7 @@ function ThemeSection({ theme, onThemeChange }) {
 
 function StepSourceSettingsSection({ health, preferredSourcePackage, onPreferredSourceChange }) {
   const stepSources = health?.steps?.sources || [];
-  const stepSourceOptions = stepSourceOptionsBase.filter((option) => !option.onlyWhenPresent || stepSources.some((source) => settingsSourceMatchesPreference(source, option.value)));
+  const stepSourceOptions = stepSourceOptionsBase.filter((option) => IS_IOS_PLATFORM || !option.onlyWhenPresent || stepSources.some((source) => settingsSourceMatchesPreference(source, option.value)));
   const selectedStepSource = stepSourceOptions.find((option) => option.value === preferredSourcePackage)
     || stepSourceOptions.find((option) => preferredSourcePackage && stepSources.some((source) => settingsSourceMatchesPreference(source, preferredSourcePackage) && settingsSourceMatchesPreference(source, option.value)))
     || stepSourceOptions[0];
@@ -217,6 +217,7 @@ function StepSourceSettingsSection({ health, preferredSourcePackage, onPreferred
         <div className="mt-3 grid grid-cols-2 gap-2">
           {stepSourceOptions.map((option) => {
             const total = stepSourceOptionTotal(option, stepSources);
+            const hint = total == null ? (option.missingHint || option.hint) : total.toLocaleString("ru-RU");
             const active = preferredSourcePackage === option.value || (!preferredSourcePackage && !option.value);
             return (
               <button
@@ -226,7 +227,7 @@ function StepSourceSettingsSection({ health, preferredSourcePackage, onPreferred
                 className={`min-h-14 rounded-2xl px-3 py-2 text-left transition active:scale-[0.98] ${active ? "bg-appGreen text-[#181F19]" : "border border-appBorder bg-appCard text-appText"}`}
               >
                 <span className="block truncate text-[12px] font-black">{option.label}</span>
-                <span className="mt-1 block truncate text-[10px] font-semibold opacity-75">{total == null ? option.hint : total.toLocaleString("ru-RU")}</span>
+                <span className="mt-1 block truncate text-[10px] font-semibold opacity-75">{hint}</span>
               </button>
             );
           })}

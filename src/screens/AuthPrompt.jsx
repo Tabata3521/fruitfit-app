@@ -151,7 +151,7 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
 
   async function submitReset() {
     if (!resetToken) {
-      setMessage("Не найден токен восстановления.");
+      setMessage("Не найден код восстановления.");
       return;
     }
     if (!password || !confirmPassword) {
@@ -306,22 +306,22 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
           )}
 
           {mode === "reset" && !resetToken && (
-            <Field label="Token">
+            <Field label="Код из письма">
               <input
                 value={resetToken}
                 onChange={(event) => setResetToken(event.target.value.trim())}
-                placeholder="Токен из письма"
+                placeholder="Код восстановления"
                 className="h-12 rounded-2xl border border-appBorder bg-appCard px-4 text-[14px] font-bold normal-case tracking-normal text-appText outline-none placeholder:text-appMuted focus:border-appGreen"
               />
             </Field>
           )}
 
           {mode === "verify" && !verifyToken && (
-            <Field label="Token">
+            <Field label="Код из письма">
               <input
                 value={verifyToken}
                 onChange={(event) => setVerifyToken(event.target.value.trim())}
-                placeholder="Токен подтверждения"
+                placeholder="Код подтверждения"
                 className="h-12 rounded-2xl border border-appBorder bg-appCard px-4 text-[14px] font-bold normal-case tracking-normal text-appText outline-none placeholder:text-appMuted focus:border-appGreen"
               />
             </Field>
