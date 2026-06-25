@@ -1,5 +1,35 @@
 # WORKLOG - FruitFit Food Database & Nutrition Parser
 
+## 2026-06-25 - iOS lecture/auth UX cleanup
+
+Scope: iOS client UX on the `ios-first-build` branch. Backend, payments backend, Android main workspace, HealthKit native reads, AI Coach, and push delivery were not changed.
+
+- Removed the startup `Продолжить без регистрации` button and stopped honoring the legacy `fruitfit.authSkipped` flag.
+- Removed technical lecture helper text under the video player, including Selectel/HTML5/YouTube fallback copy.
+- Added the sixth free lecture CTA: `У тебя всё получится! 💪` plus `Купить полный курс`.
+- The lecture CTA uses the existing JWT-only payment session flow and opens the configured payment page with `ps=<session.id>`.
+- Updated the settings step-source picker in this iOS branch/web preview to use Apple Health-oriented sources instead of Android/Google Fit defaults.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large chunk warning only.
+- `npx cap sync ios` passed; `ios/App/CapApp-SPM/Package.swift` paths were restored to Mac-safe forward slashes after sync.
+
+## 2026-06-25 - Apple Health source-aware steps/calories
+
+Scope: iOS HealthKit client mapping on the `ios-first-build` branch. Android Health Connect, backend, payments, AI Coach, push delivery, and native Swift plugin code were not changed.
+
+- Added iOS `readSamples` source breakdown for steps and active calories in addition to the Apple Health aggregate.
+- Apple Health aggregate remains the default Auto source.
+- If the user selects Apple Watch, Fitbit, Garmin, WHOOP, or Oura and HealthKit returns that source, steps/calories and weekly history use only samples from that source.
+- Source options for Apple Watch/Fitbit/Garmin/WHOOP/Oura are shown only when HealthKit actually reports that source.
+- Added Apple Health aggregate handling in the health mapper so selected iOS sources are not treated as diagnostics-only.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large chunk warning only.
+- `npx cap sync ios` passed; `ios/App/CapApp-SPM/Package.swift` paths were restored to Mac-safe forward slashes after sync.
+
 ## 2026-06-21 - Android Firebase Messaging sync
 
 Scope: Android Firebase Cloud Messaging setup on the `ios-first-build` branch. Huawei-specific build scripts, backend, payments, Robokassa, Health Connect aggregation, and iOS Firebase plist were not changed.
@@ -1838,3 +1868,20 @@ Manual check on Huawei:
 - Install `хуавей/FruitFit-huawei-diagnostic-debug.apk`.
 - If the app opens: Profile -> Health and activity -> Extended diagnostics -> Refresh -> Share.
 - If the app crashes before UI: collect `adb logcat` plus app cache file `fruitfit_last_native_crash.txt` if ADB is available.
+
+## 2026-06-25 - iOS parity sync prep
+
+Scope: iOS client sync and platform labels only. Backend, payments, Robokassa, Android native Health Connect, and AI Coach logic were not changed.
+
+- Checked the GitHub `ios-first-build` branch in a clean worktree at commit `4f5af15`.
+- Kept iOS Health UI on Apple Health / HealthKit wording and made the Settings step-source picker platform-aware.
+- Backend push-token registration now uses the current Capacitor platform, so iOS registers as `ios` instead of the Android default.
+- Admin push readiness was checked for iOS: Firebase plist is included in Xcode resources, APNs entitlement/background mode are present, and the profile notification toggle now forces FCM token registration.
+- Trainer progress report source now uses the current platform (`ios-client`, `android-client`, or `web-client`).
+- Synced the built web bundle into `ios/App/App/public` with Capacitor.
+
+Validation:
+
+- `npm install` completed in the clean iOS worktree.
+- `npm run build` passed.
+- `npx cap sync ios` passed.

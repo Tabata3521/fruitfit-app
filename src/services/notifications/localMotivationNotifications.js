@@ -37,7 +37,7 @@ export async function ensureMotivationLockScreenNotifications({ force = false } 
     permission = await LocalNotifications.requestPermissions();
   }
   if (permission.display !== "granted") {
-    return { ok: false, status: "permission_missing", message: "Android notification permission is required." };
+    return { ok: false, status: "permission_missing", message: "Notification permission is required." };
   }
 
   await ensureChannel();
@@ -120,8 +120,9 @@ async function ensureChannel() {
 }
 
 async function syncBackendSchedule({ timezoneOffsetMinutes }) {
+  const platform = Capacitor.getPlatform?.() || "native";
   const [tokenRegistration, scheduleSync] = await Promise.all([
-    registerBackendPushToken({ platform: "android", provider: "fcm" }),
+    registerBackendPushToken({ platform, provider: "fcm" }),
     syncMotivationScheduleWithBackend({ days: 7, timezoneOffsetMinutes }),
   ]);
   return { tokenRegistration, scheduleSync };

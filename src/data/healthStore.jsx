@@ -1847,16 +1847,25 @@ function isAggregateSource(source = {}) {
 function sourceTrustRank(source = {}) {
   if (isAggregateSource(source)) return 10;
   const raw = `${sourcePackageKey(source)} ${String(source?.sourceName || "").toLowerCase()}`;
+  if (raw.includes("apple health") || raw.includes("apple.healthkit")) return 10;
+  if (raw.includes("apple watch")) return 18;
   if (raw.includes("com.google.android.apps.fitness") || raw.includes("google fit")) return 20;
   if (raw.includes("com.sec.android.app.shealth") || raw.includes("samsung")) return 21;
   if (raw.includes("com.xiaomi.wearable") || raw.includes("mi fitness")) return 30;
   if (raw.includes("com.huami") || raw.includes("zepp") || raw.includes("amazfit")) return 31;
   if (raw.includes("fitbit")) return 32;
+  if (raw.includes("whoop")) return 33;
+  if (raw.includes("garmin")) return 34;
+  if (raw.includes("oura")) return 35;
   return 50;
 }
 
 function sourceKind(source = {}) {
   const raw = `${sourcePackageKey(source)} ${String(source?.sourceName || source?.source || "").toLowerCase()}`;
+  if (raw.includes("apple watch")) return "apple_watch";
+  if (raw.includes("whoop")) return "whoop";
+  if (raw.includes("garmin")) return "garmin";
+  if (raw.includes("oura")) return "oura";
   if (raw.includes("com.google.android.apps.fitness") || raw.includes("google fit")) return "google_fit";
   if (isAggregateSource(source)) return "android";
   if (raw.includes("com.xiaomi.wearable") || raw.includes("mi fitness") || raw.includes("xiaomi")) return "mi_fitness";
@@ -1877,6 +1886,10 @@ function sourceMatchesPreference(source = {}, preference = "") {
   if ((value.includes("xiaomi") || value.includes("mi_fitness") || value.includes("mi-fitness")) && kind === "mi_fitness") return true;
   if ((value.includes("huami") || value.includes("zepp") || value.includes("amazfit")) && kind === "zepp") return true;
   if (value.includes("fitbit") && kind === "fitbit") return true;
+  if ((value.includes("watch") || value.includes("apple_watch")) && kind === "apple_watch") return true;
+  if (value.includes("whoop") && kind === "whoop") return true;
+  if (value.includes("garmin") && kind === "garmin") return true;
+  if (value.includes("oura") && kind === "oura") return true;
   if ((value.includes("samsung") || value.includes("shealth")) && kind === "samsung") return true;
   if ((value.includes("apple") || value.includes("healthkit")) && kind === "apple") return true;
   return false;
@@ -2056,6 +2069,68 @@ function isHealthConnectAggregateResult(result = {}) {
     || strategy === "deduped_raw_sleep_sessions"
     || strategy === "deduped_raw_sleep_sessions_over_duplicate_aggregate"
     || result?.selectedSourceName === "Health Connect aggregate";
+}
+
+function isAppleHealthAggregateResult(result = {}) {
+  const strategy = String(result?.aggregateStrategy || result?.selectedSourceStrategy || "").toLowerCase();
+  const sourceText = `${String(result?.source || "")} ${String(result?.selectedSourceName || "")} ${String(result?.selectedSourcePackage || "")}`.toLowerCase();
+  return strategy === "apple_health_aggregate"
+    || sourceText.includes("apple health")
+    || sourceText.includes("apple.healthkit")
+    || sourceText.includes("healthkit");
+}
+
+function appleHealthAggregateSelection(result = {}, options = {}) {
+  const selectedTotal = aggregateMetricTotal(result, options.metric);
+  const sources = (result?.sources || []).filter((source) => source?.sourcePackage || source?.sourceName);
+  const preferredSourcePackage = options.preferredSourcePackage || "";
+  const preferredSource = preferredSourcePackage
+    ? sources.find((source) => sourceMatchesPreference(source, preferredSourcePackage))
+    : null;
+
+  if (preferredSource && sourceTotal(preferredSource) > 0) {
+    return {
+      selectedSourcePackage: preferredSource.sourcePackage || null,
+      selectedSourceName: sourceLabel(preferredSource),
+      selectedSourceReason: `User selected ${sourceLabel(preferredSource)}; using Apple Health samples from this source.`,
+      selectedSourceStrategy: "apple_health_preferred_source",
+      selectedTotal: sourceTotal(preferredSource),
+      sources,
+      allSources: sources,
+      suspiciousSources: [],
+      suspiciousHighSources: [],
+      rejectedSources: [],
+      autoStrategy: "manual_preferred_source",
+      suspiciousReason: null,
+      dashboardSourcePackage: preferredSource.sourcePackage || null,
+      dashboardSourceName: sourceLabel(preferredSource),
+      dashboardValidationStatus: "preferred_source",
+      aggregateRejectedReason: null,
+      dashboardValueSource: preferredSource.sourcePackage || null,
+      dashboardValueReason: "user_preferred_apple_health_source",
+    };
+  }
+
+  return {
+    selectedSourcePackage: null,
+    selectedSourceName: "Apple Health",
+    selectedSourceReason: "Apple Health aggregate selected; choose a source to use only Apple Watch/Fitbit/Garmin/WHOOP/Oura samples when available.",
+    selectedSourceStrategy: "apple_health_aggregate",
+    selectedTotal,
+    sources,
+    allSources: sources,
+    suspiciousSources: [],
+    suspiciousHighSources: [],
+    rejectedSources: [],
+    autoStrategy: "apple_health_aggregate",
+    suspiciousReason: null,
+    dashboardSourcePackage: "apple.healthkit",
+    dashboardSourceName: "Apple Health",
+    dashboardValidationStatus: "aggregate_valid",
+    aggregateRejectedReason: null,
+    dashboardValueSource: "apple_health_aggregate",
+    dashboardValueReason: "apple_health_aggregate",
+  };
 }
 
 const DASHBOARD_SOURCE_PRIORITY = [
@@ -2282,6 +2357,10 @@ function healthConnectAggregateSelection(result = {}, options = {}) {
 function selectBestSource(result, preferredSourcePackage = "", options = {}) {
   if (isHealthConnectAggregateResult(result)) {
     return healthConnectAggregateSelection(result, { ...options, preferredSourcePackage });
+  }
+
+  if (isAppleHealthAggregateResult(result) && (options.metric === "steps" || options.metric === "calories")) {
+    return appleHealthAggregateSelection(result, { ...options, preferredSourcePackage });
   }
 
   if (options.metric === "steps" || options.metric === "calories") {
@@ -2546,7 +2625,7 @@ function splitCalorieValues({ caloriesResult = {}, estimatedActive = 0, profile 
 }
 
 function sanitizedCalorieResult(caloriesResult = {}, range = "today", preferredSourcePackage = "") {
-  if (isHealthConnectAggregateResult(caloriesResult)) {
+  if (isHealthConnectAggregateResult(caloriesResult) || isAppleHealthAggregateResult(caloriesResult)) {
     const selection = selectBestSource(caloriesResult, preferredSourcePackage, { metric: "calories", range });
     const selectedSamples = metricRowsForSelectedSource(caloriesResult, selection);
     const selectedTotal = round(selection.selectedTotal || 0);

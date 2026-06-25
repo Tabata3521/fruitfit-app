@@ -128,7 +128,8 @@ function applyDocumentTheme(theme) {
 }
 
 function loadAuthSkipped() {
-  return localStorage.getItem(SKIP_AUTH_KEY) === "1";
+  localStorage.removeItem(SKIP_AUTH_KEY);
+  return false;
 }
 
 function authTokenFromUrl(rawUrl) {

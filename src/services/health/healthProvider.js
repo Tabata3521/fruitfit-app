@@ -133,18 +133,75 @@ function sourceTotal(samples = []) {
   return samples.reduce((sum, item) => sum + numeric(item.value ?? item.total, 0), 0);
 }
 
+function iosRawSampleLimit(range = "today") {
+  if (range === "month") return 20000;
+  if (range === "week") return 8000;
+  if (range === "last24h" || range === "today") return 2500;
+  return 5000;
+}
+
 function iosStateFromSamples(samples = [], total = null) {
   if (samples.length || numeric(total, 0) > 0) return healthProviderStates.CONNECTED;
   return healthProviderStates.NO_DATA;
 }
 
-function iosSourceSummary(samples = [], total = null) {
-  return [{
+function iosAggregateSourceSummary(samples = [], total = null) {
+  return {
     sourceName: IOS_SOURCE_NAME,
     sourcePackage: IOS_SOURCE_PACKAGE,
     total: total == null ? sourceTotal(samples) : numeric(total, 0),
+    value: total == null ? sourceTotal(samples) : numeric(total, 0),
+    convertedValue: total == null ? sourceTotal(samples) : numeric(total, 0),
+    convertedActive: total == null ? sourceTotal(samples) : numeric(total, 0),
     recordsCount: samples.length,
-  }];
+    aggregate: true,
+  };
+}
+
+function iosSourceSummaries(sourceSamples = [], aggregateSamples = [], aggregateTotal = null) {
+  const grouped = new Map();
+  sourceSamples.forEach((sample) => {
+    const sourcePackage = sample.sourcePackage || IOS_SOURCE_PACKAGE;
+    const sourceName = sample.sourceName || IOS_SOURCE_NAME;
+    const key = `${sourcePackage}::${sourceName}`;
+    const current = grouped.get(key) || {
+      sourceName,
+      sourcePackage,
+      total: 0,
+      value: 0,
+      convertedValue: 0,
+      convertedActive: 0,
+      recordsCount: 0,
+      aggregate: false,
+    };
+    const value = numeric(sample.value ?? sample.total, 0);
+    current.total += value;
+    current.value += value;
+    current.convertedValue += value;
+    current.convertedActive += value;
+    current.recordsCount += 1;
+    grouped.set(key, current);
+  });
+  const rawSources = Array.from(grouped.values())
+    .map((source) => ({
+      ...source,
+      total: Math.round(source.total),
+      value: Math.round(source.value),
+      convertedValue: Math.round(source.convertedValue),
+      convertedActive: Math.round(source.convertedActive),
+    }))
+    .filter((source) => source.recordsCount > 0 || source.total > 0)
+    .sort((a, b) => (b.total - a.total) || String(a.sourceName).localeCompare(String(b.sourceName)));
+  return [iosAggregateSourceSummary(aggregateSamples, aggregateTotal), ...rawSources];
+}
+
+async function iosReadSourceSamples(dataType, range) {
+  try {
+    return await iosReadSamples(dataType, range, iosRawSampleLimit(range));
+  } catch (error) {
+    console.warn("[FruitFit HealthKit] source samples unavailable", { dataType, range, message: error?.message || error });
+    return [];
+  }
 }
 
 function mapIosAuthorization(status = {}) {
@@ -263,17 +320,25 @@ async function iosMetricResult(dataType, range, resultFactory, fallback) {
 async function iosSteps(range = "today") {
   const fallback = { state: healthProviderStates.NO_DATA, source: IOS_SOURCE_NAME, range, total: null, rawTotal: null, selectedSourcePackage: null, recordsCount: 0, sources: [], samples: [] };
   return iosMetricResult("steps", range, async () => {
-    const samples = await iosAggregated("steps", range, "sum");
+    const [samples, sourceSamples] = await Promise.all([
+      iosAggregated("steps", range, "sum"),
+      iosReadSourceSamples("steps", range),
+    ]);
     const total = Math.round(sourceTotal(samples));
+    const sourceLimit = iosRawSampleLimit(range);
     return {
       ...fallback,
+      aggregateStrategy: "apple_health_aggregate",
       state: iosStateFromSamples(samples, total),
       total,
       rawTotal: total,
       selectedSourcePackage: IOS_SOURCE_PACKAGE,
       selectedSourceName: IOS_SOURCE_NAME,
       recordsCount: samples.length,
-      sources: iosSourceSummary(samples, total),
+      recordsCountRaw: sourceSamples.length,
+      sourceSamplesLimited: sourceSamples.length >= sourceLimit,
+      sources: iosSourceSummaries(sourceSamples, samples, total),
+      sourceSamples,
       samples,
     };
   }, fallback);
@@ -282,17 +347,25 @@ async function iosSteps(range = "today") {
 async function iosCalories(range = "today") {
   const fallback = { state: healthProviderStates.NO_DATA, source: IOS_SOURCE_NAME, range, active: null, convertedActive: null, rawActive: null, rawUnit: "kilocalorie", unit: "kcal", total: null, recordsCount: 0, sources: [], samples: [] };
   return iosMetricResult("calories", range, async () => {
-    const samples = await iosAggregated("calories", range, "sum");
+    const [samples, sourceSamples] = await Promise.all([
+      iosAggregated("calories", range, "sum"),
+      iosReadSourceSamples("calories", range),
+    ]);
     const active = Math.round(sourceTotal(samples));
+    const sourceLimit = iosRawSampleLimit(range);
     return {
       ...fallback,
+      aggregateStrategy: "apple_health_aggregate",
       state: iosStateFromSamples(samples, active),
       active,
       convertedActive: active,
       rawActive: active,
       total: active,
       recordsCount: samples.length,
-      sources: iosSourceSummary(samples, active),
+      recordsCountRaw: sourceSamples.length,
+      sourceSamplesLimited: sourceSamples.length >= sourceLimit,
+      sources: iosSourceSummaries(sourceSamples, samples, active),
+      sourceSamples,
       samples,
     };
   }, fallback);

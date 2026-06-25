@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Copy,
+  CreditCard,
   Flame,
   Footprints,
   Heart,
@@ -28,10 +29,19 @@ import { canOpenLecture, fetchLectureAccessPolicy, loadLectureAccessPolicy, visi
 import { lectureTextFor } from "../data/lectureTexts";
 import { dietTypeToRation } from "../data/profileStore";
 import { getMealPlan, useNutritionData } from "../data/useNutritionData";
+import { createPaymentSession, getAuthToken } from "../data/authStore";
+import { accessTier } from "../data/accessRules";
 
 const widgetStorageKey = "fruitfit.widgets";
+const PAYMENT_PAGE_URL = String(import.meta.env.VITE_FRUITFIT_PAYMENT_URL || "https://tagirfruit.ru/payment");
 
 const lecture = lectures[0];
+
+function paymentPageUrl(sessionId) {
+  const url = new URL(PAYMENT_PAGE_URL, window.location.origin);
+  if (sessionId) url.searchParams.set("ps", sessionId);
+  return url.toString();
+}
 
 function normalizeLectureProgress(value) {
   const completedIds = Array.isArray(value?.completedIds) ? value.completedIds.filter(Boolean) : [];
@@ -1713,6 +1723,8 @@ export function LectureDetailScreen({ onBack, access }) {
   const [index, setIndex] = useState(safeProgress.currentIndex || 0);
   const [textOpen, setTextOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState("");
   const [accessPolicy, setAccessPolicy] = useState(loadLectureAccessPolicy);
   const visibleLectures = visibleLecturesForAccess(lectures, access, accessPolicy);
   const safeIndex = Math.max(0, Math.min(index, Math.max(visibleLectures.length - 1, 0)));
@@ -1723,10 +1735,34 @@ export function LectureDetailScreen({ onBack, access }) {
   const lectureLocked = !canOpenLecture(activeLecture, safeIndex, access, accessPolicy);
   const completed = safeProgress.completedIds.includes(activeLecture.id);
   const totalPercent = progressForLectureState(safeProgress, visibleLectures);
+  const isFreeAccess = accessTier(access) === "free";
+  const showLecturePaymentCta = !lectureLocked && isFreeAccess && safeIndex === 5;
 
   function openFullVideo() {
     if (lectureLocked) return;
     openExternalVideo(lecturePlaybackUrl(activeLecture));
+  }
+
+  async function openLecturePayment() {
+    if (paymentLoading) return;
+    if (!getAuthToken()) {
+      setPaymentStatus("Войдите в аккаунт, чтобы открыть полный курс.");
+      return;
+    }
+    setPaymentLoading(true);
+    setPaymentStatus("");
+    try {
+      const session = await createPaymentSession({
+        productCode: "individual_program",
+        recurringEnabled: false,
+      });
+      if (!session?.id) throw new Error("Сервер не вернул платёжную сессию.");
+      window.location.href = paymentPageUrl(session.id);
+    } catch (error) {
+      setPaymentStatus(error?.message || "Не удалось открыть оплату.");
+    } finally {
+      setPaymentLoading(false);
+    }
   }
 
   function move(direction) {
@@ -1859,11 +1895,21 @@ export function LectureDetailScreen({ onBack, access }) {
             <p className="mt-3 rounded-2xl bg-appBg px-3 py-3 text-[12px] leading-5 text-appMuted">
               Эта лекция закрыта для бесплатного доступа. Paid и VIP видят все лекции.
             </p>
-          ) : (
-          <p className="mt-3 rounded-2xl bg-appBg px-3 py-3 text-[12px] leading-5 text-appMuted">
-            {hasSelectel ? "Видео загружается через Selectel в HTML5-плеере." : meta.error ? "YouTube-плеер недоступен, можно открыть видео снаружи." : "Нажмите Play, чтобы открыть плеер внутри приложения."}
-          </p>
-          )}
+          ) : showLecturePaymentCta ? (
+            <div className="mt-3 rounded-2xl bg-appBg px-3 py-3">
+              <p className="text-[14px] font-black leading-5 text-appText">У тебя всё получится! 💪</p>
+              <button
+                type="button"
+                onClick={openLecturePayment}
+                disabled={paymentLoading}
+                className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-appGreen px-4 text-[14px] font-black text-[#181F19] disabled:opacity-70"
+              >
+                <CreditCard size={17} />
+                {paymentLoading ? "Открываем оплату..." : "Купить полный курс"}
+              </button>
+              {paymentStatus && <p className="mt-2 text-[12px] font-semibold leading-5 text-appMuted">{paymentStatus}</p>}
+            </div>
+          ) : null}
           <div className="mt-4 grid grid-cols-2 gap-2">
             <button type="button" onClick={() => move(-1)} className="flex h-11 items-center justify-center gap-2 rounded-full bg-appBg text-[13px] font-black text-appText">
               <ChevronLeft size={17} /> Назад

@@ -1,15 +1,19 @@
+import { Capacitor } from "@capacitor/core";
 import { getAuthToken } from "../../data/authStore.js";
 
 const API_BASE_URL = (import.meta.env.VITE_FRUITFIT_API_URL || "https://api.tagirfruit.ru").replace(/\/$/, "");
 const TOKEN_STORAGE_KEYS = Object.freeze([
+  "fruitfit.push.fcmToken.ios.v1",
+  "fruitfit.push.fcmToken.android.v1",
   "fruitfit.pushToken.v1",
   "fruitfit.fcmToken",
   "fruitfit.firebaseToken"
 ]);
 
-export async function registerBackendPushToken({ token, platform = "android", provider = "fcm", deviceId, meta = {} } = {}) {
+export async function registerBackendPushToken({ token, platform, provider = "fcm", deviceId, meta = {} } = {}) {
   const authToken = getAuthToken();
   const pushToken = String(token || readStoredPushToken() || "").trim();
+  const normalizedPlatform = platform || Capacitor.getPlatform?.() || "native";
   if (!authToken) return { ok: false, status: "UNAUTHENTICATED" };
   if (!pushToken) return { ok: false, status: "NO_PUSH_TOKEN" };
 
@@ -22,7 +26,7 @@ export async function registerBackendPushToken({ token, platform = "android", pr
       },
       body: JSON.stringify({
         token: pushToken,
-        platform,
+        platform: normalizedPlatform,
         provider,
         deviceId,
         meta: {

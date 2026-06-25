@@ -10,6 +10,7 @@ import { accessTier } from "../data/accessRules";
 import { readUserCoreField, writeUserCoreField } from "../data/dataContainers";
 import { currentUserId } from "../data/userScopedCache";
 import { healthProviderStates } from "../services/health/healthProvider";
+import { registerFirebaseMessagingPush } from "../services/notifications/firebaseMessagingPush";
 
 const MEASUREMENTS_KEY = "fruitfit.measurements";
 const AVATAR_STORAGE_KEY = "fruitfit.avatar";
@@ -1215,6 +1216,11 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
     setPermissions((current) => ({ ...current, [item.id]: shouldEnable }));
     if (shouldEnable && ["watch", "heart", "sleep", "steps", "calories"].includes(item.id)) {
       await requestConnection?.();
+    }
+    if (shouldEnable && item.id === "notifications") {
+      registerFirebaseMessagingPush({ force: true }).catch((error) => {
+        console.warn("[FruitFit Push] profile notification registration failed", error?.message || error);
+      });
     }
   }
 

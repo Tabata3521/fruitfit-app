@@ -230,13 +230,6 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
     return null;
   }
 
-  function skipLogin() {
-    setAuthToken(null);
-    saveAuthUser(null);
-    localStorage.setItem(SKIP_AUTH_KEY, "1");
-    onComplete?.(null, { skipped: true });
-  }
-
   useEffect(() => {
     if (mode === "verify" && verifyToken) verifyEmail(verifyToken);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -389,16 +382,6 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
             </button>
           )}
 
-          {!["verify", "reset", "verifySuccess"].includes(mode) && (
-            <button
-              type="button"
-              id="btn-skip-login"
-              onClick={skipLogin}
-              className="flex h-[50px] items-center justify-center rounded-full border border-appBorder bg-transparent px-5 text-[14px] font-black text-appMuted"
-            >
-              Продолжить без регистрации
-            </button>
-          )}
         </form>
 
         {message && (

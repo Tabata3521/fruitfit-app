@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import {
   ArrowLeft,
   Bell,
@@ -61,8 +62,10 @@ const PHOTO_TYPES = [
 ];
 const PHOTO_PREVIEW_CACHE_KEY = "fruitfit.progressPhotoPreviews";
 const STEP_SOURCE_STORAGE_KEY = "fruitfit.health.preferredSourcePackage";
+const CAPACITOR_PLATFORM = Capacitor.getPlatform?.() || "web";
+const IS_IOS_PLATFORM = CAPACITOR_PLATFORM === "ios" || CAPACITOR_PLATFORM === "web";
 
-const stepSourceOptionsBase = [
+const androidStepSourceOptions = [
   { value: "", label: "Auto", hint: "Автоматический выбор FruitFit" },
   { value: "com.google.android.apps.fitness", label: "Google Fit", hint: "Если шаги точнее в Google Fit" },
   { value: "android", label: "Android / phone", hint: "Системный источник телефона" },
@@ -73,15 +76,32 @@ const stepSourceOptionsBase = [
   { value: "apple", label: "Apple Health", hint: "iPhone / Apple Watch", onlyWhenPresent: true },
 ];
 
+const iosStepSourceOptions = [
+  { value: "", label: "Auto", hint: "Apple Health выбирает актуальный источник" },
+  { value: "apple", label: "Apple Health", hint: "iPhone / Apple Watch" },
+  { value: "apple_watch", label: "Apple Watch", hint: "Через Apple Health", onlyWhenPresent: true },
+  { value: "fitbit", label: "Fitbit", hint: "Через Apple Health", onlyWhenPresent: true },
+  { value: "whoop", label: "WHOOP", hint: "Через Apple Health", onlyWhenPresent: true },
+  { value: "garmin", label: "Garmin", hint: "Через Apple Health", onlyWhenPresent: true },
+  { value: "oura", label: "Oura", hint: "Через Apple Health", onlyWhenPresent: true },
+];
+
+const stepSourceOptionsBase = IS_IOS_PLATFORM ? iosStepSourceOptions : androidStepSourceOptions;
+
 function settingsSourceKind(source = {}) {
   const raw = `${String(source.sourcePackage || "").toLowerCase()} ${String(source.sourceName || source.source || "").toLowerCase()}`;
+  if (raw.includes("apple watch")) return "apple_watch";
+  if (raw.includes("apple") || raw.includes("healthkit")) return "apple";
   if (raw.includes("com.google.android.apps.fitness") || raw.includes("google fit")) return "google";
+  if (!source.sourcePackage && IS_IOS_PLATFORM) return "apple";
   if (!source.sourcePackage || raw.includes("android") || raw.includes("health connect aggregate")) return "android";
   if (raw.includes("com.xiaomi.wearable") || raw.includes("xiaomi") || raw.includes("mi fitness")) return "mi";
   if (raw.includes("huami") || raw.includes("zepp") || raw.includes("amazfit")) return "zepp";
   if (raw.includes("fitbit")) return "fitbit";
+  if (raw.includes("whoop")) return "whoop";
+  if (raw.includes("garmin")) return "garmin";
+  if (raw.includes("oura")) return "oura";
   if (raw.includes("samsung") || raw.includes("shealth")) return "samsung";
-  if (raw.includes("apple") || raw.includes("healthkit")) return "apple";
   return "other";
 }
 
@@ -96,7 +116,11 @@ function settingsSourceMatchesPreference(source = {}, value = "") {
   if ((rawValue.includes("xiaomi") || rawValue.includes("mi")) && kind === "mi") return true;
   if ((rawValue.includes("zepp") || rawValue.includes("huami") || rawValue.includes("amazfit")) && kind === "zepp") return true;
   if (rawValue.includes("fitbit") && kind === "fitbit") return true;
+  if (rawValue.includes("whoop") && kind === "whoop") return true;
+  if (rawValue.includes("garmin") && kind === "garmin") return true;
+  if (rawValue.includes("oura") && kind === "oura") return true;
   if ((rawValue.includes("samsung") || rawValue.includes("shealth")) && kind === "samsung") return true;
+  if ((rawValue.includes("watch") || rawValue.includes("apple_watch")) && kind === "apple_watch") return true;
   if ((rawValue.includes("apple") || rawValue.includes("healthkit")) && kind === "apple") return true;
   return false;
 }
@@ -974,7 +998,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
         health: healthSnapshot,
         healthSummary: healthSnapshot.summary,
         noMedicalConclusions: true,
-        source: "android-client",
+        source: `${Capacitor.getPlatform?.() || "web"}-client`,
       });
       const nextReports = await fetchTrainerReports();
       setReports(nextReports);
