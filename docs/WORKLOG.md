@@ -1838,3 +1838,89 @@ Manual check on Huawei:
 - Install `хуавей/FruitFit-huawei-diagnostic-debug.apk`.
 - If the app opens: Profile -> Health and activity -> Extended diagnostics -> Refresh -> Share.
 - If the app crashes before UI: collect `adb logcat` plus app cache file `fruitfit_last_native_crash.txt` if ADB is available.
+# 2026-06-22 - Android auth/settings copy cleanup
+
+Scope: client UI only. Payments, backend, Robokassa, Health Connect native aggregation, and admin builder were not changed.
+
+- Removed the "Продолжить без регистрации" button from the auth screen.
+- Disabled legacy `fruitfit.authSkipped` so old guest-mode state no longer bypasses login.
+- Replaced registration/onboarding Telegram copy with neutral account-save copy.
+- Made health UI copy platform-aware: Android shows Health Connect, iOS keeps Apple Health.
+- Fixed the health display helper that defaulted non-Apple sources to Apple Health.
+- Added a contacts block in Settings for phone and Telegram, saved through the existing profile endpoint and user-scoped profile cache.
+
+Validation:
+
+- `npm run build` passed.
+
+# 2026-06-22 - Settings feedback form
+
+Scope: client settings UI only. Payments, backend, Health Connect, push delivery, and admin builder were not changed.
+
+- Added an `Обратная связь` section to Settings.
+- The button opens the Google Form: `https://forms.gle/MygV9mU445St16ez5`.
+
+Validation:
+
+- `npm run build` passed.
+
+# 2026-06-22 - Profile notification toggle wiring
+
+Scope: client notification preference and profile UI only. Payments, Health Connect native aggregation, backend schema, and admin builder were not changed.
+
+- Added user-scoped push preference storage: `fruitfit.push.enabled.v1:<userId>`.
+- `Уведомления` toggle in Profile now:
+  - requests native notification permission;
+  - registers FCM token with backend;
+  - schedules local FruitFit reminders;
+  - disables local reminders and backend token for the device when switched off.
+- Home no longer auto-requests/schedules notifications unless the user enabled the toggle.
+- Existing backend push bridge now recognizes the current FCM token storage keys.
+- Android native `MainActivity` now explicitly registers `AppPlugin`, `FirebaseMessagingPlugin`, and `LocalNotificationsPlugin`, fixing `"FirebaseMessaging" plugin is not implemented on android` and `"LocalNotifications" plugin is not implemented on android`.
+- FCM registration failures marked as unavailable/deferred no longer block local reminder scheduling.
+- Foreground FCM `notificationReceived` events are now bridged into visible FruitFit local notifications, so admin pushes can appear while the app is open.
+- Added non-secret push debug logs for token registration suffix and incoming push metadata.
+- Prepared RuStore release version `1.9.1` with Android `versionCode=11`.
+
+Validation:
+
+- `npm run build` passed.
+- `npm run android:sync` passed.
+- Android release build, signing, and ADB install passed.
+
+# 2026-06-25 - Exercise replacement tracking and RuStore 1.9.2
+
+Scope: exercise replacement tracking/limits and release packaging. Payments, Robokassa, AI Coach, Health Connect aggregation, program assignment logic, and push notifications were not changed.
+
+- Added backend migration `016_exercise_replacement_events` for per-user exercise replacement events.
+- Added server config for optional monthly replacement limits; default is disabled.
+- Added `POST /api/me/exercise-replacements`; user id is taken only from JWT.
+- Monthly usage is counted by `period_key` in `YYYY-MM` format using `Europe/Moscow`; no reset cron is needed.
+- Added admin analytics endpoint `GET /api/admin/analytics/exercise-replacements`.
+- Workout replacement UI now calls backend before applying a replacement; `allowed=false` blocks local replacement and shows backend message.
+- Bumped Android release to `versionCode=12`, `versionName=1.9.2`.
+
+Validation:
+
+- `node --check backend/src/userState.js` passed.
+- `node --check backend/src/config.js` passed.
+- `node --check backend/src/migrations.js` passed.
+- `npm run build` passed.
+- `npm run android:sync` passed.
+- `./gradlew.bat :app:assembleRelease --no-daemon` passed.
+- `apksigner verify --verbose --print-certs` passed for `release-builds/2026-06-25-rustore/FruitFit-1.9.2-rustore-release-signed.apk`.
+
+# 2026-06-26 - Android hotfix: AI timeout and replacement 404 guard
+
+Scope: Android client hotfix for AI Coach availability and exercise replacement tracking. Payments, Robokassa, subscriptions, iOS, Health Connect aggregation, and program assignment logic were not changed.
+
+- Exercise replacement tracking now treats `POST /api/me/exercise-replacements` HTTP 404 as a tracking outage and still applies/saves the local replacement.
+- AI Coach client timeout was increased to 70 seconds and POST retries were disabled to avoid client-side timeout before backend AI executor fallback finishes.
+
+Validation:
+
+- `npm run build` passed.
+- `npx cap sync android` passed.
+- `./gradlew.bat :app:assembleRelease --no-daemon` passed after clearing stale locked Gradle build artifacts.
+- `apksigner verify --verbose --print-certs` passed for `release-builds/2026-06-26-hotfix/FruitFit-1.9.2-hotfix-release-signed.apk`.
+- Production backend `fruitfit-backend` was patched with `POST /api/me/exercise-replacements`, syntax-checked, restarted, and verified online.

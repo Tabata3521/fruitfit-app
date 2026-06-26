@@ -709,5 +709,39 @@ export const migrations = [
           final_amount = CASE WHEN final_amount = 0 THEN COALESCE(amount, 0) ELSE final_amount END,
           amount = CASE WHEN final_amount = 0 THEN COALESCE(amount, 0) ELSE final_amount END;
     `
+  },
+  {
+    id: "016_exercise_replacement_events",
+    sql: `
+      CREATE TABLE IF NOT EXISTS exercise_replacement_events (
+        id text PRIMARY KEY,
+        user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        program_id text,
+        workout_id text,
+        day_index integer,
+        original_exercise_id text,
+        original_exercise_title text,
+        replacement_exercise_id text,
+        replacement_exercise_title text,
+        reason text,
+        source text,
+        access_status text,
+        period_key text NOT NULL,
+        meta jsonb NOT NULL DEFAULT '{}'::jsonb,
+        created_at timestamptz NOT NULL DEFAULT now()
+      );
+
+      CREATE INDEX IF NOT EXISTS exercise_replacement_events_user_period_idx
+        ON exercise_replacement_events (user_id, period_key, created_at);
+
+      CREATE INDEX IF NOT EXISTS exercise_replacement_events_program_idx
+        ON exercise_replacement_events (program_id, created_at);
+
+      CREATE INDEX IF NOT EXISTS exercise_replacement_events_access_idx
+        ON exercise_replacement_events (access_status, created_at);
+
+      CREATE INDEX IF NOT EXISTS exercise_replacement_events_created_idx
+        ON exercise_replacement_events (created_at);
+    `
   }
 ];

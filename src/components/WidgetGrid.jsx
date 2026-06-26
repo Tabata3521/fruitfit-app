@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -10,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Copy,
+  CreditCard,
   Flame,
   Footprints,
   Heart,
@@ -28,10 +30,40 @@ import { canOpenLecture, fetchLectureAccessPolicy, loadLectureAccessPolicy, visi
 import { lectureTextFor } from "../data/lectureTexts";
 import { dietTypeToRation } from "../data/profileStore";
 import { getMealPlan, useNutritionData } from "../data/useNutritionData";
+import { createPaymentSession, getAuthToken } from "../data/authStore";
+import { accessTier } from "../data/accessRules";
 
 const widgetStorageKey = "fruitfit.widgets";
+const HEALTH_PROVIDER_NAME = Capacitor.getPlatform?.() === "ios" ? "Apple Health" : "Health Connect";
+const HEALTH_PROVIDER_AGGREGATE_NAME = `${HEALTH_PROVIDER_NAME} aggregate`;
+const PAYMENT_PAGE_URL = String(import.meta.env.VITE_FRUITFIT_PAYMENT_URL || "https://tagirfruit.ru/payment");
 
 const lecture = lectures[0];
+
+function paymentPageUrl(sessionId) {
+  const separator = PAYMENT_PAGE_URL.includes("?") ? "&" : "?";
+  return `${PAYMENT_PAGE_URL}${separator}ps=${encodeURIComponent(sessionId)}`;
+}
+
+function hasFullCourseAccess(access = {}) {
+  const tier = accessTier(access);
+  const role = String(access?.role || access?.userRole || access?.user?.role || "").toLowerCase();
+  const status = String(access?.status || access?.plan || "").toLowerCase();
+  return Boolean(
+    access?.isAdmin
+    || access?.isTrainer
+    || access?.isPaid
+    || access?.isVip
+    || tier === "paid"
+    || tier === "full"
+    || tier === "vip"
+    || status === "paid"
+    || status === "admin"
+    || status === "trainer"
+    || role === "admin"
+    || role === "trainer"
+  );
+}
 
 function normalizeLectureProgress(value) {
   const completedIds = Array.isArray(value?.completedIds) ? value.completedIds.filter(Boolean) : [];
@@ -133,7 +165,6 @@ function YouTubeInlinePlayer({ item, title, thumbnailUrl }) {
             .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.06), rgba(0,0,0,.48)); }
             .play { position: absolute; left: 50%; top: 50%; width: 82px; height: 58px; transform: translate(-50%, -50%); border-radius: 18px; background: #ff0033; display: grid; place-items: center; box-shadow: 0 18px 48px rgba(0,0,0,.28); }
             .play:before { content: ""; margin-left: 5px; border-left: 20px solid #fff; border-top: 13px solid transparent; border-bottom: 13px solid transparent; }
-            .caption { position: absolute; left: 16px; right: 16px; bottom: 15px; font-size: 13px; font-weight: 800; line-height: 1.25; text-shadow: 0 1px 10px rgba(0,0,0,.85); }
           </style>
         </head>
         <body>
@@ -141,7 +172,6 @@ function YouTubeInlinePlayer({ item, title, thumbnailUrl }) {
             <img src="${safeThumb}" alt="" />
             <span class="shade"></span>
             <span class="play"></span>
-            <span class="caption">Нажмите Play, чтобы открыть плеер внутри приложения</span>
           </a>
         </body>
       </html>`;
@@ -504,7 +534,7 @@ function MiniLectureWidget({ access, onOpen }) {
   );
 }
 
-function EmptyHealthWidget({ title, icon: Icon, color = "#8BBE3D", onOpen, onConnect, onRefresh, headline = "Трекер не подключён", description = "После подключения Apple Health здесь появятся реальные данные.", actionLabel = "Подключить трекер" }) {
+function EmptyHealthWidget({ title, icon: Icon, color = "#8BBE3D", onOpen, onConnect, onRefresh, headline = "Трекер не подключён", description = `После подключения ${HEALTH_PROVIDER_NAME} здесь появятся реальные данные.`, actionLabel = "Подключить трекер" }) {
   const runAction = () => {
     if (actionLabel === "Посмотреть") {
       onOpen?.();
@@ -734,7 +764,7 @@ function sleepDaySourceLabel(day = {}, sleep = {}) {
   const entries = [...(day.sessions || []), ...(day.naps || [])];
   if (!entries.length && !(day.entries || []).length) return sleep.dataSource === "manual" && sleep.minutes > 0 ? "Ручная запись" : "Нет данных";
   if (day.hasManualNight || entries.some(isManualSleepEntry) || (day.entries || []).some(isManualSleepEntry)) return "Ручная запись";
-  if (entries.length || sleep.dataSource === "tracker") return "Apple Health";
+  if (entries.length || sleep.dataSource === "tracker") return HEALTH_PROVIDER_NAME;
   return "Нет данных";
 }
 
@@ -1062,7 +1092,7 @@ function healthSourceDisplayName(packageName, fallback) {
   if (raw.includes("com.sec.android.app.shealth") || raw.includes("samsung")) return "Samsung Health";
   if (packageName && !rawPackage.includes("aggregate") && rawPackage !== "android") return fallback && !rawFallback.includes("aggregate") ? fallback : packageName;
   if (fallback && !rawFallback.includes("aggregate")) return fallback;
-  return "Apple Health aggregate";
+  return HEALTH_PROVIDER_AGGREGATE_NAME;
 }
 
 function heartRangeInfo(heart = {}) {
@@ -1158,8 +1188,8 @@ function isRateLimitedUiStatus(status) {
 function friendlyHeartHint(heart = {}) {
   if (isRateLimitedUiStatus(heart.status) || isRateLimitedUiStatus(heart.widgetState) || heart.freshness === "rate_limited") {
     return heart.dataSource || heart.latestBpm
-      ? "Apple Health временно ограничил запросы, показываем сохранённые данные."
-      : "Apple Health пока не ответил. Повторите обновление позже.";
+      ? `${HEALTH_PROVIDER_NAME} временно ограничил запросы, показываем сохранённые данные.`
+      : `${HEALTH_PROVIDER_NAME} пока не ответил. Повторите обновление позже.`;
   }
   const rangeInfo = heartRangeInfo(heart);
   if (rangeInfo.hasRange) {
@@ -1175,8 +1205,8 @@ function friendlyHeartHint(heart = {}) {
 function friendlySourceHint(metric = {}, type = "metric") {
   if (isRateLimitedUiStatus(metric.status) || isRateLimitedUiStatus(metric.widgetState)) {
     return metric.dataSource
-      ? "Apple Health ограничил частоту запросов, показываем сохранённые данные."
-      : "Apple Health временно недоступен. Повторите обновление позже.";
+      ? `${HEALTH_PROVIDER_NAME} ограничил частоту запросов, показываем сохранённые данные.`
+      : `${HEALTH_PROVIDER_NAME} временно недоступен. Повторите обновление позже.`;
   }
   if (metric.isEstimated || metric.status === "estimated") {
     return "Значение рассчитано приблизительно.";
@@ -1186,28 +1216,28 @@ function friendlySourceHint(metric = {}, type = "metric") {
       ? "Данных сна пока нет. Можно внести сон вручную."
       : "Данные появятся после синхронизации трекера.";
   }
-  return "Данные получены из Apple Health.";
+  return `Данные получены из ${HEALTH_PROVIDER_NAME}.`;
 }
 
 function friendlyEmptyCopy(kind, status, hasPartialData = false) {
   if (isRateLimitedUiStatus(status)) {
     return {
       headline: "Показываем сохранённые данные",
-      description: "Apple Health временно ограничил запросы. FruitFit обновит виджет после паузы.",
+      description: `${HEALTH_PROVIDER_NAME} временно ограничил запросы. FruitFit обновит виджет после паузы.`,
       actionLabel: "Проверить",
     };
   }
   if (status === "permission_required") {
     return {
       headline: "Нужно разрешение",
-      description: "FruitFit нужен доступ Apple Health, чтобы читать эти данные.",
+      description: `FruitFit нужен доступ ${HEALTH_PROVIDER_NAME}, чтобы читать эти данные.`,
       actionLabel: "Подключить",
     };
   }
   if (kind === "heart") {
     return {
       headline: "Пульс пока не найден",
-      description: "Синхронизируйте трекер с Apple Health, и FruitFit покажет диапазон за сутки.",
+      description: `Синхронизируйте трекер с ${HEALTH_PROVIDER_NAME}, и FruitFit покажет диапазон за сутки.`,
       actionLabel: "Обновить",
     };
   }
@@ -1227,7 +1257,7 @@ function friendlyEmptyCopy(kind, status, hasPartialData = false) {
   }
   return {
     headline: "Данных пока нет",
-    description: "Apple Health подключён, данные появятся после синхронизации трекера.",
+    description: `${HEALTH_PROVIDER_NAME} подключён, данные появятся после синхронизации трекера.`,
     actionLabel: "Обновить",
   };
 }
@@ -1538,7 +1568,7 @@ function WeeklyWidgetV2({ health, onOpen, onConnect }) {
           <ChevronRight size={17} className="text-appMuted" />
         </div>
         <p className="mt-3 text-[18px] font-black text-appText">Нет данных активности</p>
-        <p className="mt-1 text-[12px] leading-5 text-appMuted">Подключите Apple Health, чтобы видеть недельную историю.</p>
+        <p className="mt-1 text-[12px] leading-5 text-appMuted">Подключите {HEALTH_PROVIDER_NAME}, чтобы видеть недельную историю.</p>
         <span
           role="button"
           tabIndex={0}
@@ -1707,12 +1737,14 @@ function HeartSparkline({ values = [], color = "#EF4444" }) {
   );
 }
 
-export function LectureDetailScreen({ onBack, access }) {
+export function LectureDetailScreen({ onBack, access, onRequireAuth }) {
   const [progress, setProgress] = useLectureProgress();
   const safeProgress = normalizeLectureProgress(progress);
   const [index, setIndex] = useState(safeProgress.currentIndex || 0);
   const [textOpen, setTextOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState("");
   const [accessPolicy, setAccessPolicy] = useState(loadLectureAccessPolicy);
   const visibleLectures = visibleLecturesForAccess(lectures, access, accessPolicy);
   const safeIndex = Math.max(0, Math.min(index, Math.max(visibleLectures.length - 1, 0)));
@@ -1723,10 +1755,34 @@ export function LectureDetailScreen({ onBack, access }) {
   const lectureLocked = !canOpenLecture(activeLecture, safeIndex, access, accessPolicy);
   const completed = safeProgress.completedIds.includes(activeLecture.id);
   const totalPercent = progressForLectureState(safeProgress, visibleLectures);
+  const showLecturePurchaseCta = activeLecture?.id === "lecture-06" && !lectureLocked && !hasFullCourseAccess(access);
 
   function openFullVideo() {
     if (lectureLocked) return;
     openExternalVideo(lecturePlaybackUrl(activeLecture));
+  }
+
+  async function openLecturePayment() {
+    if (!getAuthToken()) {
+      setPaymentStatus("Войдите или создайте аккаунт, затем нажмите оплату снова.");
+      onRequireAuth?.({ reason: "payment" });
+      return;
+    }
+
+    setPaymentLoading(true);
+    setPaymentStatus("");
+    try {
+      const session = await createPaymentSession({
+        productCode: "program_subscription",
+        recurringEnabled: true,
+      });
+      if (!session?.id) throw new Error("Backend не вернул номер платежной сессии");
+      window.location.href = paymentPageUrl(session.id);
+    } catch (error) {
+      setPaymentStatus(error?.message || "Не удалось открыть оплату");
+    } finally {
+      setPaymentLoading(false);
+    }
   }
 
   function move(direction) {
@@ -1859,11 +1915,21 @@ export function LectureDetailScreen({ onBack, access }) {
             <p className="mt-3 rounded-2xl bg-appBg px-3 py-3 text-[12px] leading-5 text-appMuted">
               Эта лекция закрыта для бесплатного доступа. Paid и VIP видят все лекции.
             </p>
-          ) : (
-          <p className="mt-3 rounded-2xl bg-appBg px-3 py-3 text-[12px] leading-5 text-appMuted">
-            {hasSelectel ? "Видео загружается через Selectel в HTML5-плеере." : meta.error ? "YouTube-плеер недоступен, можно открыть видео снаружи." : "Нажмите Play, чтобы открыть плеер внутри приложения."}
-          </p>
-          )}
+          ) : showLecturePurchaseCta ? (
+            <div className="mt-3 rounded-2xl bg-appBg px-3 py-3">
+              <p className="text-[14px] font-black leading-5 text-appText">У тебя всё получится! 💪</p>
+              <button
+                type="button"
+                onClick={openLecturePayment}
+                disabled={paymentLoading}
+                className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-appGreen text-[13px] font-black text-[#181F19] shadow-sm transition active:scale-[0.98] disabled:opacity-70"
+              >
+                <CreditCard size={17} />
+                {paymentLoading ? "Готовим оплату..." : "Купить полный курс"}
+              </button>
+              {paymentStatus && <p className="mt-2 text-center text-[12px] font-bold text-appOrange">{paymentStatus}</p>}
+            </div>
+          ) : null}
           <div className="mt-4 grid grid-cols-2 gap-2">
             <button type="button" onClick={() => move(-1)} className="flex h-11 items-center justify-center gap-2 rounded-full bg-appBg text-[13px] font-black text-appText">
               <ChevronLeft size={17} /> Назад
@@ -1981,7 +2047,7 @@ function MetricDetail({ type, health }) {
     : formatPercent(value, target);
 
   if (!sourceAvailable) {
-    return <p className="rounded-[22px] bg-appBg p-4 text-[13px] text-appMuted">{isSteps ? "Шаги" : "Калории"} пока не найдены. Проверьте подключение Apple Health.</p>;
+    return <p className="rounded-[22px] bg-appBg p-4 text-[13px] text-appMuted">{isSteps ? "Шаги" : "Калории"} пока не найдены. Проверьте подключение {HEALTH_PROVIDER_NAME}.</p>;
   }
 
   return (
@@ -2010,7 +2076,7 @@ function MetricDetail({ type, health }) {
           {Number(metric.restingToday || 0) > 0 && <StatPill label="Базовые / BMR" value={`${Number(metric.restingToday || 0).toLocaleString("ru-RU")} ккал`} />}
           {Number(metric.totalToday || 0) > 0
             ? <StatPill label="Всего" value={`${Number(metric.totalToday || 0).toLocaleString("ru-RU")} ккал`} />
-            : <ChartEmptyState>Общие калории пока не пришли из Apple Health.</ChartEmptyState>}
+            : <ChartEmptyState>Общие калории пока не пришли из {HEALTH_PROVIDER_NAME}.</ChartEmptyState>}
         </div>
       )}
       <div className="mt-4">
@@ -2053,8 +2119,8 @@ function MetricDetail({ type, health }) {
       <MiniGuide
         title={isSteps ? "На что влияют шаги?" : "На что влияют калории?"}
         items={isSteps
-          ? ["Шаги помогают понять общий уровень активности за день.", "Если шагов мало и восстановление среднее, лучше выбрать мягкую нагрузку или прогулку.", "История может обновиться после синхронизации часов с Apple Health."]
-          : ["Калории помогают сопоставить питание, активность и восстановление.", "Смотрите отдельно активные и общие калории: они считаются по-разному.", "Если данные выглядят странно, обновите Apple Health и приложение часов."]}
+          ? ["Шаги помогают понять общий уровень активности за день.", "Если шагов мало и восстановление среднее, лучше выбрать мягкую нагрузку или прогулку.", `История может обновиться после синхронизации трекера с ${HEALTH_PROVIDER_NAME}.`]
+          : ["Калории помогают сопоставить питание, активность и восстановление.", "Смотрите отдельно активные и общие калории: они считаются по-разному.", `Если данные выглядят странно, обновите ${HEALTH_PROVIDER_NAME} и приложение трекера.`]}
       />
     </>
   );
@@ -2079,9 +2145,9 @@ function HeartDetailV2({ health, setHeartCondition }) {
       : "Данные пульса доступны";
   const heartAdvice = heart.latestTimestamp
     ? (heartAgeHours && heartAgeHours > 4
-      ? "Откройте приложение часов или Mi Fitness/Samsung Health и дождитесь синхронизации с Apple Health."
+      ? `Откройте приложение часов или Mi Fitness/Samsung Health и дождитесь синхронизации с ${HEALTH_PROVIDER_NAME}.`
       : friendlyHeartHint(heart))
-    : "Разрешите пульс в Apple Health и синхронизируйте часы.";
+    : `Разрешите пульс в ${HEALTH_PROVIDER_NAME} и синхронизируйте часы.`;
 
   return (
     <>
@@ -2170,9 +2236,9 @@ function HeartDetail({ health, setHeartCondition }) {
       : "Данные пульса доступны";
   const heartAdvice = heart.latestTimestamp
     ? (heartAgeHours && heartAgeHours > 4
-      ? "Откройте приложение часов или Mi Fitness/Samsung Health и дождитесь синхронизации с Apple Health."
+      ? `Откройте приложение часов или Mi Fitness/Samsung Health и дождитесь синхронизации с ${HEALTH_PROVIDER_NAME}.`
       : friendlyHeartHint(heart))
-    : "Разрешите пульс в Apple Health и синхронизируйте часы.";
+    : `Разрешите пульс в ${HEALTH_PROVIDER_NAME} и синхронизируйте часы.`;
   return (
     <>
       {hasChartData(heart.hourly)
@@ -2555,7 +2621,7 @@ function WeeklyDetail({ health }) {
     return (
       <div className="rounded-[22px] bg-appBg p-4">
         <p className="text-[18px] font-black text-appText">Нет данных активности</p>
-        <p className="mt-2 text-[13px] leading-5 text-appMuted">Подключите Apple Health, чтобы FruitFit показал историю за неделю.</p>
+        <p className="mt-2 text-[13px] leading-5 text-appMuted">Подключите {HEALTH_PROVIDER_NAME}, чтобы FruitFit показал историю за неделю.</p>
       </div>
     );
   }
@@ -2679,7 +2745,7 @@ function SleepDetailV2({ health, updateSleepManual }) {
       <>
         <div className="rounded-[22px] bg-appBg p-4">
           <p className="text-[18px] font-black text-appText">Сон пока не найден</p>
-          <p className="mt-2 text-[13px] leading-5 text-appMuted">Apple Health не передал записи сна. Можно внести сон вручную.</p>
+          <p className="mt-2 text-[13px] leading-5 text-appMuted">{HEALTH_PROVIDER_NAME} не передал записи сна. Можно внести сон вручную.</p>
         </div>
         <ManualSleepSection health={health} updateSleepManual={updateSleepManual} selectedDate={sleepDays[6]?.date || sleepDays[6]?.key} />
       </>
@@ -2726,7 +2792,7 @@ function WeeklyDetailV2({ health }) {
     return (
       <div className="rounded-[22px] bg-appBg p-4">
         <p className="text-[18px] font-black text-appText">Нет данных активности</p>
-        <p className="mt-2 text-[13px] leading-5 text-appMuted">Подключите Apple Health, чтобы FruitFit показал недельную историю.</p>
+        <p className="mt-2 text-[13px] leading-5 text-appMuted">Подключите {HEALTH_PROVIDER_NAME}, чтобы FruitFit показал недельную историю.</p>
       </div>
     );
   }
@@ -2778,7 +2844,7 @@ function DashboardRefreshButton({ onRefresh }) {
         onRefresh();
       }}
       className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-appBg text-appMuted shadow-sm transition active:scale-95"
-      aria-label="Обновить данные Apple Health"
+      aria-label={`Обновить данные ${HEALTH_PROVIDER_NAME}`}
     >
       <RefreshCcw size={14} />
     </button>
@@ -2819,7 +2885,7 @@ export function HealthDetailScreen({ type, onBack }) {
           <ChevronLeft size={22} />
         </button>
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-appGreen">Apple Health</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-appGreen">{HEALTH_PROVIDER_NAME}</p>
           <h1 className="text-[24px] font-black leading-tight text-appText">{titles[type] || "Детали"}</h1>
         </div>
         <button
@@ -2838,7 +2904,7 @@ export function HealthDetailScreen({ type, onBack }) {
           Синхронизация: {health.lastFruitFitRefreshAt ? new Date(health.lastFruitFitRefreshAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }) : "данные скоро появятся"}
           {refreshNote ? ` · ${refreshNote}` : ""}
         </p>
-        {syncError && <p className="mb-3 rounded-2xl border border-appBorder bg-appBg/80 px-3 py-2 text-[11px] font-bold text-appMuted">Данные скоро обновятся. Проверьте, что трекер синхронизировался с Apple Health.</p>}
+        {syncError && <p className="mb-3 rounded-2xl border border-appBorder bg-appBg/80 px-3 py-2 text-[11px] font-bold text-appMuted">Данные скоро обновятся. Проверьте, что трекер синхронизировался с {HEALTH_PROVIDER_NAME}.</p>}
         {type === "heart" && <HeartDetailV2 health={health} setHeartCondition={setHeartCondition} />}
         {type === "steps" && <MetricDetail type="steps" health={health} />}
         {type === "calories" && <MetricDetail type="calories" health={health} />}

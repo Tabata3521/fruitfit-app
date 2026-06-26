@@ -57,8 +57,8 @@ export async function askFruitFitCoach(message, options = {}) {
   let response;
   try {
     response = await postWithRetry(AI_COACH_ENDPOINT, requestPayload, {
-      retries: 2,
-      timeoutMs: 18000,
+      retries: 0,
+      timeoutMs: 70000,
       headers: { Authorization: `Bearer ${token}` },
     });
   } catch (error) {

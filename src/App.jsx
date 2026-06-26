@@ -128,7 +128,8 @@ function applyDocumentTheme(theme) {
 }
 
 function loadAuthSkipped() {
-  return localStorage.getItem(SKIP_AUTH_KEY) === "1";
+  localStorage.removeItem(SKIP_AUTH_KEY);
+  return false;
 }
 
 function authTokenFromUrl(rawUrl) {
@@ -1087,7 +1088,7 @@ function AppContent() {
   }
 
   if (screen === "lecture") {
-    return <LectureDetailScreen onBack={() => goBack("home")} access={accessState} />;
+    return <LectureDetailScreen onBack={() => goBack("home")} access={accessState} onRequireAuth={() => setAuthPromptOpen(true)} />;
   }
 
   return (

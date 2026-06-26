@@ -4,7 +4,7 @@ import path from "node:path";
 import express from "express";
 import { requireAdmin, requireUser } from "./auth.js";
 import { config } from "./config.js";
-import { query } from "./db.js";
+import { query, transaction } from "./db.js";
 import { serializeDevice, serializeIdentity } from "./deviceRegistry.js";
 
 export const meRouter = express.Router();
@@ -13,6 +13,8 @@ const ACCESS_STATUSES = new Set(["free", "paid", "vip", "admin", "trainer"]);
 const TRAINING_PROGRAMS_KEY = "training-programs";
 const COURSES_KEY = "courses";
 const EXERCISE_CATALOG_KEYS = ["exercise-catalog", "exercises"];
+const EXERCISE_REPLACEMENT_LIMIT_MESSAGE =
+  "Замены упражнений закончились. Для дальнейшей адаптации рекомендую открыть полную программу тренировок и доступ ко всем лекциям.";
 const MEDIA_UPLOAD_DIR = process.env.ADMIN_MEDIA_UPLOAD_DIR || "/var/www/fruitfit-downloads/admin-media";
 const MEDIA_UPLOAD_PUBLIC_BASE_URL = String(
   process.env.ADMIN_MEDIA_UPLOAD_PUBLIC_BASE_URL || "https://client.tagirfruit.ru/downloads/admin-media"
@@ -140,6 +142,8 @@ meRouter.get("/program-progress", async (req, res) => {
 meRouter.get("/program-assignment", async (req, res) => {
   res.json({ assignment: await loadProgramAssignment(req.user.id) });
 });
+
+meRouter.post("/exercise-replacements", trackExerciseReplacement);
 
 meRouter.put("/program-progress/:programId", async (req, res) => {
   const state = sanitizeObject(req.body?.state || {});
@@ -275,6 +279,10 @@ adminRouter.get("/payments/analytics", async (req, res) => {
     payments: payments.rows.map(serializeAdminPaymentRecord),
     funnel
   });
+});
+
+adminRouter.get("/analytics/exercise-replacements", async (req, res) => {
+  res.json(await loadExerciseReplacementAnalytics(parseAnalyticsRange(req.query)));
 });
 
 adminRouter.get("/dashboard/summary", async (req, res) => {
@@ -884,6 +892,336 @@ async function updateUserAccess(req, res) {
   const nextRole = status === "admin" ? "admin" : status === "trainer" ? "trainer" : "user";
   const updatedUser = await query("UPDATE users SET role = $2, updated_at = now() WHERE id = $1 RETURNING *", [userId, nextRole]);
   res.json({ access: serializeAccess(access.rows[0], updatedUser.rows[0]), user: updatedUser.rows[0] });
+}
+
+async function trackExerciseReplacement(req, res) {
+  const payload = req.body || {};
+  const userId = req.user.id;
+  const validation = await validateExerciseReplacementPayload(userId, payload);
+  if (!validation.valid) {
+    res.status(validation.status || 400).json({
+      allowed: false,
+      reason: validation.reason || "INVALID_REPLACEMENT",
+      message: validation.message || "Замена упражнения недоступна для текущей программы."
+    });
+    return;
+  }
+
+  const accessRow = await query("SELECT * FROM user_access WHERE user_id = $1", [userId]);
+  const access = serializeAccess(accessRow.rows[0], req.user);
+  const accessStatus = normalizeAccessStatus(access.status || req.user.role);
+  const periodKey = currentMoscowPeriodKey();
+  const monthlyLimit = replacementMonthlyLimit(accessStatus, req.user);
+  const meta = sanitizeObject(payload.meta || {});
+  const event = {
+    id: crypto.randomUUID(),
+    userId,
+    programId: validation.programId,
+    workoutId: validation.workoutId,
+    dayIndex: validation.dayIndex,
+    originalExerciseId: validation.originalExerciseId,
+    originalExerciseTitle: validation.originalExerciseTitle,
+    replacementExerciseId: validation.replacementExerciseId,
+    replacementExerciseTitle: validation.replacementExerciseTitle,
+    reason: compactText(payload.reason).slice(0, 120) || null,
+    source: compactText(payload.source).slice(0, 80) || "client",
+    accessStatus,
+    periodKey,
+    meta
+  };
+
+  const usage = await transaction(async (client) => {
+    const usedResult = await client.query(
+      "SELECT count(*)::int AS used FROM exercise_replacement_events WHERE user_id = $1 AND period_key = $2",
+      [userId, periodKey]
+    );
+    const usedBefore = Number(usedResult.rows[0]?.used || 0);
+    if (monthlyLimit !== null && usedBefore >= monthlyLimit) {
+      return { allowed: false, used: usedBefore };
+    }
+    await client.query(
+      `INSERT INTO exercise_replacement_events (
+         id, user_id, program_id, workout_id, day_index,
+         original_exercise_id, original_exercise_title,
+         replacement_exercise_id, replacement_exercise_title,
+         reason, source, access_status, period_key, meta, created_at
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, now())`,
+      [
+        event.id,
+        event.userId,
+        event.programId,
+        event.workoutId,
+        event.dayIndex,
+        event.originalExerciseId,
+        event.originalExerciseTitle,
+        event.replacementExerciseId,
+        event.replacementExerciseTitle,
+        event.reason,
+        event.source,
+        event.accessStatus,
+        event.periodKey,
+        event.meta
+      ]
+    );
+    return { allowed: true, used: usedBefore + 1 };
+  });
+
+  if (!usage.allowed) {
+    res.json({
+      allowed: false,
+      reason: "LIMIT_EXCEEDED",
+      used: usage.used,
+      limit: monthlyLimit,
+      remaining: 0,
+      period: "month",
+      periodKey,
+      upgradeRequired: true,
+      message: EXERCISE_REPLACEMENT_LIMIT_MESSAGE
+    });
+    return;
+  }
+
+  res.status(201).json({
+    allowed: true,
+    used: usage.used,
+    limit: monthlyLimit,
+    remaining: monthlyLimit === null ? null : Math.max(0, monthlyLimit - usage.used),
+    period: "month",
+    periodKey
+  });
+}
+
+async function validateExerciseReplacementPayload(userId, payload = {}) {
+  const assignment = await loadProgramAssignment(userId);
+  if (!assignment?.programId) {
+    return { valid: false, status: 409, reason: "PROGRAM_NOT_ASSIGNED", message: "Текущая программа не назначена." };
+  }
+  const requestedProgramId = compactText(payload.programId || payload.program_id);
+  const assignmentProgramId = compactText(assignment.programId);
+  if (requestedProgramId && requestedProgramId !== assignmentProgramId) {
+    return { valid: false, status: 403, reason: "PROGRAM_MISMATCH", message: "Замена недоступна для другой программы." };
+  }
+
+  const replacementExerciseTitle = compactText(payload.replacementExerciseTitle || payload.replacement_exercise_title);
+  const replacementExerciseId = compactText(payload.replacementExerciseId || payload.replacement_exercise_id || replacementExerciseTitle);
+  const originalExerciseTitle = compactText(payload.originalExerciseTitle || payload.original_exercise_title);
+  const originalExerciseId = compactText(payload.originalExerciseId || payload.original_exercise_id || originalExerciseTitle);
+  if (!originalExerciseId && !originalExerciseTitle) {
+    return { valid: false, status: 400, reason: "ORIGINAL_EXERCISE_REQUIRED", message: "Не найдено исходное упражнение." };
+  }
+  if (!replacementExerciseId && !replacementExerciseTitle) {
+    return { valid: false, status: 400, reason: "REPLACEMENT_EXERCISE_REQUIRED", message: "Не найдено упражнение для замены." };
+  }
+
+  const document = await loadTrainingProgramsDocument();
+  const program = findProgramById(document.programs, assignmentProgramId);
+  if (!program) {
+    return {
+      valid: true,
+      programId: assignmentProgramId,
+      workoutId: compactText(payload.workoutId || payload.workout_id),
+      dayIndex: normalizeOptionalInteger(payload.dayIndex ?? payload.day_index),
+      originalExerciseId,
+      originalExerciseTitle,
+      replacementExerciseId,
+      replacementExerciseTitle
+    };
+  }
+
+  const workouts = workoutsFromProgram(program);
+  const hasWorkoutDetails = workouts.length > 0;
+  const workout = findWorkoutForReplacement(workouts, payload);
+  if (hasWorkoutDetails && !workout) {
+    return { valid: false, status: 400, reason: "WORKOUT_NOT_AVAILABLE", message: "Тренировка недоступна в текущей программе." };
+  }
+  const exercises = workout ? exercisesFromWorkout(workout) : [];
+  if (workout && exercises.length > 0 && !findExerciseForReplacement(exercises, { id: originalExerciseId, title: originalExerciseTitle, order: payload.originalExerciseOrder || payload.exerciseOrder || payload.exercise_order })) {
+    return { valid: false, status: 400, reason: "EXERCISE_NOT_AVAILABLE", message: "Упражнение недоступно в текущей тренировке." };
+  }
+
+  return {
+    valid: true,
+    programId: assignmentProgramId,
+    workoutId: compactText(payload.workoutId || payload.workout_id || workout?.workout_id || workout?.workoutId || workout?.lesson_id || workout?.id),
+    dayIndex: normalizeOptionalInteger(payload.dayIndex ?? payload.day_index),
+    originalExerciseId,
+    originalExerciseTitle,
+    replacementExerciseId,
+    replacementExerciseTitle
+  };
+}
+
+function replacementMonthlyLimit(accessStatus, user = {}) {
+  const role = String(user.role || "").toLowerCase();
+  if (role === "admin" || role === "trainer" || accessStatus === "admin" || accessStatus === "trainer") return null;
+  if (!config.exerciseReplacementLimitEnabled) return null;
+  if (accessStatus === "vip") return config.exerciseReplacementVipMonthlyLimit;
+  if (accessStatus === "paid") return config.exerciseReplacementPaidMonthlyLimit;
+  return config.exerciseReplacementFreeMonthlyLimit;
+}
+
+function currentMoscowPeriodKey(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en", {
+    timeZone: "Europe/Moscow",
+    year: "numeric",
+    month: "2-digit"
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value || String(date.getUTCFullYear());
+  const month = parts.find((part) => part.type === "month")?.value || String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
+function findProgramById(programs = [], programId) {
+  const target = compactText(programId);
+  if (!target) return null;
+  return programs.find((program) => identityValues(program, ["id", "courseId", "course_id", "sourceProgramId", "source_id"]).includes(target)) || null;
+}
+
+function workoutsFromProgram(program = {}) {
+  const candidates = [
+    program.workouts,
+    program.trainingWorkouts,
+    program.training_workouts,
+    program.trainingDays,
+    program.training_days,
+    program.lessons,
+    program.days,
+    program.sessions
+  ];
+  return candidates.find((value) => Array.isArray(value)) || [];
+}
+
+function findWorkoutForReplacement(workouts = [], payload = {}) {
+  const workoutId = compactText(payload.workoutId || payload.workout_id || payload.lessonId || payload.lesson_id);
+  const dayIndex = normalizeOptionalInteger(payload.dayIndex ?? payload.day_index);
+  return workouts.find((workout, index) => {
+    const ids = identityValues(workout, ["workoutId", "workout_id", "lessonId", "lesson_id", "id"]);
+    const workoutDayIndex = normalizeOptionalInteger(workout.dayIndex ?? workout.day_index ?? workout.index);
+    const lessonNumber = normalizeOptionalInteger(workout.lesson_number ?? workout.lessonNumber ?? workout.day);
+    return Boolean(
+      (workoutId && ids.includes(workoutId)) ||
+      (dayIndex !== null && (workoutDayIndex === dayIndex || lessonNumber === dayIndex || lessonNumber === dayIndex + 1 || index === dayIndex))
+    );
+  }) || null;
+}
+
+function exercisesFromWorkout(workout = {}) {
+  const candidates = [workout.exercises, workout.items, workout.lesson?.exercises, workout.exerciseList, workout.exercise_list];
+  return candidates.find((value) => Array.isArray(value)) || [];
+}
+
+function findExerciseForReplacement(exercises = [], target = {}) {
+  const targetId = compactText(target.id);
+  const targetTitle = compactText(target.title).toLowerCase();
+  const targetOrder = normalizeOptionalInteger(target.order);
+  return exercises.find((exercise) => {
+    const ids = identityValues(exercise, ["exerciseId", "exercise_id", "id", "tableId", "table_id"]);
+    const title = compactText(exercise.exercise_name || exercise.name || exercise.title).toLowerCase();
+    const order = normalizeOptionalInteger(exercise.exercise_order ?? exercise.order ?? exercise.index);
+    return Boolean(
+      (targetId && ids.includes(targetId)) ||
+      (targetTitle && title && title === targetTitle) ||
+      (targetOrder !== null && order === targetOrder)
+    );
+  }) || null;
+}
+
+function identityValues(object = {}, keys = []) {
+  return keys.map((key) => compactText(object?.[key])).filter(Boolean);
+}
+
+function compactText(value) {
+  return String(value ?? "").trim();
+}
+
+function normalizeOptionalInteger(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.trunc(parsed) : null;
+}
+
+async function loadExerciseReplacementAnalytics(range) {
+  const params = [range.from, range.toExclusive];
+  const total = await query(
+    `SELECT count(*)::int AS total
+     FROM exercise_replacement_events
+     WHERE created_at >= $1 AND created_at < $2`,
+    params
+  );
+  const byDay = await query(
+    `SELECT to_char(created_at AT TIME ZONE 'Europe/Moscow', 'YYYY-MM-DD') AS day, count(*)::int AS count
+     FROM exercise_replacement_events
+     WHERE created_at >= $1 AND created_at < $2
+     GROUP BY day
+     ORDER BY day`,
+    params
+  );
+  const byUser = await query(
+    `SELECT e.user_id, u.email, u.name, count(*)::int AS count
+     FROM exercise_replacement_events e
+     LEFT JOIN users u ON u.id = e.user_id
+     WHERE e.created_at >= $1 AND e.created_at < $2
+     GROUP BY e.user_id, u.email, u.name
+     ORDER BY count DESC, e.user_id
+     LIMIT 100`,
+    params
+  );
+  const byProgram = await query(
+    `SELECT program_id, count(*)::int AS count
+     FROM exercise_replacement_events
+     WHERE created_at >= $1 AND created_at < $2
+     GROUP BY program_id
+     ORDER BY count DESC NULLS LAST, program_id
+     LIMIT 100`,
+    params
+  );
+  const mostReplaced = await query(
+    `SELECT original_exercise_id, original_exercise_title, count(*)::int AS count
+     FROM exercise_replacement_events
+     WHERE created_at >= $1 AND created_at < $2
+     GROUP BY original_exercise_id, original_exercise_title
+     ORDER BY count DESC, original_exercise_title
+     LIMIT 50`,
+    params
+  );
+  const mostSelected = await query(
+    `SELECT replacement_exercise_id, replacement_exercise_title, count(*)::int AS count
+     FROM exercise_replacement_events
+     WHERE created_at >= $1 AND created_at < $2
+     GROUP BY replacement_exercise_id, replacement_exercise_title
+     ORDER BY count DESC, replacement_exercise_title
+     LIMIT 50`,
+    params
+  );
+  const accessSplit = await query(
+    `SELECT COALESCE(access_status, 'unknown') AS access_status, count(*)::int AS count
+     FROM exercise_replacement_events
+     WHERE created_at >= $1 AND created_at < $2
+     GROUP BY COALESCE(access_status, 'unknown')
+     ORDER BY count DESC`,
+    params
+  );
+  const activeUsers = await query(
+    `SELECT count(DISTINCT user_id)::int AS users
+     FROM exercise_replacement_events
+     WHERE created_at >= $1 AND created_at < $2`,
+    params
+  );
+  const totalCount = Number(total.rows[0]?.total || 0);
+  const activeUserCount = Number(activeUsers.rows[0]?.users || 0);
+  return {
+    from: range.from.toISOString(),
+    to: range.to.toISOString(),
+    total: totalCount,
+    byDay: byDay.rows,
+    byUser: byUser.rows,
+    byProgram: byProgram.rows,
+    mostReplacedExercises: mostReplaced.rows,
+    mostSelectedReplacements: mostSelected.rows,
+    accessSplit: accessSplit.rows,
+    averageReplacementsPerActiveUser: activeUserCount ? totalCount / activeUserCount : 0
+  };
 }
 
 function normalizeAccessStatus(value) {

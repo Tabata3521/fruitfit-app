@@ -30,6 +30,14 @@ function parseList(value) {
     .filter(Boolean);
 }
 
+function parseNullableLimit(value) {
+  if (value === undefined || value === null) return null;
+  const normalized = String(value).trim().toLowerCase();
+  if (!normalized || normalized === "null" || normalized === "none" || normalized === "unlimited") return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : null;
+}
+
 export const config = {
   nodeEnv: process.env.NODE_ENV || "development",
   host: process.env.HOST || process.env.FRUITFIT_API_HOST || "127.0.0.1",
@@ -93,7 +101,13 @@ export const config = {
   programPriceTest: Number(process.env.PROGRAM_PRICE_TEST || 100),
   programPriceProd: Number(process.env.PROGRAM_PRICE_PROD || 2990),
   paymentProgramAssignmentDelaySeconds: Number(process.env.PAYMENT_PROGRAM_ASSIGNMENT_DELAY_SECONDS || 180),
-  paymentAssignmentWorkerIntervalSeconds: Number(process.env.PAYMENT_ASSIGNMENT_WORKER_INTERVAL_SECONDS || 30)
+  paymentAssignmentWorkerIntervalSeconds: Number(process.env.PAYMENT_ASSIGNMENT_WORKER_INTERVAL_SECONDS || 30),
+  exerciseReplacementLimitEnabled:
+    process.env.EXERCISE_REPLACEMENT_LIMIT_ENABLED === "1" ||
+    process.env.EXERCISE_REPLACEMENT_LIMIT_ENABLED === "true",
+  exerciseReplacementFreeMonthlyLimit: parseNullableLimit(process.env.EXERCISE_REPLACEMENT_FREE_MONTHLY_LIMIT),
+  exerciseReplacementPaidMonthlyLimit: parseNullableLimit(process.env.EXERCISE_REPLACEMENT_PAID_MONTHLY_LIMIT),
+  exerciseReplacementVipMonthlyLimit: parseNullableLimit(process.env.EXERCISE_REPLACEMENT_VIP_MONTHLY_LIMIT)
 };
 
 export function assertProductionConfig() {

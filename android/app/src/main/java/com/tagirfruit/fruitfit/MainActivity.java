@@ -2,6 +2,9 @@ package com.tagirfruit.fruitfit;
 
 import android.content.Context;
 import com.getcapacitor.BridgeActivity;
+import com.capacitorjs.plugins.app.AppPlugin;
+import com.capacitorjs.plugins.localnotifications.LocalNotificationsPlugin;
+import io.capawesome.capacitorjs.plugins.firebase.messaging.FirebaseMessagingPlugin;
 import androidx.activity.OnBackPressedCallback;
 import java.io.File;
 import java.io.FileWriter;
@@ -31,6 +34,9 @@ public class MainActivity extends BridgeActivity {
         } else {
             writeStartupDiagnostic(getApplicationContext(), "Health plugin registration skipped: android.health.connect framework classes are unavailable.");
         }
+        registerPlugin(AppPlugin.class);
+        registerPlugin(FirebaseMessagingPlugin.class);
+        registerPlugin(LocalNotificationsPlugin.class);
         registerPlugin(FruitFitAppIconPlugin.class);
         registerPlugin(FruitFitOrientationPlugin.class);
         registerPlugin(FruitFitTelegramPlugin.class);

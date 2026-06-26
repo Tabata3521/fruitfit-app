@@ -6,6 +6,7 @@ import WidgetGrid from "../components/WidgetGrid";
 import { loadNotificationCenter } from "../data/notificationCenterStore";
 import { profileGreetingName } from "../data/profileStore";
 import { ensureMotivationLockScreenNotifications } from "../services/notifications/localMotivationNotifications";
+import { isPushNotificationsEnabled } from "../services/notifications/pushPreferences";
 
 const fallbackCoachTip = {
   id: "home-coach-fallback",
@@ -22,23 +23,27 @@ export default function HomeScreen({ program, workout, profile, access, onStartW
 
   useEffect(() => {
     let active = true;
-    ensureMotivationLockScreenNotifications()
-      .then(() => {
-        if (active) setNotificationItems(loadNotificationCenter());
-      })
-      .catch(() => {
-        if (active) setNotificationItems(loadNotificationCenter());
-      });
+    if (isPushNotificationsEnabled()) {
+      ensureMotivationLockScreenNotifications()
+        .then(() => {
+          if (active) setNotificationItems(loadNotificationCenter());
+        })
+        .catch(() => {
+          if (active) setNotificationItems(loadNotificationCenter());
+        });
+    }
 
     const syncCoachTip = () => {
       if (active) setNotificationItems(loadNotificationCenter());
     };
     window.addEventListener("fruitfit:auth-updated", syncCoachTip);
+    window.addEventListener("fruitfit:push-preference-updated", syncCoachTip);
     window.addEventListener("storage", syncCoachTip);
 
     return () => {
       active = false;
       window.removeEventListener("fruitfit:auth-updated", syncCoachTip);
+      window.removeEventListener("fruitfit:push-preference-updated", syncCoachTip);
       window.removeEventListener("storage", syncCoachTip);
     };
   }, []);

@@ -8,6 +8,7 @@ import IconButton from "../components/IconButton";
 import MuscleWorkBlock from "../components/MuscleWorkBlock";
 import { buildClientReportScores, ClientReportSliders, normalizeClientReportScores } from "../components/ClientReportSliders";
 import { isWorkoutUnlocked, LOCKED_WORKOUT_MESSAGE, originalWorkoutIndex, visibleWorkoutsForAccess } from "../data/accessRules";
+import { trackExerciseReplacement } from "../data/authStore";
 import { readWorkoutHistoryField, writeWorkoutHistoryField } from "../data/dataContainers";
 import { getExerciseAlternatives } from "../data/exerciseAlternatives";
 import { assignMuscleTemplate } from "../data/muscleTemplates";
@@ -476,7 +477,7 @@ function SetsTable({ current, setRows, completedSets, currentSet }) {
   );
 }
 
-function AlternativesModal({ exercise, reason, catalog, profile, onSelect, onClose }) {
+function AlternativesModal({ exercise, reason, catalog, profile, onSelect, onClose, pending = false, message = "" }) {
   const alternative = getExerciseAlternatives(exercise, reason, catalog, profile);
   const metaLine = [alternative.muscleGroup, alternative.movementPattern, alternative.equipment].filter(Boolean).join(" • ");
 
@@ -495,7 +496,7 @@ function AlternativesModal({ exercise, reason, catalog, profile, onSelect, onClo
 
           <div className="mt-4 space-y-2">
             {alternative.alternatives.map((item, index) => (
-              <button key={item.exercise_name} type="button" onClick={() => onSelect(item)} className="grid min-h-[60px] w-full grid-cols-[32px_1fr_24px] items-center gap-3 rounded-[18px] border border-appBorder bg-appBg px-3 text-left shadow-sm transition hover:border-appGreen/60 hover:bg-appGreen/10 active:scale-[0.99]">
+              <button key={item.exercise_name} type="button" onClick={() => onSelect(item)} disabled={pending} className="grid min-h-[60px] w-full grid-cols-[32px_1fr_24px] items-center gap-3 rounded-[18px] border border-appBorder bg-appBg px-3 text-left shadow-sm transition hover:border-appGreen/60 hover:bg-appGreen/10 active:scale-[0.99] disabled:opacity-60">
                 <span className="grid h-8 w-8 place-items-center rounded-full bg-appGreen text-[12px] font-black text-[#181F19]">{index + 1}</span>
                 <span className="text-[14px] font-bold text-appText">{item.exercise_name}</span>
                 <ChevronRight size={17} className="text-appMuted" />
@@ -510,7 +511,7 @@ function AlternativesModal({ exercise, reason, catalog, profile, onSelect, onClo
               <p className="mt-1 text-[11px] leading-4 text-appMuted">Можно выполнять, если сейчас нет боли/дискомфорта. При дискомфорте выберите более безопасную замену.</p>
               <div className="mt-2 space-y-2">
                 {alternative.cautionAlternatives.map((item) => (
-                  <button key={item.exercise_name} type="button" onClick={() => onSelect(item)} className="w-full rounded-[14px] border border-appOrange/25 bg-appCard px-3 py-2 text-left text-[13px] font-bold text-appText transition hover:border-appOrange/60 active:scale-[0.99]">
+                  <button key={item.exercise_name} type="button" onClick={() => onSelect(item)} disabled={pending} className="w-full rounded-[14px] border border-appOrange/25 bg-appCard px-3 py-2 text-left text-[13px] font-bold text-appText transition hover:border-appOrange/60 active:scale-[0.99] disabled:opacity-60">
                     {item.exercise_name}
                   </button>
                 ))}
@@ -518,6 +519,8 @@ function AlternativesModal({ exercise, reason, catalog, profile, onSelect, onClo
             </div>
           )}
 
+          {pending && <p className="mt-3 rounded-[16px] bg-appGreen/10 p-3 text-[12px] font-semibold text-appText">Проверяю замену...</p>}
+          {message && <p className="mt-3 rounded-[16px] bg-appOrange/10 p-3 text-[12px] font-semibold text-appText">{message}</p>}
           
         </motion.section>
       </motion.div>
@@ -678,6 +681,8 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
   const [timerSetTotal, setTimerSetTotal] = useState(1);
   const [muted, setMuted] = useState(false);
   const [replacements, setReplacements] = useState(() => readReplacements(workout.workout_id));
+  const [replacementPending, setReplacementPending] = useState(false);
+  const [replacementMessage, setReplacementMessage] = useState("");
 
   useEffect(() => {
     setCurrentIndex(0);
@@ -691,6 +696,8 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
     setRestDuration(REST_SECONDS);
     setTimerSetTotal(1);
     setReplacements(readReplacements(workout.workout_id));
+    setReplacementMessage("");
+    setReplacementPending(false);
   }, [workout.workout_id]);
 
   const displayExercises = useMemo(() => workout.exercises.map((exercise) => {
@@ -803,7 +810,8 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
     return () => window.clearInterval(id);
   }, [phase, muted, restDuration]);
 
-  function saveReplacement(selected) {
+  async function saveReplacement(selected) {
+    if (replacementPending) return;
     const selectedMeta = selected.exercise_table_meta || selected.category || {};
     const selectedName = selected.exercise_name || selected.name;
     const selectedTemplate = assignMuscleTemplate({ ...selected, exercise_table_meta: selectedMeta });
@@ -832,10 +840,44 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
       exercise_table_meta: selected.exercise_table_meta || selectedMeta || null,
       replacement_id: selected.exercise_id || selected.id || selectedName,
     };
-    const next = { ...replacements, [String(current.exercise_order)]: replacement };
-    setReplacements(next);
-    saveReplacements(workout.workout_id, next);
-    setAlternativeReason("");
+    const original = workout.exercises.find((item) => String(item.exercise_order) === String(current.exercise_order)) || current;
+    setReplacementPending(true);
+    setReplacementMessage("");
+    try {
+      const usage = await trackExerciseReplacement({
+        programId: workout.program_id || workout.course?.course_id || workout.course?.id || program?.id || program?.courseId || program?.course_id || null,
+        workoutId: workout.workout_id || workout.lesson?.lesson_id || null,
+        dayIndex: selectedWorkoutIndex,
+        originalExerciseId: original.exercise_id || original.id || original.exercise_name || null,
+        originalExerciseTitle: original.exercise_name || original.name || null,
+        originalExerciseOrder: original.exercise_order ?? null,
+        replacementExerciseId: selected.exercise_id || selected.id || selected.tableId || selectedName || null,
+        replacementExerciseTitle: selectedName || null,
+        reason: alternativeReason || "replace",
+        source: "client_workout_screen",
+        meta: {
+          workoutTitle: workout.lesson?.lesson_title || workout.title || null,
+          originalOrder: original.exercise_order ?? null,
+          replacementSource: selected.source || selectedMeta.source || null
+        }
+      });
+      if (usage?.allowed === false) {
+        const message = usage.message || "Замена сейчас недоступна.";
+        setReplacementMessage(message);
+        window.alert(message);
+        return;
+      }
+      const next = { ...replacements, [String(current.exercise_order)]: replacement };
+      setReplacements(next);
+      saveReplacements(workout.workout_id, next);
+      setAlternativeReason("");
+    } catch (err) {
+      const message = err?.message || "Не удалось заменить упражнение";
+      setReplacementMessage(message);
+      window.alert(message);
+    } finally {
+      setReplacementPending(false);
+    }
   }
 
   function undoReplacement(exerciseOrder) {
@@ -1067,7 +1109,7 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
         <ExerciseList exercises={displayExercises} currentIndex={currentIndex} superset={workout.hasSupersetData ? workout.superset : []} onExerciseClick={jumpToExercise} />
         <WorkoutReport key={workout.workout_id} workoutId={workout.workout_id} workoutTitle={workout.lesson?.lesson_title} />
       </div>
-      {alternativeReason && <AlternativesModal exercise={current} reason={alternativeReason} catalog={program.exerciseCatalog} profile={profile} onSelect={saveReplacement} onClose={() => setAlternativeReason("")} />}
+      {alternativeReason && <AlternativesModal exercise={current} reason={alternativeReason} catalog={program.exerciseCatalog} profile={profile} onSelect={saveReplacement} onClose={() => setAlternativeReason("")} pending={replacementPending} message={replacementMessage} />}
       <BottomNavigation active="workouts" onNavigate={onNavigate} />
     </main>
   );

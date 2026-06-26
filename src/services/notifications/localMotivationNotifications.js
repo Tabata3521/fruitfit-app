@@ -3,8 +3,10 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 import { buildUtcPushSchedule, PUSH_CADENCE } from "../../../shared/pushMessages.js";
 import { currentUserId } from "../../data/userScopedCache.js";
 import { registerBackendPushToken, syncMotivationScheduleWithBackend } from "./backendPushBridge.js";
+import { isPushNotificationsEnabled } from "./pushPreferences.js";
 
 const CHANNEL_ID = "fruitfit_motivation";
+const ADMIN_CHANNEL_ID = "fruitfit_admin";
 const STORAGE_KEY = "fruitfit.localPushNotifications.v2";
 const RESCHEDULE_AFTER_MS = 6 * 60 * 60_000;
 const NOTIFICATION_SMALL_ICON = "ic_stat_fruitfit_orange";
@@ -19,6 +21,9 @@ export async function ensureMotivationLockScreenNotifications({ force = false } 
   const userId = currentUserId();
   if (!userId) {
     return { ok: false, status: "UNAUTHENTICATED", message: "Push notification history is user-scoped." };
+  }
+  if (!force && !isPushNotificationsEnabled(userId)) {
+    return { ok: false, status: "push_disabled_by_user", message: "Notifications are disabled by the user." };
   }
 
   const stored = readStore(userId);
@@ -103,6 +108,64 @@ export async function ensureMotivationLockScreenNotifications({ force = false } 
   };
 }
 
+export async function disableMotivationLockScreenNotifications() {
+  const userId = currentUserId();
+  if (!userId) return { ok: false, status: "UNAUTHENTICATED" };
+  const stored = readStore(userId);
+  await cancelPrevious(stored.scheduled || []);
+  writeStore(userId, {
+    userId,
+    updatedAt: new Date().toISOString(),
+    scheduled: [],
+    disabledAt: new Date().toISOString(),
+  });
+  return { ok: true, status: "disabled" };
+}
+
+export async function showIncomingPushNotification(event = {}) {
+  if (!Capacitor.isNativePlatform?.()) {
+    return { ok: false, status: "web_only" };
+  }
+  if (!isPushNotificationsEnabled()) {
+    return { ok: false, status: "push_disabled_by_user" };
+  }
+
+  let permission = await LocalNotifications.checkPermissions();
+  if (permission.display !== "granted") {
+    permission = await LocalNotifications.requestPermissions();
+  }
+  if (permission.display !== "granted") {
+    return { ok: false, status: "permission_missing" };
+  }
+
+  const payload = normalizeIncomingPush(event);
+  if (!payload.title && !payload.body) {
+    return { ok: false, status: "empty_notification" };
+  }
+
+  await ensureAdminChannel();
+  const notification = {
+    id: numericNotificationId(new Date().toISOString(), Number(payload.id || Date.now()) % 1000),
+    title: payload.title || "FruitFit",
+    body: payload.body || "Откройте FruitFit",
+    largeBody: payload.body || "",
+    summaryText: "FruitFit",
+    channelId: ADMIN_CHANNEL_ID,
+    smallIcon: NOTIFICATION_SMALL_ICON,
+    largeIcon: NOTIFICATION_LARGE_ICON,
+    iconColor: NOTIFICATION_ICON_COLOR,
+    schedule: { at: new Date(Date.now() + 250) },
+    extra: {
+      ...payload.data,
+      source: "fcm_foreground_bridge",
+      remoteMessageId: payload.id || "",
+    },
+  };
+
+  await LocalNotifications.schedule({ notifications: [notification] });
+  return { ok: true, status: "shown", id: notification.id };
+}
+
 async function ensureChannel() {
   try {
     await LocalNotifications.createChannel({
@@ -117,6 +180,56 @@ async function ensureChannel() {
   } catch (_) {
     // The channel may already exist with user-managed settings.
   }
+}
+
+async function ensureAdminChannel() {
+  try {
+    await LocalNotifications.createChannel({
+      id: ADMIN_CHANNEL_ID,
+      name: "FruitFit",
+      description: "Сообщения от FruitFit",
+      importance: 4,
+      visibility: 1,
+      vibration: true,
+      lights: true,
+    });
+  } catch (_) {
+    // The channel may already exist with user-managed settings.
+  }
+}
+
+function normalizeIncomingPush(event = {}) {
+  const data = event?.data || {};
+  const title = firstText(
+    event?.title,
+    event?.notification?.title,
+    data.title,
+    data.notificationTitle,
+    data.heading,
+    "FruitFit",
+  );
+  const body = firstText(
+    event?.body,
+    event?.notification?.body,
+    data.body,
+    data.message,
+    data.text,
+    data.notificationBody,
+  );
+  return {
+    id: String(event?.id || data.messageId || data.message_id || data.google_message_id || ""),
+    title,
+    body,
+    data,
+  };
+}
+
+function firstText(...values) {
+  for (const value of values) {
+    const text = String(value || "").trim();
+    if (text) return text;
+  }
+  return "";
 }
 
 async function syncBackendSchedule({ timezoneOffsetMinutes }) {

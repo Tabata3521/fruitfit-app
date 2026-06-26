@@ -700,6 +700,38 @@ export async function fetchAccess() {
   return null;
 }
 
+export async function trackExerciseReplacement(payload = {}) {
+  const res = await postJson(apiUrl("/api/me/exercise-replacements"), payload, {
+    credentials: "include",
+    headers: authHeaders()
+  });
+  if (!res.ok) {
+    if (res.status === 401) saveAuthUser(null);
+    if (res.status === 404) {
+      console.warn("[FruitFit replacement] tracking endpoint returned 404; applying local replacement only", {
+        programId: payload?.programId || null,
+        workoutId: payload?.workoutId || null,
+        originalExerciseId: payload?.originalExerciseId || null,
+        replacementExerciseId: payload?.replacementExerciseId || null
+      });
+      return {
+        allowed: true,
+        trackingSkipped: true,
+        reason: "TRACKING_ENDPOINT_NOT_FOUND",
+        used: null,
+        limit: null,
+        remaining: null,
+        period: "month"
+      };
+    }
+    if (res.data?.error && typeof res.data.error !== "string" && res.data.error.message) {
+      throw new Error(res.data?.message || res.data.error.message);
+    }
+    throw new Error(res.data?.message || res.data?.error || "Не удалось заменить упражнение");
+  }
+  return res.data || null;
+}
+
 export async function fetchProgramAssignment() {
   try {
     const res = await getJson(apiUrl("/api/me/program-assignment"), {

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import {
   ArrowLeft,
+  AtSign,
   Bell,
   CreditCard,
   Download,
@@ -8,8 +10,11 @@ import {
   Link2,
   Loader2,
   LogOut,
+  MessageCircle,
   Moon,
+  Phone,
   RefreshCcw,
+  Save,
   ShieldCheck,
   SlidersHorizontal,
   Sun,
@@ -33,6 +38,7 @@ import {
   loadAccessState,
   loadAuthUser,
   logoutUser,
+  saveServerProfile,
   saveProgressPhoto,
   submitTrainerReport,
   unlinkAuthProvider,
@@ -45,6 +51,7 @@ import { getJson } from "../services/nativeHttp";
 import { canUseTelegramNativeLogin, startTelegramNativeLogin } from "../services/telegramNativeLogin";
 import { useHealth } from "../data/healthStore";
 import { readHealthContainer, readUserCoreField } from "../data/dataContainers";
+import { loadProfile, saveProfile } from "../data/profileStore";
 import { currentUserId } from "../data/userScopedCache";
 
 const PROVIDER_META = {
@@ -61,6 +68,8 @@ const PHOTO_TYPES = [
 ];
 const PHOTO_PREVIEW_CACHE_KEY = "fruitfit.progressPhotoPreviews";
 const STEP_SOURCE_STORAGE_KEY = "fruitfit.health.preferredSourcePackage";
+const HEALTH_PROVIDER_NAME = Capacitor.getPlatform?.() === "ios" ? "Apple Health" : "Health Connect";
+const FEEDBACK_FORM_URL = "https://forms.gle/MygV9mU445St16ez5";
 
 const stepSourceOptionsBase = [
   { value: "", label: "Auto", hint: "Автоматический выбор FruitFit" },
@@ -155,6 +164,137 @@ function ThemeSection({ theme, onThemeChange }) {
           </button>
         ))}
       </div>
+    </section>
+  );
+}
+
+function normalizeTelegramContact(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  return text
+    .replace(/^https?:\/\/t\.me\//i, "")
+    .replace(/^https?:\/\/telegram\.me\//i, "")
+    .replace(/^@+/, "")
+    .trim();
+}
+
+function profileContacts(profile = {}) {
+  return {
+    phone: String(profile.phone || profile.phoneNumber || profile.phone_number || "").trim(),
+    telegram: normalizeTelegramContact(profile.telegram || profile.telegramUsername || profile.telegram_username || ""),
+  };
+}
+
+async function openSettingsExternalUrl(url) {
+  const target = String(url || "").trim();
+  if (!target) return false;
+  try {
+    const browser = window.Capacitor?.Plugins?.Browser;
+    if (browser?.open) {
+      await browser.open({ url: target });
+      return true;
+    }
+  } catch (_) {
+    // Fall through to native/web open.
+  }
+  try {
+    const app = window.Capacitor?.Plugins?.App;
+    if (app?.openUrl) {
+      await app.openUrl({ url: target });
+      return true;
+    }
+  } catch (_) {
+    // Fall through to window open.
+  }
+  const opened = window.open(target, "_blank", "noopener,noreferrer");
+  if (!opened) window.location.href = target;
+  return true;
+}
+
+function FeedbackSettingsSection() {
+  return (
+    <section className="rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-appGreen/15 text-appGreen">
+          <MessageCircle size={18} />
+        </span>
+        <div className="min-w-0">
+          <h2 className="text-[16px] font-black text-appText">Обратная связь</h2>
+          <p className="mt-1 text-[12px] leading-5 text-appMuted">
+            Расскажите, что работает неудобно или чего не хватает. Форма откроется в браузере.
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => openSettingsExternalUrl(FEEDBACK_FORM_URL)}
+        className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full border border-appBorder bg-appBg text-[14px] font-black text-appText"
+      >
+        <Link2 size={17} />
+        Открыть форму
+      </button>
+    </section>
+  );
+}
+
+function ContactSettingsSection({ hasAuth, form, status, onChange, onSave }) {
+  return (
+    <section className="rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-appGreen/15 text-appGreen">
+          <Phone size={18} />
+        </span>
+        <div className="min-w-0">
+          <h2 className="text-[16px] font-black text-appText">Контакты</h2>
+          <p className="mt-1 text-[12px] leading-5 text-appMuted">
+            Телефон и Telegram нужны для связи с пользователем и поддержки аккаунта.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-2">
+        <label className="grid gap-1 text-[11px] font-black uppercase tracking-[0.1em] text-appMuted">
+          Телефон
+          <span className="relative">
+            <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-appMuted" />
+            <input
+              type="tel"
+              inputMode="tel"
+              value={form.phone}
+              onChange={(event) => onChange("phone", event.target.value)}
+              placeholder="+7 999 123-45-67"
+              disabled={!hasAuth || status.loading}
+              className="h-12 w-full rounded-2xl border border-appBorder bg-appBg px-10 text-[14px] font-bold text-appText outline-none placeholder:text-appMuted disabled:opacity-60"
+            />
+          </span>
+        </label>
+        <label className="grid gap-1 text-[11px] font-black uppercase tracking-[0.1em] text-appMuted">
+          Telegram
+          <span className="relative">
+            <AtSign size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-appMuted" />
+            <input
+              value={form.telegram}
+              onChange={(event) => onChange("telegram", event.target.value)}
+              placeholder="@username"
+              disabled={!hasAuth || status.loading}
+              className="h-12 w-full rounded-2xl border border-appBorder bg-appBg px-10 text-[14px] font-bold text-appText outline-none placeholder:text-appMuted disabled:opacity-60"
+            />
+          </span>
+        </label>
+      </div>
+
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={!hasAuth || status.loading}
+        className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-appGreen text-[14px] font-black text-[#181F19] disabled:opacity-60"
+      >
+        {status.loading ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}
+        Сохранить контакты
+      </button>
+      {!hasAuth && <p className="mt-2 rounded-2xl bg-appBg px-3 py-2 text-[11px] font-bold text-appMuted">Войдите в аккаунт, чтобы сохранить контакты.</p>}
+      {status.message && <p className="mt-2 rounded-2xl bg-appBg px-3 py-2 text-[11px] font-bold text-appMuted">{status.message}</p>}
     </section>
   );
 }
@@ -609,6 +749,8 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteStatus, setDeleteStatus] = useState({ loading: false, message: "" });
   const [telegramWidgetOpen, setTelegramWidgetOpen] = useState(false);
+  const [contactForm, setContactForm] = useState(() => profileContacts(loadProfile()));
+  const [contactStatus, setContactStatus] = useState({ loading: false, message: "" });
   const [reportForm, setReportForm] = useState({
     selfFeeling: 7,
     strength: 7,
@@ -715,9 +857,13 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
           setIdentities(nextIdentities);
           setPhotos(nextPhotos);
           setReports(nextReports);
-          setAuthUser(loadAuthUser());
+          const nextUser = loadAuthUser();
+          setAuthUser(nextUser);
           setAccessState(loadAccessState());
+          setContactForm(profileContacts(nextUser?.profile || loadProfile()));
         }
+      } else if (!cancelled) {
+        setContactForm({ phone: "", telegram: "" });
       }
     }
     loadSettingsData();
@@ -941,7 +1087,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
     try {
       let reportHealth = health;
       if (syncNativeHealth) {
-        setReportStatus({ loading: true, message: "Обновляем Apple Health..." });
+        setReportStatus({ loading: true, message: `Обновляем ${HEALTH_PROVIDER_NAME}...` });
         try {
           await syncNativeHealth({ force: true, reason: "trainer-report-submit", queryMode: "history", bypassCooldown: true });
           await new Promise((resolve) => window.setTimeout(resolve, 60));
@@ -986,6 +1132,41 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
 
   function updateReportField(field, value) {
     setReportForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function updateContactField(field, value) {
+    setContactForm((current) => ({ ...current, [field]: value }));
+    setContactStatus({ loading: false, message: "" });
+  }
+
+  async function saveContacts() {
+    if (!hasAuth) {
+      setContactStatus({ loading: false, message: "Сначала войдите в FruitFit." });
+      return;
+    }
+    const phone = String(contactForm.phone || "").trim();
+    const telegram = normalizeTelegramContact(contactForm.telegram);
+    setContactStatus({ loading: true, message: "" });
+    try {
+      const baseProfile = { ...loadProfile(), ...(loadAuthUser()?.profile || {}) };
+      const nextProfile = saveProfile({
+        ...baseProfile,
+        phone,
+        phoneNumber: phone,
+        phone_number: phone,
+        telegram,
+        telegramUsername: telegram,
+        telegram_username: telegram,
+      });
+      const savedProfile = await saveServerProfile(nextProfile);
+      if (!savedProfile) throw new Error("Не удалось сохранить контакты");
+      const finalProfile = saveProfile(savedProfile);
+      setContactForm(profileContacts(finalProfile));
+      setAuthUser(loadAuthUser());
+      setContactStatus({ loading: false, message: "Контакты сохранены" });
+    } catch (error) {
+      setContactStatus({ loading: false, message: error?.message || "Не удалось сохранить контакты" });
+    }
   }
 
   async function logout() {
@@ -1042,6 +1223,14 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
             preferredSourcePackage={preferredSourcePackage}
             onPreferredSourceChange={setPreferredSourcePackage}
           />
+          <ContactSettingsSection
+            hasAuth={hasAuth}
+            form={contactForm}
+            status={contactStatus}
+            onChange={updateContactField}
+            onSave={saveContacts}
+          />
+          <FeedbackSettingsSection />
 
           {progressPhotosEnabled && (
             <section className="rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">
@@ -1159,7 +1348,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
                   </div>
                 </div>
                 <p className="mt-2 text-[11px] font-semibold leading-4 text-appMuted">
-                  Перед отправкой отчёта приложение попробует обновить Apple Health и приложит недельную активность.
+                  Перед отправкой отчёта приложение попробует обновить {HEALTH_PROVIDER_NAME} и приложит недельную активность.
                 </p>
               </div>
 

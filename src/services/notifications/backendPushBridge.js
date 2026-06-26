@@ -2,6 +2,8 @@ import { getAuthToken } from "../../data/authStore.js";
 
 const API_BASE_URL = (import.meta.env.VITE_FRUITFIT_API_URL || "https://api.tagirfruit.ru").replace(/\/$/, "");
 const TOKEN_STORAGE_KEYS = Object.freeze([
+  "fruitfit.push.fcmToken.android.v1",
+  "fruitfit.push.fcmToken.ios.v1",
   "fruitfit.pushToken.v1",
   "fruitfit.fcmToken",
   "fruitfit.firebaseToken"

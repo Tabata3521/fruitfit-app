@@ -230,13 +230,6 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
     return null;
   }
 
-  function skipLogin() {
-    setAuthToken(null);
-    saveAuthUser(null);
-    localStorage.setItem(SKIP_AUTH_KEY, "1");
-    onComplete?.(null, { skipped: true });
-  }
-
   useEffect(() => {
     if (mode === "verify" && verifyToken) verifyEmail(verifyToken);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -258,7 +251,7 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
         <p className="text-[12px] font-black uppercase tracking-[0.16em] text-[#6FA62F]">fruitfit</p>
         <h1 className="mt-4 text-[30px] font-black leading-tight text-appText">{title}</h1>
         <p className="mt-3 text-[14px] leading-6 text-appMuted">
-          Основной вход FruitFit — email и пароль. Telegram остаётся для связи с тренером, уведомлений и бота.
+          Войдите по email, чтобы сохранить анкету, программу, прогресс и покупки в аккаунте FruitFit.
         </p>
 
         <form className="mt-6 grid gap-3" onSubmit={submit}>
@@ -389,16 +382,6 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
             </button>
           )}
 
-          {!["verify", "reset", "verifySuccess"].includes(mode) && (
-            <button
-              type="button"
-              id="btn-skip-login"
-              onClick={skipLogin}
-              className="flex h-[50px] items-center justify-center rounded-full border border-appBorder bg-transparent px-5 text-[14px] font-black text-appMuted"
-            >
-              Продолжить без регистрации
-            </button>
-          )}
         </form>
 
         {message && (
@@ -408,9 +391,7 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
         )}
       </section>
 
-      <p className="pb-1 text-center text-[11px] leading-5 text-appMuted">
-        Telegram можно подключить позже в профиле как сервис связи и уведомлений.
-      </p>
+      <p className="pb-1 text-center text-[11px] leading-5 text-appMuted">Данные анкеты подтянутся в аккаунт после входа.</p>
     </main>
   );
 }

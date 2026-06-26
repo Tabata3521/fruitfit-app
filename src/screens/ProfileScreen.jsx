@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { AnimatePresence, motion } from "framer-motion";
 import { Camera, CheckCircle2, ChevronDown, Copy, CreditCard, Gift, Settings, Share2, Watch, X } from "lucide-react";
 import BottomNavigation from "../components/BottomNavigation";
@@ -10,10 +11,15 @@ import { accessTier } from "../data/accessRules";
 import { readUserCoreField, writeUserCoreField } from "../data/dataContainers";
 import { currentUserId } from "../data/userScopedCache";
 import { healthProviderStates } from "../services/health/healthProvider";
+import { disableFirebaseMessagingPush, registerFirebaseMessagingPush } from "../services/notifications/firebaseMessagingPush";
+import { disableMotivationLockScreenNotifications, ensureMotivationLockScreenNotifications } from "../services/notifications/localMotivationNotifications";
+import { isPushNotificationsEnabled, setPushNotificationsEnabled } from "../services/notifications/pushPreferences";
 
 const MEASUREMENTS_KEY = "fruitfit.measurements";
 const AVATAR_STORAGE_KEY = "fruitfit.avatar";
 const PAYMENT_PAGE_URL = String(import.meta.env.VITE_FRUITFIT_PAYMENT_URL || "https://tagirfruit.ru/payment");
+const HEALTH_PROVIDER_NAME = Capacitor.getPlatform?.() === "ios" ? "Apple Health" : "Health Connect";
+const HEALTH_PROVIDER_DEVICE_COPY = Capacitor.getPlatform?.() === "ios" ? "iPhone" : "Android";
 
 const permissionItems = [
   { id: "watch", label: "Смарт-часы", permissionKey: null },
@@ -93,7 +99,7 @@ function healthPermissionSummary(availability) {
   if (state === healthProviderStates.CONNECTED) return "Активность подключена";
   if (state === healthProviderStates.PARTIALLY_GRANTED) return "Можно расширить доступ для точности";
   if (state === healthProviderStates.PERMISSIONS_REQUIRED) return "Настройте доступ к показателям";
-  if (state === healthProviderStates.NOT_INSTALLED) return "Apple Health недоступен на этом устройстве";
+  if (state === healthProviderStates.NOT_INSTALLED) return `${HEALTH_PROVIDER_NAME} недоступен на этом устройстве`;
   if (state === healthProviderStates.NO_DATA) return "Ждём первую синхронизацию";
   return "Подключите трекер для персонализации";
 }
@@ -105,9 +111,9 @@ function permissionLine(item, availability, active) {
   if (!item.permissionKey) return healthPermissionSummary(availability);
   const granted = Boolean(availability?.permissionStatus?.[item.permissionKey]);
   if (granted) return "Подключено и учитывается";
-  if (availability?.state === healthProviderStates.NOT_INSTALLED) return "Появится после настройки Apple Health";
+  if (availability?.state === healthProviderStates.NOT_INSTALLED) return `Появится после настройки ${HEALTH_PROVIDER_NAME}`;
   if (availability?.state === healthProviderStates.NOT_SUPPORTED) return "Доступно в приложении на Android";
-  return "Нужен доступ в Apple Health";
+  return `Нужен доступ в ${HEALTH_PROVIDER_NAME}`;
 }
 
 function healthConnectionHint(availability, syncing) {
@@ -116,8 +122,8 @@ function healthConnectionHint(availability, syncing) {
   if (state === healthProviderStates.CONNECTED) return "FruitFit использует активность, сон и пульс, чтобы точнее подбирать нагрузку.";
   if (state === healthProviderStates.PARTIALLY_GRANTED) return "Часть данных уже подключена. Сон и пульс сделают восстановление точнее.";
   if (state === healthProviderStates.PERMISSIONS_REQUIRED) return "Разрешите доступ к активности, сну и пульсу. Данные не передаются третьим лицам.";
-  if (state === healthProviderStates.NOT_INSTALLED) return "Откройте Apple Health и проверьте, что часы синхронизируют данные.";
-  return "Подключите Apple Health, чтобы FruitFit мог учитывать вашу активность и восстановление.";
+  if (state === healthProviderStates.NOT_INSTALLED) return `Откройте ${HEALTH_PROVIDER_NAME} и проверьте, что трекер синхронизирует данные.`;
+  return `Подключите ${HEALTH_PROVIDER_NAME}, чтобы FruitFit мог учитывать вашу активность и восстановление.`;
 }
 
 function formatHealthSyncTime(value) {
@@ -186,6 +192,20 @@ async function openExternalUrl(url) {
   const opened = window.open(target, "_blank", "noopener,noreferrer");
   if (!opened) window.location.href = target;
   return true;
+}
+
+function pushRegistrationWarning(result = {}) {
+  const status = String(result?.status || "");
+  if (status === "native_plugin_missing") {
+    return "Локальные уведомления включены. Push-токен для админки недоступен в этой сборке.";
+  }
+  if (status === "service_unavailable") {
+    return "Локальные уведомления включены. Push-токен обновится, когда Firebase станет доступен.";
+  }
+  if (status === "permission_missing") {
+    return "Разрешите уведомления в системном запросе Android.";
+  }
+  return "Локальные уведомления включены. Push-токен пока не зарегистрирован.";
 }
 
 function subscriptionIsActive(subscription = null) {
@@ -768,7 +788,18 @@ function AccessMembershipCard({
   onCancelSubscription,
 }) {
   const info = accessCardInfo(access, authUser);
+  const isFreeAccess = info.kind === "free";
+  const isPaidAccess = info.kind === "paid";
   const showSubscriptionBlock = Boolean(hasAuth && info.kind !== "free");
+  const paidRenewalAvailable = Boolean(isPaidAccess && subscriptionLoaded && !subscriptionActive);
+  const showPaymentButton = isFreeAccess || paidRenewalAvailable || (!isPaidAccess && !isFreeAccess);
+  const showCancelButton = Boolean(showSubscriptionBlock && subscriptionActive);
+  const paymentButtonText = isFreeAccess
+    ? "Купить полный курс"
+    : paidRenewalAvailable
+      ? "Продлить доступ"
+      : "Перейти к оплате";
+  const accessUntilText = formatSubscriptionDate(subscription?.paidUntil || subscription?.paid_until || accessExpiryDate(access));
   const ringDegrees = info.ringFull ? 360 : Math.round(Math.max(0, Math.min(1, info.ringProgress ?? 1)) * 360);
 
   return (
@@ -788,24 +819,31 @@ function AccessMembershipCard({
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onOpenPayment}
-        disabled={paymentLoading}
-        className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-appGreen text-[14px] font-black text-[#181F19] shadow-sm transition active:scale-[0.98] disabled:opacity-70"
-      >
-        <CreditCard size={18} />
-        {paymentLoading ? "Готовим оплату..." : "Перейти к оплате"}
-      </button>
+      {showPaymentButton && (
+        <button
+          type="button"
+          onClick={onOpenPayment}
+          disabled={paymentLoading}
+          className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-appGreen text-[14px] font-black text-[#181F19] shadow-sm transition active:scale-[0.98] disabled:opacity-70"
+        >
+          <CreditCard size={18} />
+          {paymentLoading ? "Готовим оплату..." : paymentButtonText}
+        </button>
+      )}
       {showSubscriptionBlock && (
         <div className="mt-2 rounded-[18px] border border-appBorder bg-appCard/70 px-3 py-2">
           <p className="text-[11px] font-black text-appText">Автоматическое продление программы</p>
+          {isPaidAccess && (
+            <p className="mt-1 text-[11px] font-bold text-appText">
+              Доступ активен до {accessUntilText}
+            </p>
+          )}
           <p className="mt-1 text-[11px] font-semibold text-appMuted">
             {subscriptionLine(subscription, subscriptionLoaded)}
           </p>
         </div>
       )}
-      {showSubscriptionBlock && (
+      {showCancelButton && (
         <button
           type="button"
           onClick={onCancelSubscription}
@@ -914,6 +952,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
   const [subscriptionLoaded, setSubscriptionLoaded] = useState(false);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState("");
+  const [notificationStatus, setNotificationStatus] = useState({ loading: false, message: "" });
   const authUser = loadAuthUser();
   const hasAuth = Boolean(getAuthToken());
   const subscriptionActive = subscriptionIsActive(subscription);
@@ -923,9 +962,10 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
   const [referralShareStatus, setReferralShareStatus] = useState("");
   const [permissions, setPermissions] = useState(() => {
     try {
-      return { watch: false, heart: true, sleep: true, steps: true, calories: true, cycle: true, notifications: false, ...JSON.parse(localStorage.getItem("fruitfit.permissions") || "{}") };
+      const stored = JSON.parse(localStorage.getItem("fruitfit.permissions") || "{}");
+      return { watch: false, heart: true, sleep: true, steps: true, calories: true, cycle: true, ...stored, notifications: isPushNotificationsEnabled() };
     } catch (_) {
-      return { watch: false, heart: true, sleep: true, steps: true, calories: true, cycle: true, notifications: false };
+      return { watch: false, heart: true, sleep: true, steps: true, calories: true, cycle: true, notifications: isPushNotificationsEnabled() };
     }
   });
 
@@ -1005,6 +1045,19 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
   useEffect(() => {
     localStorage.setItem("fruitfit.permissions", JSON.stringify(permissions));
   }, [permissions]);
+
+  useEffect(() => {
+    const syncPushPreference = () => {
+      setPermissions((current) => ({ ...current, notifications: isPushNotificationsEnabled() }));
+    };
+    syncPushPreference();
+    window.addEventListener("fruitfit:push-preference-updated", syncPushPreference);
+    window.addEventListener("fruitfit:auth-updated", syncPushPreference);
+    return () => {
+      window.removeEventListener("fruitfit:push-preference-updated", syncPushPreference);
+      window.removeEventListener("fruitfit:auth-updated", syncPushPreference);
+    };
+  }, [authUser?.id]);
 
   async function onAvatar(event) {
     const file = event.target.files?.[0];
@@ -1211,10 +1264,70 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
 
   async function togglePermission(item) {
     if (item.id === "cycle" && draft.gender === "male") return;
+    if (item.id === "notifications") {
+      await toggleNotifications();
+      return;
+    }
     const shouldEnable = !permissions[item.id];
     setPermissions((current) => ({ ...current, [item.id]: shouldEnable }));
     if (shouldEnable && ["watch", "heart", "sleep", "steps", "calories"].includes(item.id)) {
       await requestConnection?.();
+    }
+  }
+
+  async function toggleNotifications() {
+    const shouldEnable = !permissions.notifications;
+    if (!hasAuth) {
+      setNotificationStatus({ loading: false, message: "Войдите в аккаунт, чтобы включить уведомления." });
+      onRequireAuth?.({ reason: "notifications" });
+      return;
+    }
+
+    setNotificationStatus({ loading: true, message: shouldEnable ? "Включаем уведомления..." : "Выключаем уведомления..." });
+
+    if (!shouldEnable) {
+      setPushNotificationsEnabled(false);
+      setPermissions((current) => ({ ...current, notifications: false }));
+      await Promise.allSettled([
+        disableMotivationLockScreenNotifications(),
+        disableFirebaseMessagingPush(),
+      ]);
+      setNotificationStatus({ loading: false, message: "Уведомления выключены для этого устройства." });
+      return;
+    }
+
+    setPushNotificationsEnabled(true);
+    try {
+      const fcm = await registerFirebaseMessagingPush({ force: true });
+      if (!fcm?.ok) {
+        const status = String(fcm?.status || "");
+        if (["native_plugin_missing", "service_unavailable", "registration_failed"].includes(status)) {
+          console.warn("[FruitFit Push] FCM registration deferred", fcm);
+        } else {
+        throw new Error(status === "permission_missing"
+          ? "Разрешите уведомления в системном запросе Android."
+          : "Не удалось зарегистрировать push-токен.");
+        }
+      }
+
+      const scheduled = await ensureMotivationLockScreenNotifications({ force: true });
+      if (!scheduled?.ok) {
+        const status = String(scheduled?.status || "");
+        throw new Error(status === "permission_missing"
+          ? "Разрешите уведомления в системном запросе Android."
+          : "Не удалось запланировать напоминания.");
+      }
+
+      setPermissions((current) => ({ ...current, notifications: true }));
+      setNotificationStatus({
+        loading: false,
+        message: fcm?.ok ? "Уведомления включены. Push-токен зарегистрирован." : pushRegistrationWarning(fcm),
+      });
+    } catch (error) {
+      setPushNotificationsEnabled(false);
+      setPermissions((current) => ({ ...current, notifications: false }));
+      await disableMotivationLockScreenNotifications().catch(() => {});
+      setNotificationStatus({ loading: false, message: error?.message || "Не удалось включить уведомления." });
     }
   }
 
@@ -1324,7 +1437,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
                   <div className="rounded-[18px] border border-appBorder bg-appBg p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-[12px] font-black text-appText">Apple Health</p>
+                        <p className="text-[12px] font-black text-appText">{HEALTH_PROVIDER_NAME}</p>
                         <p className="mt-1 text-[11px] leading-4 text-appMuted">{healthConnectionHint(availability, syncing)}</p>
                       </div>
                       <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black ${availability?.state === healthProviderStates.CONNECTED ? "accent-readable-shadow bg-appGreen/20 text-appGreen" : "bg-appCard text-appMuted"}`}>
@@ -1332,7 +1445,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
                       </span>
                     </div>
                     <p className="mt-2 text-[11px] leading-4 text-appMuted">
-                      FruitFit использует данные активности для расчёта восстановления и рекомендаций. Основной источник на iPhone — Apple Health.
+                      FruitFit использует данные активности для расчёта восстановления и рекомендаций. Основной источник на {HEALTH_PROVIDER_DEVICE_COPY} — {HEALTH_PROVIDER_NAME}.
                     </p>
                     <p className="mt-2 rounded-2xl bg-appCard px-3 py-2 text-[11px] font-bold text-appMuted">
                       Последняя синхронизация: {formatHealthSyncTime(health?.lastFruitFitRefreshAt || health?.generatedAt)}
@@ -1342,16 +1455,17 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
                     </button>
                   </div>
                   <p className="rounded-[18px] border border-appBorder bg-appBg px-3 py-2 text-[11px] font-semibold leading-4 text-appMuted">
-                    Тумблеры ниже управляют тем, какие подключённые данные FruitFit учитывает в рекомендациях. Разрешения на чтение меняются в самом Apple Health.
+                    Тумблеры ниже управляют тем, какие подключённые данные FruitFit учитывает в рекомендациях. Разрешения на чтение меняются в самом {HEALTH_PROVIDER_NAME}.
                   </p>
                   {permissionItems.filter((item) => draft.gender !== "male" || item.id !== "cycle").map((item) => {
                     const disabled = item.id === "cycle" && draft.gender === "male";
+                    const loading = item.id === "notifications" && notificationStatus.loading;
                     const active = Boolean(permissions[item.id]) && !disabled;
                     return (
-                      <button key={item.id} type="button" onClick={() => togglePermission(item)} className={`flex min-h-12 w-full items-center justify-between rounded-2xl border px-3 text-left transition active:scale-[0.99] ${active ? "border-appGreen/50 bg-appGreen/20" : "border-appBorder bg-appBg"} ${disabled ? "opacity-60" : ""}`}>
+                      <button key={item.id} type="button" onClick={() => togglePermission(item)} disabled={disabled || loading} className={`flex min-h-12 w-full items-center justify-between rounded-2xl border px-3 text-left transition active:scale-[0.99] ${active ? "border-appGreen/50 bg-appGreen/20" : "border-appBorder bg-appBg"} ${disabled || loading ? "opacity-60" : ""}`}>
                         <span>
                           <span className="block text-[13px] font-bold text-appText">{item.label}</span>
-                          <span className="block text-[11px] text-appMuted">{disabled ? "Доступно для женского профиля" : permissionLine(item, availability, active)}</span>
+                          <span className="block text-[11px] text-appMuted">{loading ? "Синхронизируем..." : disabled ? "Доступно для женского профиля" : permissionLine(item, availability, active)}</span>
                         </span>
                         <span className={`relative h-6 w-11 rounded-full transition ${active ? "bg-appGreen" : "bg-appBorder"}`}>
                           <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition ${active ? "left-6" : "left-1"}`} />
@@ -1359,6 +1473,11 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
                       </button>
                     );
                   })}
+                  {notificationStatus.message && (
+                    <p className="rounded-[18px] border border-appBorder bg-appBg px-3 py-2 text-[11px] font-semibold leading-4 text-appMuted">
+                      {notificationStatus.message}
+                    </p>
+                  )}
                 </div>
               </motion.div>
             )}
