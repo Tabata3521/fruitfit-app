@@ -1,6 +1,13 @@
 import { getMuscleImageInfo, normalizeMuscleLabel } from "./anatomyMuscleMapping.js";
 import { decodeText } from "../utils/decodeText.js";
 
+const API_BASE_URL = String(import.meta.env?.VITE_FRUITFIT_API_URL || "https://api.tagirfruit.ru").replace(/\/$/, "");
+const LOCAL_ASSET_PREFIXES = Object.freeze([
+  "/muscle-templates/",
+  "/nutrition-images/",
+  "/data/",
+]);
+
 export function normalizeTemplateText(value) {
   return decodeText(String(value || ""))
     .toLowerCase()
@@ -37,6 +44,90 @@ function rawMuscleLabelForExercise(exercise = {}) {
   return rawLabel;
 }
 
+function firstText(...values) {
+  return values.map((value) => String(value || "").trim()).find(Boolean) || "";
+}
+
+function normalizeMuscleMapImageUrl(value) {
+  const image = String(value || "").trim();
+  if (!image) return "";
+  if (/^(https?:|data:|blob:)/i.test(image)) return image;
+  if (LOCAL_ASSET_PREFIXES.some((prefix) => image.startsWith(prefix))) return image;
+  if (!image.startsWith("/")) return image;
+
+  try {
+    return new URL(image, `${API_BASE_URL}/`).toString();
+  } catch (_) {
+    return image;
+  }
+}
+
+function serverMuscleMapOverride(exercise = {}, fallbackLabel = "") {
+  const meta = exercise.exercise_table_meta || exercise.category || {};
+  const rawImage = firstText(
+    exercise.muscle_map_asset_path,
+    exercise.muscleMapAssetPath,
+    exercise.muscle_map_url,
+    exercise.muscleMapUrl,
+    meta.muscle_map_asset_path,
+    meta.muscleMapAssetPath,
+    meta.muscle_map_url,
+    meta.muscleMapUrl,
+  );
+
+  const image = normalizeMuscleMapImageUrl(rawImage);
+  if (!image) return null;
+
+  const rawLabel = firstText(
+    exercise.muscle_map_label,
+    exercise.muscleMapLabel,
+    exercise.muscle_map_key,
+    exercise.muscleMapKey,
+    meta.muscle_map_label,
+    meta.muscleMapLabel,
+    meta.muscle_map_key,
+    meta.muscleMapKey,
+    fallbackLabel,
+  );
+
+  const normalizedLabel = normalizeMuscleLabel(rawLabel || fallbackLabel || "server_muscle_map");
+  const version = firstText(
+    exercise.muscle_map_version,
+    exercise.muscleMapVersion,
+    exercise.muscle_map_revision,
+    exercise.muscleMapRevision,
+    exercise.muscle_map_hash,
+    exercise.muscleMapHash,
+    exercise.muscle_map_updated_at,
+    exercise.muscleMapUpdatedAt,
+    meta.muscle_map_version,
+    meta.muscleMapVersion,
+    meta.muscle_map_revision,
+    meta.muscleMapRevision,
+    meta.muscle_map_hash,
+    meta.muscleMapHash,
+    meta.muscle_map_updated_at,
+    meta.muscleMapUpdatedAt,
+    image,
+    rawImage,
+  );
+
+  return {
+    image,
+    rawLabel,
+    normalizedLabel,
+    version,
+    cacheKey: `${image}|${version}`,
+    reviewStatus: firstText(
+      exercise.muscle_map_status,
+      exercise.muscleMapStatus,
+      meta.muscle_map_status,
+      meta.muscleMapStatus,
+      "server_override",
+    ),
+  };
+}
+
 export function muscleTemplateImageSrc(templateIdOrLabel) {
   if (!templateIdOrLabel) return "";
   return getMuscleImageInfo(templateIdOrLabel).image;
@@ -44,6 +135,35 @@ export function muscleTemplateImageSrc(templateIdOrLabel) {
 
 export function assignMuscleTemplate(exercise = {}) {
   const rawLabel = rawMuscleLabelForExercise(exercise);
+  const serverOverride = serverMuscleMapOverride(exercise, rawLabel);
+
+  if (serverOverride) {
+    return {
+      id: serverOverride.normalizedLabel,
+      label: serverOverride.normalizedLabel,
+      muscleLabel: serverOverride.rawLabel || rawLabel,
+      normalizedLabel: serverOverride.normalizedLabel,
+      imageSrc: serverOverride.image,
+      confidence: 1,
+      method: "server_override",
+      notes: serverOverride.reviewStatus,
+      status: "ok",
+      reviewStatus: serverOverride.reviewStatus,
+      version: serverOverride.version,
+      hash: serverOverride.version,
+      updatedAt: serverOverride.version,
+      cacheKey: serverOverride.cacheKey,
+      template: {
+        id: serverOverride.normalizedLabel,
+        label: serverOverride.normalizedLabel,
+        image: serverOverride.image,
+        source: "server_override",
+        version: serverOverride.version,
+      },
+      serverOverride: true,
+    };
+  }
+
   const imageInfo = getMuscleImageInfo(rawLabel);
 
   return {

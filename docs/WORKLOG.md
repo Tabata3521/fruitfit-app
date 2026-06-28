@@ -1,12 +1,34 @@
-# WORKLOG - FruitFit Food Database & Nutrition Parser
+﻿# WORKLOG - FruitFit Food Database & Nutrition Parser
+
+## 2026-06-29 - iOS release-candidate sync
+
+Scope: iOS/App Store release-candidate preparation. No backend, Robokassa, auth redirects, HealthKit connector logic, or Firebase config changes were made.
+
+- Synced current Android release-candidate client changes into the iOS branch.
+- Kept iOS marketing version `1.0` and bumped iOS build number to `3`.
+- Added Codemagic workflow `fruitfit-ios-app-store` for signed IPA generation without automatic publishing.
+- Kept App Store release signing/APNS settings from the iOS branch.
+- Included nutrition/TDEE fixes and local bundled nutrition images.
+- Included AI Coach first-use OpenAI consent and Settings privacy section.
+- Replaced payment CTAs with `Оформить персональную программу`.
+- Hid the automatic renewal block only on iOS.
+- Preserved server/admin muscle map overrides and local muscle map cache.
+- Normalized server-relative muscle map paths like `/uploads/...` to `https://api.tagirfruit.ru/...`; bundled `/muscle-templates/...` assets remain local.
+
+Validation:
+
+- `npm run build` passed.
+- `npx cap sync ios` passed.
+- Forbidden UI text grep returned no matches for old payment/debug/video strings.
+- Nutrition data in iOS assets has `1960` local image paths, `0` remote photo URLs, and `0` missing local images.
 
 ## 2026-06-25 - iOS lecture/auth UX cleanup
 
 Scope: iOS client UX on the `ios-first-build` branch. Backend, payments backend, Android main workspace, HealthKit native reads, AI Coach, and push delivery were not changed.
 
-- Removed the startup `Продолжить без регистрации` button and stopped honoring the legacy `fruitfit.authSkipped` flag.
+- Removed the startup `РџСЂРѕРґРѕР»Р¶РёС‚СЊ Р±РµР· СЂРµРіРёСЃС‚СЂР°С†РёРё` button and stopped honoring the legacy `fruitfit.authSkipped` flag.
 - Removed technical lecture helper text under the video player, including Selectel/HTML5/YouTube fallback copy.
-- Added the sixth free lecture CTA: `У тебя всё получится! 💪` plus `Купить полный курс`.
+- Added the sixth free lecture CTA: `РЈ С‚РµР±СЏ РІСЃС‘ РїРѕР»СѓС‡РёС‚СЃСЏ! рџ’Є` plus `РљСѓРїРёС‚СЊ РїРѕР»РЅС‹Р№ РєСѓСЂСЃ`.
 - The lecture CTA uses the existing JWT-only payment session flow and opens the configured payment page with `ps=<session.id>`.
 - Updated the settings step-source picker in this iOS branch/web preview to use Apple Health-oriented sources instead of Android/Google Fit defaults.
 
@@ -89,10 +111,10 @@ Validation:
 
 Scope: client profile referral block on the `ios-first-build` branch only. Referral backend, payments, push delivery, AI Coach, HealthKit, and Xcode signing were not changed.
 
-- Updated the referral block headline from generic referral/program wording to `Делись промокодом: тебе 14 дней, другу 1000 ₽!`.
+- Updated the referral block headline from generic referral/program wording to `Р”РµР»РёСЃСЊ РїСЂРѕРјРѕРєРѕРґРѕРј: С‚РµР±Рµ 14 РґРЅРµР№, РґСЂСѓРіСѓ 1000 в‚Ѕ!`.
 - Updated explanatory referral copy to say the user shares a promo code.
-- Changed the bonus card label to `Ваш бонус` and text to `14 дней премиума`.
-- Reworded the bottom explanation to use `промокод` instead of program-sharing language.
+- Changed the bonus card label to `Р’Р°С€ Р±РѕРЅСѓСЃ` and text to `14 РґРЅРµР№ РїСЂРµРјРёСѓРјР°`.
+- Reworded the bottom explanation to use `РїСЂРѕРјРѕРєРѕРґ` instead of program-sharing language.
 
 Validation:
 
@@ -367,10 +389,10 @@ Scope: client startup/theme paint only. Health, payments, AI, program access, an
 
 ## 2026-06-18 - Profile default names and greetings
 
-- Replaced profile name placeholders with `Имя` and `Фамилия` instead of person-specific defaults.
+- Replaced profile name placeholders with `РРјСЏ` and `Р¤Р°РјРёР»РёСЏ` instead of person-specific defaults.
 - Added profile greeting helpers that use only an explicitly entered profile first name.
-- Home greeting now falls back to `Привет, спортсмен!` for male/unknown profile gender and `Привет, спортсменка!` for female profile gender when no first name is entered.
-- AI Coach no longer falls back to auth/provider `profile.name`, so it does not address a user as `Тагир` unless that first name was explicitly entered in the profile.
+- Home greeting now falls back to `РџСЂРёРІРµС‚, СЃРїРѕСЂС‚СЃРјРµРЅ!` for male/unknown profile gender and `РџСЂРёРІРµС‚, СЃРїРѕСЂС‚СЃРјРµРЅРєР°!` for female profile gender when no first name is entered.
+- AI Coach no longer falls back to auth/provider `profile.name`, so it does not address a user as `РўР°РіРёСЂ` unless that first name was explicitly entered in the profile.
 - When no first name is entered, the AI Coach welcome copy also avoids the literal creator name and says it was created for FruitFit.
 
 ## 2026-06-18 - Health weekly UI mapper
@@ -378,7 +400,7 @@ Scope: client startup/theme paint only. Health, payments, AI, program access, an
 - Audited Android WebView localStorage for the active user and confirmed `fruitfit.health:<userId>` stores date-bound `history7d.steps` and `history7d.calories`.
 - Added a UI-only weekly activity normalizer in `src/components/WidgetGrid.jsx`.
 - Weekly activity widgets now build the displayed 7-day range from local calendar dates and prefer `history7d.steps` / `history7d.calories` by date when those rows exist.
-- `Шаги -> Неделя` now sums the normalized `history7d.steps` rows and only falls back to `steps.detailValue` when weekly history rows are absent.
+- `РЁР°РіРё -> РќРµРґРµР»СЏ` now sums the normalized `history7d.steps` rows and only falls back to `steps.detailValue` when weekly history rows are absent.
 - Days with zero values remain visible when the JSON contains weekly rows, so the last days do not disappear just because their value is `0`.
 - No Health Connect native read, backend, recovery, sleep, or payment logic was changed.
 
@@ -402,7 +424,7 @@ Scope: client startup/theme paint only. Health, payments, AI, program access, an
 
 ## 2026-06-18 - Steps detail weekly mapper
 
-- Fixed the `Шаги -> Неделя` detail screen so weekly steps use `health.history7d.steps` when date-bound history exists.
+- Fixed the `РЁР°РіРё -> РќРµРґРµР»СЏ` detail screen so weekly steps use `health.history7d.steps` when date-bound history exists.
 - Today's steps detail value still prefers `finalDashboardValue` / `dashboardValue` / `today`.
 - Weekly steps total now sums `history7d.steps[].value`; `steps.detailValue` remains only an empty-history fallback.
 - Weekly steps goal is fixed at `70000`, so progress is `weeklySteps / 70000 * 100`.
@@ -489,7 +511,7 @@ Scope: client startup/theme paint only. Health, payments, AI, program access, an
 
 ## 2026-06-16 - Client payment/profile/VIP report follow-up
 
-- Nutrition fix: `NutritionScreen` now sorts weekday chips as `Понедельник, Вторник, Среда, Четверг, Пятница, Суббота, Воскресенье` instead of trusting the scrambled `public/data/nutrition.json` filter order.
+- Nutrition fix: `NutritionScreen` now sorts weekday chips as `РџРѕРЅРµРґРµР»СЊРЅРёРє, Р’С‚РѕСЂРЅРёРє, РЎСЂРµРґР°, Р§РµС‚РІРµСЂРі, РџСЏС‚РЅРёС†Р°, РЎСѓР±Р±РѕС‚Р°, Р’РѕСЃРєСЂРµСЃРµРЅСЊРµ` instead of trusting the scrambled `public/data/nutrition.json` filter order.
 - Avatar persistence fix: profile avatar upload now crops/compresses the selected image to a small JPEG, saves it to `fruitfit.avatar`, mirrors it into `fruitfit.profile.avatar`, sends it with `/api/me/profile` when authenticated, and restores from local/profile/auth-user fallbacks after app restart.
 - These client changes were synced into the Android app and installed on the connected phone after the user's follow-up request.
 - Validation:
@@ -502,7 +524,7 @@ Scope: client startup/theme paint only. Health, payments, AI, program access, an
   - `healthSummary` with today's steps, active/total calories, sleep minutes, latest heart rate, readiness score, provider state/source, and last successful native read time.
   - `health` with steps, calories, sleep, heart-rate, readiness, sources, and calendar-aligned weekly activity/history rows.
 - Before sending the trainer report, the client tries a forced Health Connect history refresh and falls back to the cached `fruitfit.health` snapshot if native refresh is unavailable or rate-limited.
-- Settings now shows a "Health в отчёте" preview for steps, sleep, pulse, and active kcal, so the user can see what will be sent.
+- Settings now shows a "Health РІ РѕС‚С‡С‘С‚Рµ" preview for steps, sleep, pulse, and active kcal, so the user can see what will be sent.
 - Profile subscription UI now shows the auto-renewal block for authorized Pro/VIP/admin users even when `GET /api/payments/subscription` returns `subscription: null`; the disabled cancel button stays visible with an explicit "active auto-renewal not found" status.
 - Validation:
   - `npm run build` passed; Vite only reported the existing large chunk warning.
@@ -549,7 +571,7 @@ Scope: client startup/theme paint only. Health, payments, AI, program access, an
 - Added step record counts/raw aggregate debug fields and latest heart-rate age minutes from the native bridge.
 - Removed the JS-side calorie unit guessing heuristic; calories are now treated as kilocalories after the native conversion.
 - Added a suspicious-data flag when active calories are above 5000 while steps are below 1000, including the reason in health state and debug export.
-- Updated heart UI copy so stale heart-rate samples are not displayed as current pulse; stale state now shows "Нет свежих данных" while preserving the last sample in details/debug.
+- Updated heart UI copy so stale heart-rate samples are not displayed as current pulse; stale state now shows "РќРµС‚ СЃРІРµР¶РёС… РґР°РЅРЅС‹С…" while preserving the last sample in details/debug.
 - Validation:
   - `npm run build` passed.
   - `npx cap sync android` passed.
@@ -558,16 +580,16 @@ Scope: client startup/theme paint only. Health, payments, AI, program access, an
 
 ## 2026-05-23 - Finish remaining exercise video bindings
 
-### Что исправлено
+### Р§С‚Рѕ РёСЃРїСЂР°РІР»РµРЅРѕ
 
-- Закрыты последние 3 media gap в client runtime fallbacks: `Классические выпады`, `Отжимания в смитте`, `Присед плие`.
-- Видео подключены через `src/data/exerciseRuntimeFallbacks.js`, то есть через тот же runtime binding pipeline, который используют workout card, exercise detail и video modal.
-- Назначены только безопасные близкие canonical videos с совпадающим movement pattern:
-  - `Классические выпады` -> canonical video `Выпады с гантелями`.
-  - `Отжимания в смитте` -> canonical video `Отжимания в тренажёре смитта`.
-  - `Присед плие` -> canonical video `Присед с точкой опоры`.
+- Р—Р°РєСЂС‹С‚С‹ РїРѕСЃР»РµРґРЅРёРµ 3 media gap РІ client runtime fallbacks: `РљР»Р°СЃСЃРёС‡РµСЃРєРёРµ РІС‹РїР°РґС‹`, `РћС‚Р¶РёРјР°РЅРёСЏ РІ СЃРјРёС‚С‚Рµ`, `РџСЂРёСЃРµРґ РїР»РёРµ`.
+- Р’РёРґРµРѕ РїРѕРґРєР»СЋС‡РµРЅС‹ С‡РµСЂРµР· `src/data/exerciseRuntimeFallbacks.js`, С‚Рѕ РµСЃС‚СЊ С‡РµСЂРµР· С‚РѕС‚ Р¶Рµ runtime binding pipeline, РєРѕС‚РѕСЂС‹Р№ РёСЃРїРѕР»СЊР·СѓСЋС‚ workout card, exercise detail Рё video modal.
+- РќР°Р·РЅР°С‡РµРЅС‹ С‚РѕР»СЊРєРѕ Р±РµР·РѕРїР°СЃРЅС‹Рµ Р±Р»РёР·РєРёРµ canonical videos СЃ СЃРѕРІРїР°РґР°СЋС‰РёРј movement pattern:
+  - `РљР»Р°СЃСЃРёС‡РµСЃРєРёРµ РІС‹РїР°РґС‹` -> canonical video `Р’С‹РїР°РґС‹ СЃ РіР°РЅС‚РµР»СЏРјРё`.
+  - `РћС‚Р¶РёРјР°РЅРёСЏ РІ СЃРјРёС‚С‚Рµ` -> canonical video `РћС‚Р¶РёРјР°РЅРёСЏ РІ С‚СЂРµРЅР°Р¶С‘СЂРµ СЃРјРёС‚С‚Р°`.
+  - `РџСЂРёСЃРµРґ РїР»РёРµ` -> canonical video `РџСЂРёСЃРµРґ СЃ С‚РѕС‡РєРѕР№ РѕРїРѕСЂС‹`.
 
-### Итоги аудита
+### РС‚РѕРіРё Р°СѓРґРёС‚Р°
 
 - TOTAL CLIENT EXERCISES: 196.
 - WITH VIDEO: 196.
@@ -577,83 +599,83 @@ Scope: client startup/theme paint only. Health, payments, AI, program access, an
 - UNRESOLVED EXERCISES: 0.
 - VIDEO URL CHECK: 163/163 runtime video URLs ok, broken URL 0.
 
-### Проверки
+### РџСЂРѕРІРµСЂРєРё
 
 - `node scripts/audit-client-exercise-runtime.mjs` - ok.
-- HEAD-check для всех runtime video URL - ok.
+- HEAD-check РґР»СЏ РІСЃРµС… runtime video URL - ok.
 
 ## 2026-05-23 - Client exercise media binding audit
 
-### Что исправлено
+### Р§С‚Рѕ РёСЃРїСЂР°РІР»РµРЅРѕ
 
-- Проведён full client runtime audit: `public/data/exercises.json` -> alias resolver -> didactic/runtime catalog -> video lookup -> anatomy map lookup -> workout card/detail fallback.
-- Добавлен `scripts/audit-client-exercise-runtime.mjs`; отчёты сохраняются в `audit/client_exercise_runtime_audit.json` и `.csv`.
-- Исправлены broken aliases/runtime bindings для вариантов: `Приседания в кроссовере`, `Боковая или латеральная планка`, `Дуговые махи на заднюю дельту`, `Изодинамические махи на заднюю дельту`, `Комплекс ЛФК упражнений на плечи`, `Латеральная или боковая вытяжка в кроссовере`, `Молотковые сгибания с канатной рукоятью в кроссовере`, `Присед в смите`, `Си-си присед на бицепс бедра`, `Скручивание на полу`.
-- Добавлены client runtime fallback bindings для упражнений, которых нет в didactic table: `Растяжка на все тело`, `Классические выпады`, `Отжимания в смитте`, `Присед плие`.
-- Для ЛФК боковой/латеральной вытяжки anatomy fallback теперь выбирает `Квадратная мышца поясницы`, а не общий случайный template.
-- Media placeholder теперь явно показывает `Демонстрация скоро появится`, если безопасного видео нет.
+- РџСЂРѕРІРµРґС‘РЅ full client runtime audit: `public/data/exercises.json` -> alias resolver -> didactic/runtime catalog -> video lookup -> anatomy map lookup -> workout card/detail fallback.
+- Р”РѕР±Р°РІР»РµРЅ `scripts/audit-client-exercise-runtime.mjs`; РѕС‚С‡С‘С‚С‹ СЃРѕС…СЂР°РЅСЏСЋС‚СЃСЏ РІ `audit/client_exercise_runtime_audit.json` Рё `.csv`.
+- РСЃРїСЂР°РІР»РµРЅС‹ broken aliases/runtime bindings РґР»СЏ РІР°СЂРёР°РЅС‚РѕРІ: `РџСЂРёСЃРµРґР°РЅРёСЏ РІ РєСЂРѕСЃСЃРѕРІРµСЂРµ`, `Р‘РѕРєРѕРІР°СЏ РёР»Рё Р»Р°С‚РµСЂР°Р»СЊРЅР°СЏ РїР»Р°РЅРєР°`, `Р”СѓРіРѕРІС‹Рµ РјР°С…Рё РЅР° Р·Р°РґРЅСЋСЋ РґРµР»СЊС‚Сѓ`, `РР·РѕРґРёРЅР°РјРёС‡РµСЃРєРёРµ РјР°С…Рё РЅР° Р·Р°РґРЅСЋСЋ РґРµР»СЊС‚Сѓ`, `РљРѕРјРїР»РµРєСЃ Р›Р¤Рљ СѓРїСЂР°Р¶РЅРµРЅРёР№ РЅР° РїР»РµС‡Рё`, `Р›Р°С‚РµСЂР°Р»СЊРЅР°СЏ РёР»Рё Р±РѕРєРѕРІР°СЏ РІС‹С‚СЏР¶РєР° РІ РєСЂРѕСЃСЃРѕРІРµСЂРµ`, `РњРѕР»РѕС‚РєРѕРІС‹Рµ СЃРіРёР±Р°РЅРёСЏ СЃ РєР°РЅР°С‚РЅРѕР№ СЂСѓРєРѕСЏС‚СЊСЋ РІ РєСЂРѕСЃСЃРѕРІРµСЂРµ`, `РџСЂРёСЃРµРґ РІ СЃРјРёС‚Рµ`, `РЎРё-СЃРё РїСЂРёСЃРµРґ РЅР° Р±РёС†РµРїСЃ Р±РµРґСЂР°`, `РЎРєСЂСѓС‡РёРІР°РЅРёРµ РЅР° РїРѕР»Сѓ`.
+- Р”РѕР±Р°РІР»РµРЅС‹ client runtime fallback bindings РґР»СЏ СѓРїСЂР°Р¶РЅРµРЅРёР№, РєРѕС‚РѕСЂС‹С… РЅРµС‚ РІ didactic table: `Р Р°СЃС‚СЏР¶РєР° РЅР° РІСЃРµ С‚РµР»Рѕ`, `РљР»Р°СЃСЃРёС‡РµСЃРєРёРµ РІС‹РїР°РґС‹`, `РћС‚Р¶РёРјР°РЅРёСЏ РІ СЃРјРёС‚С‚Рµ`, `РџСЂРёСЃРµРґ РїР»РёРµ`.
+- Р”Р»СЏ Р›Р¤Рљ Р±РѕРєРѕРІРѕР№/Р»Р°С‚РµСЂР°Р»СЊРЅРѕР№ РІС‹С‚СЏР¶РєРё anatomy fallback С‚РµРїРµСЂСЊ РІС‹Р±РёСЂР°РµС‚ `РљРІР°РґСЂР°С‚РЅР°СЏ РјС‹С€С†Р° РїРѕСЏСЃРЅРёС†С‹`, Р° РЅРµ РѕР±С‰РёР№ СЃР»СѓС‡Р°Р№РЅС‹Р№ template.
+- Media placeholder С‚РµРїРµСЂСЊ СЏРІРЅРѕ РїРѕРєР°Р·С‹РІР°РµС‚ `Р”РµРјРѕРЅСЃС‚СЂР°С†РёСЏ СЃРєРѕСЂРѕ РїРѕСЏРІРёС‚СЃСЏ`, РµСЃР»Рё Р±РµР·РѕРїР°СЃРЅРѕРіРѕ РІРёРґРµРѕ РЅРµС‚.
 
-### Итоги аудита
+### РС‚РѕРіРё Р°СѓРґРёС‚Р°
 
 - TOTAL CLIENT EXERCISES: 196.
 - WITH VIDEO: 193.
 - WITH MUSCLE MAP: 196.
-- BROKEN VIDEO: 3 (`Классические выпады.`, `Отжимания в смитте`, `Присед плие`) - безопасного видео в Selectel/catalog/upload log не найдено, UI показывает placeholder.
+- BROKEN VIDEO: 3 (`РљР»Р°СЃСЃРёС‡РµСЃРєРёРµ РІС‹РїР°РґС‹.`, `РћС‚Р¶РёРјР°РЅРёСЏ РІ СЃРјРёС‚С‚Рµ`, `РџСЂРёСЃРµРґ РїР»РёРµ`) - Р±РµР·РѕРїР°СЃРЅРѕРіРѕ РІРёРґРµРѕ РІ Selectel/catalog/upload log РЅРµ РЅР°Р№РґРµРЅРѕ, UI РїРѕРєР°Р·С‹РІР°РµС‚ placeholder.
 - BROKEN MAPS: 0.
 - UNRESOLVED EXERCISES: 0.
 - AUTO-BINDINGS APPLIED: 14.
 - VIDEO URL CHECK: 161/161 runtime video URLs ok, broken URL 0.
 
-### Проверки
+### РџСЂРѕРІРµСЂРєРё
 
 - `node scripts/audit-client-exercise-runtime.mjs` - ok.
 - `npm run build` - ok.
 
 ## 2026-05-23 - Health refresh wiring
 
-### Что исправлено
+### Р§С‚Рѕ РёСЃРїСЂР°РІР»РµРЅРѕ
 
-- Debug/export health report больше не коммитит UI отдельным путём: перед сборкой JSON он запускает общий `syncNativeHealth({ force: true, reason: "debug-export" })`.
-- Dashboard health widgets и health detail pages используют тот же `syncNativeHealth` refresh pipeline.
-- `syncNativeHealth` теперь пытается читать native Health Connect records при любом установленном Health Connect состоянии, кроме `not_supported` / `not_installed`.
-- Добавлены console logs для acceptance-проверки: `refresh started`, `native health read started`, `health store updated`, `refresh finished`.
-- In-flight guard оставлен, но stale/forced refresh больше не может навсегда блокировать новые запросы; старый завершившийся request не сбрасывает refs нового request.
-- На заполненные Dashboard health cards добавлены отдельные маленькие refresh-иконки: пульс, шаги, калории, сон, восстановление.
+- Debug/export health report Р±РѕР»СЊС€Рµ РЅРµ РєРѕРјРјРёС‚РёС‚ UI РѕС‚РґРµР»СЊРЅС‹Рј РїСѓС‚С‘Рј: РїРµСЂРµРґ СЃР±РѕСЂРєРѕР№ JSON РѕРЅ Р·Р°РїСѓСЃРєР°РµС‚ РѕР±С‰РёР№ `syncNativeHealth({ force: true, reason: "debug-export" })`.
+- Dashboard health widgets Рё health detail pages РёСЃРїРѕР»СЊР·СѓСЋС‚ С‚РѕС‚ Р¶Рµ `syncNativeHealth` refresh pipeline.
+- `syncNativeHealth` С‚РµРїРµСЂСЊ РїС‹С‚Р°РµС‚СЃСЏ С‡РёС‚Р°С‚СЊ native Health Connect records РїСЂРё Р»СЋР±РѕРј СѓСЃС‚Р°РЅРѕРІР»РµРЅРЅРѕРј Health Connect СЃРѕСЃС‚РѕСЏРЅРёРё, РєСЂРѕРјРµ `not_supported` / `not_installed`.
+- Р”РѕР±Р°РІР»РµРЅС‹ console logs РґР»СЏ acceptance-РїСЂРѕРІРµСЂРєРё: `refresh started`, `native health read started`, `health store updated`, `refresh finished`.
+- In-flight guard РѕСЃС‚Р°РІР»РµРЅ, РЅРѕ stale/forced refresh Р±РѕР»СЊС€Рµ РЅРµ РјРѕР¶РµС‚ РЅР°РІСЃРµРіРґР° Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ РЅРѕРІС‹Рµ Р·Р°РїСЂРѕСЃС‹; СЃС‚Р°СЂС‹Р№ Р·Р°РІРµСЂС€РёРІС€РёР№СЃСЏ request РЅРµ СЃР±СЂР°СЃС‹РІР°РµС‚ refs РЅРѕРІРѕРіРѕ request.
+- РќР° Р·Р°РїРѕР»РЅРµРЅРЅС‹Рµ Dashboard health cards РґРѕР±Р°РІР»РµРЅС‹ РѕС‚РґРµР»СЊРЅС‹Рµ РјР°Р»РµРЅСЊРєРёРµ refresh-РёРєРѕРЅРєРё: РїСѓР»СЊСЃ, С€Р°РіРё, РєР°Р»РѕСЂРёРё, СЃРѕРЅ, РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ.
 
-### Проверки
+### РџСЂРѕРІРµСЂРєРё
 
 - `npm run build` - ok.
 
 ## 2026-05-22 - Stretching video hotfix
 
-### Что исправлено
+### Р§С‚Рѕ РёСЃРїСЂР°РІР»РµРЅРѕ
 
-- Вернул видео для упражнения `Растяжка на все тело`.
-- Причина: это упражнение есть в тренировочных программах, но его нет в новой дидактической таблице на 190 упражнений, поэтому `resolveDidacticExercise()` не возвращал `video_url`.
-- Добавлен точечный manual video override без изменения exercise ontology и без переименования упражнения.
+- Р’РµСЂРЅСѓР» РІРёРґРµРѕ РґР»СЏ СѓРїСЂР°Р¶РЅРµРЅРёСЏ `Р Р°СЃС‚СЏР¶РєР° РЅР° РІСЃРµ С‚РµР»Рѕ`.
+- РџСЂРёС‡РёРЅР°: СЌС‚Рѕ СѓРїСЂР°Р¶РЅРµРЅРёРµ РµСЃС‚СЊ РІ С‚СЂРµРЅРёСЂРѕРІРѕС‡РЅС‹С… РїСЂРѕРіСЂР°РјРјР°С…, РЅРѕ РµРіРѕ РЅРµС‚ РІ РЅРѕРІРѕР№ РґРёРґР°РєС‚РёС‡РµСЃРєРѕР№ С‚Р°Р±Р»РёС†Рµ РЅР° 190 СѓРїСЂР°Р¶РЅРµРЅРёР№, РїРѕСЌС‚РѕРјСѓ `resolveDidacticExercise()` РЅРµ РІРѕР·РІСЂР°С‰Р°Р» `video_url`.
+- Р”РѕР±Р°РІР»РµРЅ С‚РѕС‡РµС‡РЅС‹Р№ manual video override Р±РµР· РёР·РјРµРЅРµРЅРёСЏ exercise ontology Рё Р±РµР· РїРµСЂРµРёРјРµРЅРѕРІР°РЅРёСЏ СѓРїСЂР°Р¶РЅРµРЅРёСЏ.
 
-### Проверки
+### РџСЂРѕРІРµСЂРєРё
 
-- Прямая Selectel ссылка проверена через HEAD-запрос: `200 video/mp4`.
+- РџСЂСЏРјР°СЏ Selectel СЃСЃС‹Р»РєР° РїСЂРѕРІРµСЂРµРЅР° С‡РµСЂРµР· HEAD-Р·Р°РїСЂРѕСЃ: `200 video/mp4`.
 - `npm run build` - ok.
 
-### Что проверить
+### Р§С‚Рѕ РїСЂРѕРІРµСЂРёС‚СЊ
 
-- Открыть тренировку, где есть `Растяжка на все тело`.
-- Убедиться, что в карточке упражнения вместо пустого preview/заглушки грузится MP4 с Selectel.
+- РћС‚РєСЂС‹С‚СЊ С‚СЂРµРЅРёСЂРѕРІРєСѓ, РіРґРµ РµСЃС‚СЊ `Р Р°СЃС‚СЏР¶РєР° РЅР° РІСЃРµ С‚РµР»Рѕ`.
+- РЈР±РµРґРёС‚СЊСЃСЏ, С‡С‚Рѕ РІ РєР°СЂС‚РѕС‡РєРµ СѓРїСЂР°Р¶РЅРµРЅРёСЏ РІРјРµСЃС‚Рѕ РїСѓСЃС‚РѕРіРѕ preview/Р·Р°РіР»СѓС€РєРё РіСЂСѓР·РёС‚СЃСЏ MP4 СЃ Selectel.
 
-## 2026-05-22 - UI polish: профиль, настройки, auth placeholders, app icons
+## 2026-05-22 - UI polish: РїСЂРѕС„РёР»СЊ, РЅР°СЃС‚СЂРѕР№РєРё, auth placeholders, app icons
 
-### Что сделано
+### Р§С‚Рѕ СЃРґРµР»Р°РЅРѕ
 
 1. **Profile / account refactor**
-   - Вкладка "Профиль" разгружена: настройки приложения, выход, опасные действия, тема, версия и иконка приложения вынесены на отдельный экран настроек.
-   - В профиле оставлены профильные данные, замеры, Health Connect block и будущий referral/promo placeholder.
-   - Добавлена шестерёнка настроек в profile header.
+   - Р’РєР»Р°РґРєР° "РџСЂРѕС„РёР»СЊ" СЂР°Р·РіСЂСѓР¶РµРЅР°: РЅР°СЃС‚СЂРѕР№РєРё РїСЂРёР»РѕР¶РµРЅРёСЏ, РІС‹С…РѕРґ, РѕРїР°СЃРЅС‹Рµ РґРµР№СЃС‚РІРёСЏ, С‚РµРјР°, РІРµСЂСЃРёСЏ Рё РёРєРѕРЅРєР° РїСЂРёР»РѕР¶РµРЅРёСЏ РІС‹РЅРµСЃРµРЅС‹ РЅР° РѕС‚РґРµР»СЊРЅС‹Р№ СЌРєСЂР°РЅ РЅР°СЃС‚СЂРѕРµРє.
+   - Р’ РїСЂРѕС„РёР»Рµ РѕСЃС‚Р°РІР»РµРЅС‹ РїСЂРѕС„РёР»СЊРЅС‹Рµ РґР°РЅРЅС‹Рµ, Р·Р°РјРµСЂС‹, Health Connect block Рё Р±СѓРґСѓС‰РёР№ referral/promo placeholder.
+   - Р”РѕР±Р°РІР»РµРЅР° С€РµСЃС‚РµСЂС‘РЅРєР° РЅР°СЃС‚СЂРѕРµРє РІ profile header.
 
 2. **Settings page**
-   - Добавлен отдельный экран `SettingsScreen` с route `#/settings`.
-   - В настройки вынесены:
+   - Р”РѕР±Р°РІР»РµРЅ РѕС‚РґРµР»СЊРЅС‹Р№ СЌРєСЂР°РЅ `SettingsScreen` СЃ route `#/settings`.
+   - Р’ РЅР°СЃС‚СЂРѕР№РєРё РІС‹РЅРµСЃРµРЅС‹:
      - logout;
      - delete account placeholder;
      - payment/billing placeholders;
@@ -661,142 +683,142 @@ Scope: client startup/theme paint only. Health, payments, AI, program access, an
      - theme settings;
      - privacy/data placeholders;
      - version/build info.
-   - Android back с экрана настроек возвращает в профиль, а не сворачивает приложение.
+   - Android back СЃ СЌРєСЂР°РЅР° РЅР°СЃС‚СЂРѕРµРє РІРѕР·РІСЂР°С‰Р°РµС‚ РІ РїСЂРѕС„РёР»СЊ, Р° РЅРµ СЃРІРѕСЂР°С‡РёРІР°РµС‚ РїСЂРёР»РѕР¶РµРЅРёРµ.
 
 3. **Referral / promo placeholders**
-   - Добавлена карточка "Реферальная программа".
-   - Добавлен текст "Пригласи друга - получи месяц бесплатно".
-   - Добавлены поле промокода и кнопка "Применить" в disabled/soon состоянии.
-   - Backend logic не подключалась.
+   - Р”РѕР±Р°РІР»РµРЅР° РєР°СЂС‚РѕС‡РєР° "Р РµС„РµСЂР°Р»СЊРЅР°СЏ РїСЂРѕРіСЂР°РјРјР°".
+   - Р”РѕР±Р°РІР»РµРЅ С‚РµРєСЃС‚ "РџСЂРёРіР»Р°СЃРё РґСЂСѓРіР° - РїРѕР»СѓС‡Рё РјРµСЃСЏС† Р±РµСЃРїР»Р°С‚РЅРѕ".
+   - Р”РѕР±Р°РІР»РµРЅС‹ РїРѕР»Рµ РїСЂРѕРјРѕРєРѕРґР° Рё РєРЅРѕРїРєР° "РџСЂРёРјРµРЅРёС‚СЊ" РІ disabled/soon СЃРѕСЃС‚РѕСЏРЅРёРё.
+   - Backend logic РЅРµ РїРѕРґРєР»СЋС‡Р°Р»Р°СЃСЊ.
 
 4. **Auth UI preparation**
-   - В настройках добавлены аккуратные disabled placeholders:
-     - "Войти через Telegram";
-     - "Войти через Яндекс".
-   - Реальная auth/backend logic не добавлялась и не менялась.
+   - Р’ РЅР°СЃС‚СЂРѕР№РєР°С… РґРѕР±Р°РІР»РµРЅС‹ Р°РєРєСѓСЂР°С‚РЅС‹Рµ disabled placeholders:
+     - "Р’РѕР№С‚Рё С‡РµСЂРµР· Telegram";
+     - "Р’РѕР№С‚Рё С‡РµСЂРµР· РЇРЅРґРµРєСЃ".
+   - Р РµР°Р»СЊРЅР°СЏ auth/backend logic РЅРµ РґРѕР±Р°РІР»СЏР»Р°СЃСЊ Рё РЅРµ РјРµРЅСЏР»Р°СЃСЊ.
 
 5. **App icon polish**
-   - Android adaptive icons переведены на black background + transparent fruit foreground.
-   - Добавлены отдельные foreground artwork assets для orange/apple/pear/strawberry.
-   - Иконки центрированы в safe zone без белой подложки и без растягивания fruit artwork.
+   - Android adaptive icons РїРµСЂРµРІРµРґРµРЅС‹ РЅР° black background + transparent fruit foreground.
+   - Р”РѕР±Р°РІР»РµРЅС‹ РѕС‚РґРµР»СЊРЅС‹Рµ foreground artwork assets РґР»СЏ orange/apple/pear/strawberry.
+   - РРєРѕРЅРєРё С†РµРЅС‚СЂРёСЂРѕРІР°РЅС‹ РІ safe zone Р±РµР· Р±РµР»РѕР№ РїРѕРґР»РѕР¶РєРё Рё Р±РµР· СЂР°СЃС‚СЏРіРёРІР°РЅРёСЏ fruit artwork.
 
-### Проверки
+### РџСЂРѕРІРµСЂРєРё
 
 - `npm run build` - ok.
 - `npx cap sync android` - ok.
 - `.\gradlew.bat :app:assembleDebug` - ok.
-- Локально проверены:
+- Р›РѕРєР°Р»СЊРЅРѕ РїСЂРѕРІРµСЂРµРЅС‹:
   - `#/settings`;
-  - переход из профиля в настройки;
-  - возврат из настроек в профиль;
+  - РїРµСЂРµС…РѕРґ РёР· РїСЂРѕС„РёР»СЏ РІ РЅР°СЃС‚СЂРѕР№РєРё;
+  - РІРѕР·РІСЂР°С‚ РёР· РЅР°СЃС‚СЂРѕРµРє РІ РїСЂРѕС„РёР»СЊ;
   - referral/promo placeholder;
-  - отсутствие inline app icon блока в профиле.
+  - РѕС‚СЃСѓС‚СЃС‚РІРёРµ inline app icon Р±Р»РѕРєР° РІ РїСЂРѕС„РёР»Рµ.
 
 ### APK
 
-- Собран debug APK:
+- РЎРѕР±СЂР°РЅ debug APK:
   - `android/app/build/outputs/apk/debug/app-debug.apk`
-- Скопирован в корень проекта:
+- РЎРєРѕРїРёСЂРѕРІР°РЅ РІ РєРѕСЂРµРЅСЊ РїСЂРѕРµРєС‚Р°:
   - `FruitFit-ui-polish-debug.apk`
 
-### Что проверить на телефоне
+### Р§С‚Рѕ РїСЂРѕРІРµСЂРёС‚СЊ РЅР° С‚РµР»РµС„РѕРЅРµ
 
-- Профиль открывается без перегруза.
-- Шестерёнка открывает настройки.
-- Android back из настроек возвращает в профиль.
-- Telegram/Yandex кнопки выглядят как заготовки и не обещают активный login.
-- Referral/promo блок отображается как "скоро/готовится".
-- Переключение темы не сломано.
-- App icon settings сохраняют выбор.
-- Launcher icons orange/apple/pear/strawberry выглядят без белой подложки и без кропа.
+- РџСЂРѕС„РёР»СЊ РѕС‚РєСЂС‹РІР°РµС‚СЃСЏ Р±РµР· РїРµСЂРµРіСЂСѓР·Р°.
+- РЁРµСЃС‚РµСЂС‘РЅРєР° РѕС‚РєСЂС‹РІР°РµС‚ РЅР°СЃС‚СЂРѕР№РєРё.
+- Android back РёР· РЅР°СЃС‚СЂРѕРµРє РІРѕР·РІСЂР°С‰Р°РµС‚ РІ РїСЂРѕС„РёР»СЊ.
+- Telegram/Yandex РєРЅРѕРїРєРё РІС‹РіР»СЏРґСЏС‚ РєР°Рє Р·Р°РіРѕС‚РѕРІРєРё Рё РЅРµ РѕР±РµС‰Р°СЋС‚ Р°РєС‚РёРІРЅС‹Р№ login.
+- Referral/promo Р±Р»РѕРє РѕС‚РѕР±СЂР°Р¶Р°РµС‚СЃСЏ РєР°Рє "СЃРєРѕСЂРѕ/РіРѕС‚РѕРІРёС‚СЃСЏ".
+- РџРµСЂРµРєР»СЋС‡РµРЅРёРµ С‚РµРјС‹ РЅРµ СЃР»РѕРјР°РЅРѕ.
+- App icon settings СЃРѕС…СЂР°РЅСЏСЋС‚ РІС‹Р±РѕСЂ.
+- Launcher icons orange/apple/pear/strawberry РІС‹РіР»СЏРґСЏС‚ Р±РµР· Р±РµР»РѕР№ РїРѕРґР»РѕР¶РєРё Рё Р±РµР· РєСЂРѕРїР°.
 
 ## 2026-05-22 - Health refresh buttons + exercise video patch
 
-### Что исправлено
+### Р§С‚Рѕ РёСЃРїСЂР°РІР»РµРЅРѕ
 
-- Маленькие refresh-кнопки health detail pages теперь вызывают общий `syncNativeHealth({ force: true })`, а не отдельный/пассивный UI refresh.
-- `syncNativeHealth` больше не зависает навсегда на старом in-flight promise: добавлен age guard и сброс stale-запроса после 45 секунд.
-- Если Health Connect возвращает `no_data`, pipeline всё равно может читать native records. Это важно для случаев, когда availability ещё не отражает реальные записи, но debug/export уже видит данные.
-- Время `lastFruitFitRefreshAt` обновляется даже если новых записей нет, чтобы UI показывал факт проверки.
-- Ошибки refresh сохраняются в `syncError` / `lastHealthSyncError` и выводятся на health detail pages.
-- Empty health cards с действием “Обновить” теперь вызывают чтение данных, а не повторный permission-flow.
-- Кнопка “Обновить данные” в профиле теперь использует refresh pipeline, если разрешения уже есть; permission-flow остаётся для первичного доступа.
-- Добавлены source labels/shortcuts для WHOOP. Apple Health оставлен как iOS/HealthKit provider; Android APK не может напрямую проверить HealthKit.
-- Точечно восстановлена ссылка Selectel для упражнения “Выпады в кроссовере”.
+- РњР°Р»РµРЅСЊРєРёРµ refresh-РєРЅРѕРїРєРё health detail pages С‚РµРїРµСЂСЊ РІС‹Р·С‹РІР°СЋС‚ РѕР±С‰РёР№ `syncNativeHealth({ force: true })`, Р° РЅРµ РѕС‚РґРµР»СЊРЅС‹Р№/РїР°СЃСЃРёРІРЅС‹Р№ UI refresh.
+- `syncNativeHealth` Р±РѕР»СЊС€Рµ РЅРµ Р·Р°РІРёСЃР°РµС‚ РЅР°РІСЃРµРіРґР° РЅР° СЃС‚Р°СЂРѕРј in-flight promise: РґРѕР±Р°РІР»РµРЅ age guard Рё СЃР±СЂРѕСЃ stale-Р·Р°РїСЂРѕСЃР° РїРѕСЃР»Рµ 45 СЃРµРєСѓРЅРґ.
+- Р•СЃР»Рё Health Connect РІРѕР·РІСЂР°С‰Р°РµС‚ `no_data`, pipeline РІСЃС‘ СЂР°РІРЅРѕ РјРѕР¶РµС‚ С‡РёС‚Р°С‚СЊ native records. Р­С‚Рѕ РІР°Р¶РЅРѕ РґР»СЏ СЃР»СѓС‡Р°РµРІ, РєРѕРіРґР° availability РµС‰С‘ РЅРµ РѕС‚СЂР°Р¶Р°РµС‚ СЂРµР°Р»СЊРЅС‹Рµ Р·Р°РїРёСЃРё, РЅРѕ debug/export СѓР¶Рµ РІРёРґРёС‚ РґР°РЅРЅС‹Рµ.
+- Р’СЂРµРјСЏ `lastFruitFitRefreshAt` РѕР±РЅРѕРІР»СЏРµС‚СЃСЏ РґР°Р¶Рµ РµСЃР»Рё РЅРѕРІС‹С… Р·Р°РїРёСЃРµР№ РЅРµС‚, С‡С‚РѕР±С‹ UI РїРѕРєР°Р·С‹РІР°Р» С„Р°РєС‚ РїСЂРѕРІРµСЂРєРё.
+- РћС€РёР±РєРё refresh СЃРѕС…СЂР°РЅСЏСЋС‚СЃСЏ РІ `syncError` / `lastHealthSyncError` Рё РІС‹РІРѕРґСЏС‚СЃСЏ РЅР° health detail pages.
+- Empty health cards СЃ РґРµР№СЃС‚РІРёРµРј вЂњРћР±РЅРѕРІРёС‚СЊвЂќ С‚РµРїРµСЂСЊ РІС‹Р·С‹РІР°СЋС‚ С‡С‚РµРЅРёРµ РґР°РЅРЅС‹С…, Р° РЅРµ РїРѕРІС‚РѕСЂРЅС‹Р№ permission-flow.
+- РљРЅРѕРїРєР° вЂњРћР±РЅРѕРІРёС‚СЊ РґР°РЅРЅС‹РµвЂќ РІ РїСЂРѕС„РёР»Рµ С‚РµРїРµСЂСЊ РёСЃРїРѕР»СЊР·СѓРµС‚ refresh pipeline, РµСЃР»Рё СЂР°Р·СЂРµС€РµРЅРёСЏ СѓР¶Рµ РµСЃС‚СЊ; permission-flow РѕСЃС‚Р°С‘С‚СЃСЏ РґР»СЏ РїРµСЂРІРёС‡РЅРѕРіРѕ РґРѕСЃС‚СѓРїР°.
+- Р”РѕР±Р°РІР»РµРЅС‹ source labels/shortcuts РґР»СЏ WHOOP. Apple Health РѕСЃС‚Р°РІР»РµРЅ РєР°Рє iOS/HealthKit provider; Android APK РЅРµ РјРѕР¶РµС‚ РЅР°РїСЂСЏРјСѓСЋ РїСЂРѕРІРµСЂРёС‚СЊ HealthKit.
+- РўРѕС‡РµС‡РЅРѕ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅР° СЃСЃС‹Р»РєР° Selectel РґР»СЏ СѓРїСЂР°Р¶РЅРµРЅРёСЏ вЂњР’С‹РїР°РґС‹ РІ РєСЂРѕСЃСЃРѕРІРµСЂРµвЂќ.
 
-### Проверки
+### РџСЂРѕРІРµСЂРєРё
 
 - `npm run build` - ok.
 - `npx cap sync android` - ok.
 - `.\gradlew.bat :app:assembleDebug` - ok.
-- Selectel URL “Выпады в кроссовере” отвечает `HTTP 200`, `Content-Type: video/mp4`.
+- Selectel URL вЂњР’С‹РїР°РґС‹ РІ РєСЂРѕСЃСЃРѕРІРµСЂРµвЂќ РѕС‚РІРµС‡Р°РµС‚ `HTTP 200`, `Content-Type: video/mp4`.
 
-### Что проверить на телефоне
+### Р§С‚Рѕ РїСЂРѕРІРµСЂРёС‚СЊ РЅР° С‚РµР»РµС„РѕРЅРµ
 
-- Samsung Health / Galaxy Watch: маленькая кнопка refresh на health page обновляет timestamp “FruitFit обновил данные”.
-- Если Health Connect отдаёт свежий `com.sec.android.app.shealth`, Dashboard и detail pages показывают Samsung Health, а не старый Google Fit cache.
-- Empty cards “Обновить” запускают чтение Health Connect, а не только экран разрешений.
-- “Выпады в кроссовере” открывают видео из Selectel.
+- Samsung Health / Galaxy Watch: РјР°Р»РµРЅСЊРєР°СЏ РєРЅРѕРїРєР° refresh РЅР° health page РѕР±РЅРѕРІР»СЏРµС‚ timestamp вЂњFruitFit РѕР±РЅРѕРІРёР» РґР°РЅРЅС‹РµвЂќ.
+- Р•СЃР»Рё Health Connect РѕС‚РґР°С‘С‚ СЃРІРµР¶РёР№ `com.sec.android.app.shealth`, Dashboard Рё detail pages РїРѕРєР°Р·С‹РІР°СЋС‚ Samsung Health, Р° РЅРµ СЃС‚Р°СЂС‹Р№ Google Fit cache.
+- Empty cards вЂњРћР±РЅРѕРІРёС‚СЊвЂќ Р·Р°РїСѓСЃРєР°СЋС‚ С‡С‚РµРЅРёРµ Health Connect, Р° РЅРµ С‚РѕР»СЊРєРѕ СЌРєСЂР°РЅ СЂР°Р·СЂРµС€РµРЅРёР№.
+- вЂњР’С‹РїР°РґС‹ РІ РєСЂРѕСЃСЃРѕРІРµСЂРµвЂќ РѕС‚РєСЂС‹РІР°СЋС‚ РІРёРґРµРѕ РёР· Selectel.
 
 ## 2026-05-22 - tagirfruit food MVP iteration
 
-### Что было незавершено
+### Р§С‚Рѕ Р±С‹Р»Рѕ РЅРµР·Р°РІРµСЂС€РµРЅРѕ
 
-- Food seed и parser были подготовлены, но часть файлов была записана в mojibake-кодировке.
-- Parser мог принимать любой свободный текст за nutrition intent, например вопрос "кто ты?".
-- Система была только local DB; external API fallback и кеширование неизвестных продуктов ещё не были подключены.
-- Тестовый скрипт был destructive: очищал базу перед проверкой.
+- Food seed Рё parser Р±С‹Р»Рё РїРѕРґРіРѕС‚РѕРІР»РµРЅС‹, РЅРѕ С‡Р°СЃС‚СЊ С„Р°Р№Р»РѕРІ Р±С‹Р»Р° Р·Р°РїРёСЃР°РЅР° РІ mojibake-РєРѕРґРёСЂРѕРІРєРµ.
+- Parser РјРѕРі РїСЂРёРЅРёРјР°С‚СЊ Р»СЋР±РѕР№ СЃРІРѕР±РѕРґРЅС‹Р№ С‚РµРєСЃС‚ Р·Р° nutrition intent, РЅР°РїСЂРёРјРµСЂ РІРѕРїСЂРѕСЃ "РєС‚Рѕ С‚С‹?".
+- РЎРёСЃС‚РµРјР° Р±С‹Р»Р° С‚РѕР»СЊРєРѕ local DB; external API fallback Рё РєРµС€РёСЂРѕРІР°РЅРёРµ РЅРµРёР·РІРµСЃС‚РЅС‹С… РїСЂРѕРґСѓРєС‚РѕРІ РµС‰С‘ РЅРµ Р±С‹Р»Рё РїРѕРґРєР»СЋС‡РµРЅС‹.
+- РўРµСЃС‚РѕРІС‹Р№ СЃРєСЂРёРїС‚ Р±С‹Р» destructive: РѕС‡РёС‰Р°Р» Р±Р°Р·Сѓ РїРµСЂРµРґ РїСЂРѕРІРµСЂРєРѕР№.
 
-### Что сделано
+### Р§С‚Рѕ СЃРґРµР»Р°РЅРѕ
 
 1. **Food Database MVP**
-   - `server/foodMvpSeed.js` расширяет базу до 817 продуктов.
-   - В базе сейчас 817 продуктов и 2775 aliases.
-   - Приоритеты MVP: мясо, птица, рыба, яйца, крупы, молочка, овощи, фрукты, хлеб, сладости, напитки, фастфуд и популярные блюда.
-   - Для продуктов добавлены `serving_examples` и `default_serving_grams`.
+   - `server/foodMvpSeed.js` СЂР°СЃС€РёСЂСЏРµС‚ Р±Р°Р·Сѓ РґРѕ 817 РїСЂРѕРґСѓРєС‚РѕРІ.
+   - Р’ Р±Р°Р·Рµ СЃРµР№С‡Р°СЃ 817 РїСЂРѕРґСѓРєС‚РѕРІ Рё 2775 aliases.
+   - РџСЂРёРѕСЂРёС‚РµС‚С‹ MVP: РјСЏСЃРѕ, РїС‚РёС†Р°, СЂС‹Р±Р°, СЏР№С†Р°, РєСЂСѓРїС‹, РјРѕР»РѕС‡РєР°, РѕРІРѕС‰Рё, С„СЂСѓРєС‚С‹, С…Р»РµР±, СЃР»Р°РґРѕСЃС‚Рё, РЅР°РїРёС‚РєРё, С„Р°СЃС‚С„СѓРґ Рё РїРѕРїСѓР»СЏСЂРЅС‹Рµ Р±Р»СЋРґР°.
+   - Р”Р»СЏ РїСЂРѕРґСѓРєС‚РѕРІ РґРѕР±Р°РІР»РµРЅС‹ `serving_examples` Рё `default_serving_grams`.
 
 2. **Nutrition parser**
-   - Исправлено разделение по "и", запятым, `+`, `;`.
-   - Поддержаны граммы: `250 г риса`.
-   - Поддержаны штуки/default serving: `2 яйца`, `банан`, `бургер`, `кола`.
-   - `isNutritionIntent()` теперь не перехватывает обычные вопросы, если продукты не находятся в локальной базе.
+   - РСЃРїСЂР°РІР»РµРЅРѕ СЂР°Р·РґРµР»РµРЅРёРµ РїРѕ "Рё", Р·Р°РїСЏС‚С‹Рј, `+`, `;`.
+   - РџРѕРґРґРµСЂР¶Р°РЅС‹ РіСЂР°РјРјС‹: `250 Рі СЂРёСЃР°`.
+   - РџРѕРґРґРµСЂР¶Р°РЅС‹ С€С‚СѓРєРё/default serving: `2 СЏР№С†Р°`, `Р±Р°РЅР°РЅ`, `Р±СѓСЂРіРµСЂ`, `РєРѕР»Р°`.
+   - `isNutritionIntent()` С‚РµРїРµСЂСЊ РЅРµ РїРµСЂРµС…РІР°С‚С‹РІР°РµС‚ РѕР±С‹С‡РЅС‹Рµ РІРѕРїСЂРѕСЃС‹, РµСЃР»Рё РїСЂРѕРґСѓРєС‚С‹ РЅРµ РЅР°С…РѕРґСЏС‚СЃСЏ РІ Р»РѕРєР°Р»СЊРЅРѕР№ Р±Р°Р·Рµ.
 
 3. **Hybrid food database**
    - Primary source: local SQLite `data/nutrition.db`.
-   - External fallback: OpenFoodFacts через `server/externalFoodApi.js`.
-   - Если external API находит продукт, продукт кешируется в local DB с `source=openfoodfacts:<code>`.
-   - GPT не считает калории из памяти: backend parser сначала возвращает structured nutrition result.
+   - External fallback: OpenFoodFacts С‡РµСЂРµР· `server/externalFoodApi.js`.
+   - Р•СЃР»Рё external API РЅР°С…РѕРґРёС‚ РїСЂРѕРґСѓРєС‚, РїСЂРѕРґСѓРєС‚ РєРµС€РёСЂСѓРµС‚СЃСЏ РІ local DB СЃ `source=openfoodfacts:<code>`.
+   - GPT РЅРµ СЃС‡РёС‚Р°РµС‚ РєР°Р»РѕСЂРёРё РёР· РїР°РјСЏС‚Рё: backend parser СЃРЅР°С‡Р°Р»Р° РІРѕР·РІСЂР°С‰Р°РµС‚ structured nutrition result.
 
 4. **tagirfruit prompt**
-   - `server/coachPrompt.js` содержит единый server-side prompt/config.
-   - Ассистент называется `tagirfruit`.
-   - В prompt закреплено правило: КБЖУ считать только через nutrition calculator / nutrition_db и не выдумывать калории.
+   - `server/coachPrompt.js` СЃРѕРґРµСЂР¶РёС‚ РµРґРёРЅС‹Р№ server-side prompt/config.
+   - РђСЃСЃРёСЃС‚РµРЅС‚ РЅР°Р·С‹РІР°РµС‚СЃСЏ `tagirfruit`.
+   - Р’ prompt Р·Р°РєСЂРµРїР»РµРЅРѕ РїСЂР°РІРёР»Рѕ: РљР‘Р–РЈ СЃС‡РёС‚Р°С‚СЊ С‚РѕР»СЊРєРѕ С‡РµСЂРµР· nutrition calculator / nutrition_db Рё РЅРµ РІС‹РґСѓРјС‹РІР°С‚СЊ РєР°Р»РѕСЂРёРё.
 
 5. **Tests**
-   - `scripts/test-nutrition.js` теперь non-destructive.
-   - Добавлен npm script: `npm run test:nutrition`.
+   - `scripts/test-nutrition.js` С‚РµРїРµСЂСЊ non-destructive.
+   - Р”РѕР±Р°РІР»РµРЅ npm script: `npm run test:nutrition`.
 
-### Проверенные фразы
+### РџСЂРѕРІРµСЂРµРЅРЅС‹Рµ С„СЂР°Р·С‹
 
-| Фраза | Match | Result |
+| Р¤СЂР°Р·Р° | Match | Result |
 |---|---|---|
-| `2 яйца и банан` | Яйцо куриное 110 г + Банан 120 г | 288 ккал, Б 15.8 / Ж 12.6 / У 26 |
-| `250 г риса и куриная грудка` | Рис белый вареная 250 г + Куриная грудка 150 г | 483 ккал, Б 41.4 / Ж 3.6 / У 72.4 |
-| `бургер и кола` | Бургер 220 г + Кола 330 г | 700 ккал, Б 26.4 / Ж 24.2 / У 94.4 |
-| `творог 5% 200 г` | Творог 5% 200 г | 240 ккал, Б 34 / Ж 10 / У 6 |
-| `гречка с молоком` | Гречка с молоком 250 г | 348 ккал, Б 15.5 / Ж 6.5 / У 64.3 |
+| `2 СЏР№С†Р° Рё Р±Р°РЅР°РЅ` | РЇР№С†Рѕ РєСѓСЂРёРЅРѕРµ 110 Рі + Р‘Р°РЅР°РЅ 120 Рі | 288 РєРєР°Р», Р‘ 15.8 / Р– 12.6 / РЈ 26 |
+| `250 Рі СЂРёСЃР° Рё РєСѓСЂРёРЅР°СЏ РіСЂСѓРґРєР°` | Р РёСЃ Р±РµР»С‹Р№ РІР°СЂРµРЅР°СЏ 250 Рі + РљСѓСЂРёРЅР°СЏ РіСЂСѓРґРєР° 150 Рі | 483 РєРєР°Р», Р‘ 41.4 / Р– 3.6 / РЈ 72.4 |
+| `Р±СѓСЂРіРµСЂ Рё РєРѕР»Р°` | Р‘СѓСЂРіРµСЂ 220 Рі + РљРѕР»Р° 330 Рі | 700 РєРєР°Р», Р‘ 26.4 / Р– 24.2 / РЈ 94.4 |
+| `С‚РІРѕСЂРѕРі 5% 200 Рі` | РўРІРѕСЂРѕРі 5% 200 Рі | 240 РєРєР°Р», Р‘ 34 / Р– 10 / РЈ 6 |
+| `РіСЂРµС‡РєР° СЃ РјРѕР»РѕРєРѕРј` | Р“СЂРµС‡РєР° СЃ РјРѕР»РѕРєРѕРј 250 Рі | 348 РєРєР°Р», Р‘ 15.5 / Р– 6.5 / РЈ 64.3 |
 
-### Проверки
+### РџСЂРѕРІРµСЂРєРё
 
 - `npm run db:nutrition:seed` - ok.
 - `npm run test:nutrition` - ok.
-- `node --check` для server/parser/db/external API/test script - ok.
+- `node --check` РґР»СЏ server/parser/db/external API/test script - ok.
 - `npm run build` - ok, Vite production build passed.
 
-### Ограничения
+### РћРіСЂР°РЅРёС‡РµРЅРёСЏ
 
-- External API fallback зависит от доступности OpenFoodFacts. Во время локальной проверки сервис отвечал 503, поэтому fallback реализован и безопасно деградирует, но успешное API-кеширование нужно проверить при доступном сервисе.
-- Брендовая РФ-база пока MVP, без barcode scanner и без большой branded базы.
+- External API fallback Р·Р°РІРёСЃРёС‚ РѕС‚ РґРѕСЃС‚СѓРїРЅРѕСЃС‚Рё OpenFoodFacts. Р’Рѕ РІСЂРµРјСЏ Р»РѕРєР°Р»СЊРЅРѕР№ РїСЂРѕРІРµСЂРєРё СЃРµСЂРІРёСЃ РѕС‚РІРµС‡Р°Р» 503, РїРѕСЌС‚РѕРјСѓ fallback СЂРµР°Р»РёР·РѕРІР°РЅ Рё Р±РµР·РѕРїР°СЃРЅРѕ РґРµРіСЂР°РґРёСЂСѓРµС‚, РЅРѕ СѓСЃРїРµС€РЅРѕРµ API-РєРµС€РёСЂРѕРІР°РЅРёРµ РЅСѓР¶РЅРѕ РїСЂРѕРІРµСЂРёС‚СЊ РїСЂРё РґРѕСЃС‚СѓРїРЅРѕРј СЃРµСЂРІРёСЃРµ.
+- Р‘СЂРµРЅРґРѕРІР°СЏ Р Р¤-Р±Р°Р·Р° РїРѕРєР° MVP, Р±РµР· barcode scanner Рё Р±РµР· Р±РѕР»СЊС€РѕР№ branded Р±Р°Р·С‹.
 
 ## 2026-05-22 - Production VDS tagirfruit AI/Nutrition update
 
@@ -804,7 +826,7 @@ Production backend path: `/var/www/fruitfit-ai-api`.
 
 ## 2026-05-23 - Lecture transcripts attached
 
-- Added `src/data/lectureTexts.js` generated from the 16 lecture PDFs in `C:/Users/Meyva/Downloads/Лекции`.
+- Added `src/data/lectureTexts.js` generated from the 16 lecture PDFs in `C:/Users/Meyva/Downloads/Р›РµРєС†РёРё`.
 - Connected lecture text to the existing mini-lecture video modal, preserving the current lecture video URLs.
 - Removed PDF-style horizontal divider lines during text cleanup and kept the lecture wording intact.
 - Added a copy action for each lecture transcript and made the transcript area selectable via `.allow-select`.
@@ -842,7 +864,7 @@ What was done:
 - Added lecture context architecture with 16 lecture summaries/categories/keywords.
 - Expanded production nutrition DB to 1066 products.
 - Production DB stats after seed: 984 verified products, 82 external products, 2405 aliases.
-- Parser supports common phrases: `2 яйца и банан`, `250 г риса и куриная грудка`, `бургер и кола`, `творог 5% 200 г`, `гречка с молоком`, `3 сырника`, `шаурма`, `протеин 30г`.
+- Parser supports common phrases: `2 СЏР№С†Р° Рё Р±Р°РЅР°РЅ`, `250 Рі СЂРёСЃР° Рё РєСѓСЂРёРЅР°СЏ РіСЂСѓРґРєР°`, `Р±СѓСЂРіРµСЂ Рё РєРѕР»Р°`, `С‚РІРѕСЂРѕРі 5% 200 Рі`, `РіСЂРµС‡РєР° СЃ РјРѕР»РѕРєРѕРј`, `3 СЃС‹СЂРЅРёРєР°`, `С€Р°СѓСЂРјР°`, `РїСЂРѕС‚РµРёРЅ 30Рі`.
 - `/api/coach` now supports both `messages[]` and single `message/text/prompt/content` payloads.
 - `/api/nutrition/parse-calc` now supports `message`, `text`, `prompt`, `content`, `query`, and `input`.
 - Nutrition intent short-circuits GPT: backend parser/DB calculates calories and macros first, then returns structured nutrition result.
@@ -853,7 +875,7 @@ Production checks:
 - `GET /api/health` returned `assistant: tagirfruit`, model `gpt-4.1-mini`, DB loaded, 1066 products, 2405 aliases.
 - `POST /api/nutrition/parse-calc` returned expected nutrition totals for test phrases.
 - `POST /api/coach` returned nutrition answers without GPT calorie invention for food phrases.
-- `POST /api/coach` personality tests passed for `кто ты?`, `можешь составить мне тренировку?`, `почему приложение иногда ошибается?`.
+- `POST /api/coach` personality tests passed for `РєС‚Рѕ С‚С‹?`, `РјРѕР¶РµС€СЊ СЃРѕСЃС‚Р°РІРёС‚СЊ РјРЅРµ С‚СЂРµРЅРёСЂРѕРІРєСѓ?`, `РїРѕС‡РµРјСѓ РїСЂРёР»РѕР¶РµРЅРёРµ РёРЅРѕРіРґР° РѕС€РёР±Р°РµС‚СЃСЏ?`.
 
 Notes:
 
@@ -870,14 +892,14 @@ Notes:
   - `npm run build` passed.
   - Local browser check: Steps detail opened without `caloriesWeekRaw`/runtime errors.
   - Local browser check: Heart detail opened without runtime errors.
-  - Local browser check: Profile diagnostic `Обновить` / `Скопировать` / `Поделиться` did not show `.catch` errors.
+  - Local browser check: Profile diagnostic `РћР±РЅРѕРІРёС‚СЊ` / `РЎРєРѕРїРёСЂРѕРІР°С‚СЊ` / `РџРѕРґРµР»РёС‚СЊСЃСЏ` did not show `.catch` errors.
   - Detail refresh timestamp remained visible after refresh.
 - Scope intentionally did not touch AI, admin, food DB, exercise media, or muscle maps.
 
 ## 2026-05-24 - Lecture flow dedicated screen
 
 - Replaced the dashboard mini-lecture modal flow with a dedicated app screen at `#/lectures`.
-- Dashboard lecture widget now reads saved lecture progress and shows the active lecture title, thumbnail, progress bar and CTA (`Начать` / `Продолжить` / `Пересмотреть`).
+- Dashboard lecture widget now reads saved lecture progress and shows the active lecture title, thumbnail, progress bar and CTA (`РќР°С‡Р°С‚СЊ` / `РџСЂРѕРґРѕР»Р¶РёС‚СЊ` / `РџРµСЂРµСЃРјРѕС‚СЂРµС‚СЊ`).
 - Added local lecture progress storage under `fruitfit.lectureProgress.v1` with current lecture index and completed lecture ids.
 - Added `LectureDetailScreen` with sticky safe-area header, video player, title, summary/subtitle, course progress, previous/next controls, mark-complete action, external video button and selectable/copyable transcript.
 - Lecture navigation now uses the same screen/hash stack pattern as health/settings screens, so back returns to Dashboard instead of closing a modal overlay.
@@ -905,14 +927,14 @@ Notes:
 ## 2026-05-24 - Health widget UX and onboarding copy polish
 
 - Replaced technical health widget wording with calm consumer-facing copy:
-  - `stale` / `aging` style badges now render as "ждём синхронизацию" / "обновляется".
-  - Heart widget now says "Откройте приложение часов, чтобы синхронизировать пульс" instead of source/debug language.
+  - `stale` / `aging` style badges now render as "Р¶РґС‘Рј СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёСЋ" / "РѕР±РЅРѕРІР»СЏРµС‚СЃСЏ".
+  - Heart widget now says "РћС‚РєСЂРѕР№С‚Рµ РїСЂРёР»РѕР¶РµРЅРёРµ С‡Р°СЃРѕРІ, С‡С‚РѕР±С‹ СЃРёРЅС…СЂРѕРЅРёР·РёСЂРѕРІР°С‚СЊ РїСѓР»СЊСЃ" instead of source/debug language.
   - Calories estimate copy now says that part of the values is calculated automatically from activity.
   - Empty sleep/recovery states explain what to add next instead of presenting an error-like "no data" state.
 - Added contextual hints in dashboard widgets and health detail pages for sleep, heart freshness, calories, weekly activity, and recovery accuracy.
 - Removed ordinary UI exposure of source reasons, `Health Connect aggregate`, raw freshness names, and technical sync errors.
 - Profile health connection copy now explains why Health Connect is useful, that data is used for personalization, and that it is not shared with third parties.
-- Moved tracker diagnostics behind an explicit "Открыть диагностику" control so normal users do not see JSON/debug wording by default.
+- Moved tracker diagnostics behind an explicit "РћС‚РєСЂС‹С‚СЊ РґРёР°РіРЅРѕСЃС‚РёРєСѓ" control so normal users do not see JSON/debug wording by default.
 - Added onboarding hint on the final quiz step explaining Health Connect benefit and privacy before the user enters the app.
 - Browser QA:
   - Dashboard health widgets did not expose `stale`, `partial_data`, `no_data`, `estimated`, `aging`, `live HR`, or `Health Connect aggregate`.
@@ -946,8 +968,8 @@ Notes:
 
 ## 2026-06-04 - Health Connect UI/debug cleanup
 
-- Fixed heart widget/detail labels so weekly heart history is shown as "за 7 дней" when 24h min/avg/max are empty.
-- Stopped rendering empty "Мин 24ч / Средний 24ч / Макс 24ч" fields next to a weekly heart range.
+- Fixed heart widget/detail labels so weekly heart history is shown as "Р·Р° 7 РґРЅРµР№" when 24h min/avg/max are empty.
+- Stopped rendering empty "РњРёРЅ 24С‡ / РЎСЂРµРґРЅРёР№ 24С‡ / РњР°РєСЃ 24С‡" fields next to a weekly heart range.
 - Mapped known Health Connect source packages to readable labels, including Mi Fitness, Zepp / Amazfit, Google Fit, and Samsung Health.
 - Kept debug export snapshot-only while cleaning sleep diagnostics: fake zero-minute sessions are no longer created from weekly sleep summaries.
 - Added steps/calories suspicious-source guards and debug `suspiciousReason` output for implausible daily totals or sources above 3x peer median.
@@ -1063,7 +1085,7 @@ Notes:
   - greeting uses only the first readable name token;
   - email, provider login, `@username`, URLs, and full FIO are not used in the greeting;
   - if profile first name is empty, fallback is provider name only;
-  - final fallback is `спортсмен`.
+  - final fallback is `СЃРїРѕСЂС‚СЃРјРµРЅ`.
 - Updated profile saving:
   - after `/api/me/profile` save, local auth user profile is refreshed even when backend does not return a new `name`.
 - Updated backend profile name normalization:
@@ -1087,7 +1109,7 @@ Notes:
 - Adopted release rule:
   - after each client release, build and publish a matching APK;
   - update `/api/app/version`;
-  - verify the in-app update endpoint used by the "Проверить обновление" button;
+  - verify the in-app update endpoint used by the "РџСЂРѕРІРµСЂРёС‚СЊ РѕР±РЅРѕРІР»РµРЅРёРµ" button;
   - verify `https://client.tagirfruit.ru/downloads/fruitfit-latest.apk`.
 - Bumped Android package version:
   - `versionName=1.5`;
@@ -1156,7 +1178,7 @@ Backend changes:
 
 Admin changes:
 
-- Added Dashboard widget `AI расходы`.
+- Added Dashboard widget `AI СЂР°СЃС…РѕРґС‹`.
 - Widget shows:
   - tokens today;
   - tokens for selected period;
@@ -1365,7 +1387,7 @@ Problem:
 - Nutrition filtering used only onboarding profile:
   - selected ration type;
   - calculated calories;
-  - calories ±200.
+  - calories В±200.
 - `NutritionScreen` did not receive `accessState`, so ADMIN/TRAINER users were treated like ordinary clients in the nutrition screen.
 
 Client changes:
@@ -1382,7 +1404,7 @@ Client changes:
   - ration switching is enabled.
 - For ordinary users:
   - profile ration remains locked;
-  - calorie choices remain limited to profile target ±200.
+  - calorie choices remain limited to profile target В±200.
 
 Catalog audit:
 
@@ -1471,7 +1493,7 @@ Backend changes:
   - `465` -> secure TLS;
   - other ports -> non-secure transport/STARTTLS flow.
 - Verification email now includes:
-  - Russian subject: `Подтверждение email в FruitFit`;
+  - Russian subject: `РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ email РІ FruitFit`;
   - plain text body;
   - simple HTML body;
   - verification link.
@@ -1681,12 +1703,12 @@ Scope: client app only. Backend, SMTP, Robokassa callback, Health Connect native
 
 Client changes:
 
-- Removed the external promo-code input from profile; profile now shows only the personal referral block with "Ваш код", "Приглашено", "Бонус: 14 дней", copy, and share actions.
+- Removed the external promo-code input from profile; profile now shows only the personal referral block with "Р’Р°С€ РєРѕРґ", "РџСЂРёРіР»Р°С€РµРЅРѕ", "Р‘РѕРЅСѓСЃ: 14 РґРЅРµР№", copy, and share actions.
 - Referral code loading now avoids a final `-` state and uses `/api/referrals/me/code` with fallback reads.
 - Payment CTA now sits directly under the access status card for all access states. It requires JWT, creates `/api/payments/sessions` with only `productCode` and `recurringEnabled`, and opens `https://tagirfruit.ru/payment?ps=<session.id>`.
 - Client no longer sends `userId`/`user_id`, price, profile snapshot, program params, promo code, or referral code when creating a payment session.
-- Added admin access card state: `FruitFit Admin`, "Админ-доступ", active meta, and a fully filled infinity ring.
-- Infinite access rings now show only `∞` with no bottom caption. Paid/VIP access with an expiry shows the day count and `дней`.
+- Added admin access card state: `FruitFit Admin`, "РђРґРјРёРЅ-РґРѕСЃС‚СѓРї", active meta, and a fully filled infinity ring.
+- Infinite access rings now show only `в€ћ` with no bottom caption. Paid/VIP access with an expiry shows the day count and `РґРЅРµР№`.
 - Kept Free/Pro/VIP tariff card behavior and ring styling; dark theme still uses green/lime, light theme uses orange.
 - Replaced the technical AI Coach first-screen copy with user-facing text: header copy no longer mentions server/limits, and the welcome uses the profile first name when available, introduces AI Coach FruitFit, credits Tagir Meyvaliev as creator, and states that the Coach helps with training, nutrition, recovery, load, and daily decisions.
 - FREE access now renders only preview workouts: 2 for two-day programs, 3 for three-day programs, maximum 3. Extra workouts are hidden from the list.
@@ -1708,7 +1730,7 @@ Validation:
 - `.\gradlew.bat assembleDebug` passed.
 - APK built at `android/app/build/outputs/apk/debug/app-debug.apk`.
 - `adb install -r android/app/build/outputs/apk/debug/app-debug.apk` succeeded on device `8f647179`.
-- Live APK WebView check after Health sync showed fixed weekly activity values and labels: `Вс 14.06` 12,718 steps, `Пн 15.06` 28,056 steps, `Вт 16.06` 24,995 steps / 1,102 active kcal.
+- Live APK WebView check after Health sync showed fixed weekly activity values and labels: `Р’СЃ 14.06` 12,718 steps, `РџРЅ 15.06` 28,056 steps, `Р’С‚ 16.06` 24,995 steps / 1,102 active kcal.
 - Live APK settings check showed restored VIP/admin trainer report, measurements preview, submit report button, logout button, and account deletion block. Current real-measurement preview was `0` after demo/empty measurement filtering.
 - Local Browser checks passed:
   - profile shows payment button under access status;
@@ -1821,7 +1843,7 @@ Validation:
   - legacy `fruitfit.selectedWorkoutIndex` absent;
   - `fruitfit.user_core:<userId>.currentWorkout.programId` is `14500`;
   - `fruitfit.user_core:<userId>.programAssignment.programId` is `14500`;
-  - home UI shows `Тренировка 9/24` / `Спина, бицепс, пресс` instead of stale `Ноги, плечи`.
+  - home UI shows `РўСЂРµРЅРёСЂРѕРІРєР° 9/24` / `РЎРїРёРЅР°, Р±РёС†РµРїСЃ, РїСЂРµСЃСЃ` instead of stale `РќРѕРіРё, РїР»РµС‡Рё`.
 
 ## 2026-06-19 - Server-only currentWorkout UI program override
 
@@ -1845,7 +1867,7 @@ Validation:
   - legacy workout keys absent;
   - cache currentWorkout `programId=14500`, `lessonId=175274`, `lessonNumber=8`, `index=7`;
   - local assignment `programId=14500`;
-  - Home UI shows `Тренировка 8/16` / `Тяговая тяжелая`, matching server workout id `175274`.
+  - Home UI shows `РўСЂРµРЅРёСЂРѕРІРєР° 8/16` / `РўСЏРіРѕРІР°СЏ С‚СЏР¶РµР»Р°СЏ`, matching server workout id `175274`.
 # FruitFit worklog
 
 ## 2026-06-19 - Huawei diagnostic APK support
@@ -1861,11 +1883,11 @@ Scope: Android diagnostics and debug packaging only. Payments, AI Coach, program
 - Extended the Health debug JSON export with `deviceDiagnostics`, persisted JS boot/runtime errors, and `errors.lastNativeCrash`.
 - Added boot-level JS error persistence in `src/main.jsx` so startup React errors are saved to `fruitfit.client.errors`.
 - Added a boot error screen copy button for sharing saved startup diagnostics when React fails before the normal UI opens.
-- Added `scripts/build-huawei-debug.ps1` and `npm run android:huawei`; the script builds debug assets and copies the APK to `хуавей/FruitFit-huawei-diagnostic-debug.apk`.
+- Added `scripts/build-huawei-debug.ps1` and `npm run android:huawei`; the script builds debug assets and copies the APK to `С…СѓР°РІРµР№/FruitFit-huawei-diagnostic-debug.apk`.
 
 Manual check on Huawei:
 
-- Install `хуавей/FruitFit-huawei-diagnostic-debug.apk`.
+- Install `С…СѓР°РІРµР№/FruitFit-huawei-diagnostic-debug.apk`.
 - If the app opens: Profile -> Health and activity -> Extended diagnostics -> Refresh -> Share.
 - If the app crashes before UI: collect `adb logcat` plus app cache file `fruitfit_last_native_crash.txt` if ADB is available.
 

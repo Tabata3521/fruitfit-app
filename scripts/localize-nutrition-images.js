@@ -44,16 +44,36 @@ async function fileExists(filePath) {
   }
 }
 
+async function readExistingManifest() {
+  try {
+    const payload = JSON.parse(await fs.readFile(manifestPath, "utf8"));
+    return payload?.images && typeof payload.images === "object" ? payload.images : {};
+  } catch {
+    return {};
+  }
+}
+
 const nutrition = JSON.parse(await fs.readFile(nutritionPath, "utf8"));
 const meals = Array.isArray(nutrition.meals) ? nutrition.meals : [];
 const remoteUrls = [...new Set(meals.map((meal) => meal.photo).filter((photo) => /^https?:\/\//i.test(photo)))];
 
 await fs.mkdir(imageDir, { recursive: true });
 
+const previousManifest = await readExistingManifest();
 const manifest = {};
 const failures = [];
 
 for (const url of remoteUrls) {
+  const previous = previousManifest[url];
+  const previousLocalPath = typeof previous?.localPath === "string" ? previous.localPath : "";
+  if (previousLocalPath.startsWith("/nutrition-images/")) {
+    const previousFilePath = path.join(imageDir, path.basename(previousLocalPath));
+    if (await fileExists(previousFilePath)) {
+      manifest[url] = previous;
+      continue;
+    }
+  }
+
   const guessedExt = extensionFor(url);
   let fileName = `${hashUrl(url)}${guessedExt}`;
   let outputPath = path.join(imageDir, fileName);

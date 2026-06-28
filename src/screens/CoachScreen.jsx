@@ -17,6 +17,38 @@ const starters = [
   "Как собрать приём пищи на сегодня?",
 ];
 
+const AI_CONSENT_VERSION = "2026-06-openai-context";
+
+function aiConsentKey(userId = "") {
+  const scope = String(userId || "anonymous").trim() || "anonymous";
+  return `fruitfit.aiConsent:${scope}`;
+}
+
+function loadAiCoachConsent(userId = currentUserId()) {
+  if (typeof window === "undefined") return false;
+  try {
+    const parsed = JSON.parse(localStorage.getItem(aiConsentKey(userId)) || "null");
+    return Boolean(parsed?.accepted && parsed?.version === AI_CONSENT_VERSION);
+  } catch (_) {
+    return false;
+  }
+}
+
+function saveAiCoachConsent(userId = currentUserId()) {
+  if (typeof window === "undefined") return false;
+  try {
+    localStorage.setItem(aiConsentKey(userId), JSON.stringify({
+      accepted: true,
+      version: AI_CONSENT_VERSION,
+      acceptedAt: new Date().toISOString(),
+      provider: "OpenAI",
+    }));
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 function coachWelcomeMessage(profile = {}) {
   const firstName = profileFirstNameForGreeting(profile);
   const greeting = firstName ? `Привет, ${firstName}!` : "Привет!";
@@ -35,6 +67,37 @@ function ThinkingDots() {
       {[0, 1, 2].map((item) => (
         <span key={item} className="h-1.5 w-1.5 animate-bounce rounded-full bg-appMuted" style={{ animationDelay: `${item * 120}ms` }} />
       ))}
+    </div>
+  );
+}
+
+function AiConsentModal({ onAccept, onCancel }) {
+  return (
+    <div className="fixed inset-0 z-[90] grid place-items-center bg-black/60 px-4 backdrop-blur-sm">
+      <section className="w-full max-w-[380px] rounded-[28px] border border-appBorder bg-appCard p-5 shadow-card">
+        <div className="flex items-start gap-3">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-appGreen/15 text-appGreen">
+            <Bot size={20} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-[18px] font-black text-appText">AI Coach использует OpenAI</h2>
+            <p className="mt-2 text-[13px] leading-5 text-appMuted">
+              Чтобы ответить точнее, FruitFit может передавать в OpenAI ваш вопрос, последние сообщения чата, профиль и анкету, текущую программу, выбранную тренировку, цель питания и краткую сводку активности, если трекер подключён.
+            </p>
+            <p className="mt-2 text-[12px] leading-5 text-appMuted">
+              Платёжные данные, токены входа и секреты не отправляются. Без согласия запрос к AI Coach не будет выполнен.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <button type="button" onClick={onCancel} className="h-11 rounded-full border border-appBorder bg-appBg text-[13px] font-black text-appText">
+            Отмена
+          </button>
+          <button type="button" onClick={onAccept} className="h-11 rounded-full bg-appGreen text-[13px] font-black text-[#181F19]">
+            Согласен
+          </button>
+        </div>
+      </section>
     </div>
   );
 }
@@ -198,9 +261,13 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
   const [messages, setMessages] = useState(loadCoachChatHistory);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [aiConsentState, setAiConsentState] = useState(() => ({ userId: currentUserId(), accepted: loadAiCoachConsent() }));
+  const [aiConsentOpen, setAiConsentOpen] = useState(false);
+  const [pendingConsentText, setPendingConsentText] = useState("");
   const listRef = useRef(null);
   const bottomRef = useRef(null);
   const displayMessages = messages.length ? messages : [welcomeMessage];
+  const aiConsentAccepted = Boolean(aiConsentState.accepted);
   const lastMessageKey = displayMessages.length
     ? displayMessages[displayMessages.length - 1]?.id || displayMessages[displayMessages.length - 1]?.content
     : "";
@@ -222,6 +289,8 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
   useEffect(() => {
     function syncChatHistory() {
       setMessages(loadCoachChatHistory());
+      const userId = currentUserId();
+      setAiConsentState({ userId, accepted: loadAiCoachConsent(userId) });
     }
     syncChatHistory();
     window.addEventListener("fruitfit:auth-updated", syncChatHistory);
@@ -240,9 +309,29 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
     scrollChatToBottom(messages.length ? "smooth" : "auto");
   }, [lastMessageKey, displayMessages.length, loading, messages.length, scrollChatToBottom]);
 
-  async function send(text = input) {
+  function acceptAiConsent() {
+    const userId = currentUserId();
+    saveAiCoachConsent(userId);
+    setAiConsentState({ userId, accepted: true });
+    setAiConsentOpen(false);
+    const text = pendingConsentText;
+    setPendingConsentText("");
+    if (text) window.setTimeout(() => send(text, { skipConsent: true }), 0);
+  }
+
+  function cancelAiConsent() {
+    setAiConsentOpen(false);
+    setPendingConsentText("");
+  }
+
+  async function send(text = input, options = {}) {
     const content = String(text || "").trim();
     if (!content || loading) return;
+    if (!options.skipConsent && !aiConsentAccepted) {
+      setPendingConsentText(content);
+      setAiConsentOpen(true);
+      return;
+    }
 
     const userId = currentUserId();
     const userMessage = createCoachChatMessage("user", content, userId);
@@ -387,6 +476,7 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
           </button>
         </form>
       </div>
+      {aiConsentOpen && <AiConsentModal onAccept={acceptAiConsent} onCancel={cancelAiConsent} />}
       <BottomNavigation active="coach" onNavigate={onNavigate} />
     </main>
   );

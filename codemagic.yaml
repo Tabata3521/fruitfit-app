@@ -1,0 +1,56 @@
+workflows:
+  fruitfit-ios-app-store:
+    name: FruitFit iOS App Store build
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    integrations:
+      app_store_connect: fruitfit_app_store_connect
+
+    environment:
+      xcode: latest
+      node: latest
+      vars:
+        BUNDLE_ID: "com.tagirfruit.fruitfit"
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+
+    cache:
+      cache_paths:
+        - ~/.npm
+        - ~/Library/Caches/CocoaPods
+
+    scripts:
+      - name: Install JavaScript dependencies
+        script: |
+          npm ci
+
+      - name: Build bundled web assets
+        script: |
+          npm run build
+
+      - name: Sync Capacitor iOS
+        script: |
+          npx cap sync ios
+
+      - name: Initialize signing keychain
+        script: |
+          keychain initialize
+
+      - name: Fetch App Store signing files
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+
+      - name: Apply signing profiles to Xcode project
+        script: |
+          keychain add-certificates
+          xcode-project use-profiles
+
+      - name: Build signed IPA
+        script: |
+          xcode-project build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM

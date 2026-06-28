@@ -18,6 +18,67 @@ const REST_SECONDS = 90;
 const EXERCISE_REPLACEMENTS_FIELD = "exerciseReplacements";
 const WORKOUT_REPORTS_FIELD = "workoutReports";
 
+function exerciseMuscleMapFields(exercise = {}, meta = {}) {
+  const assetPath = exercise.muscle_map_asset_path
+    || exercise.muscleMapAssetPath
+    || exercise.muscle_map_url
+    || exercise.muscleMapUrl
+    || meta.muscle_map_asset_path
+    || meta.muscleMapAssetPath
+    || meta.muscle_map_url
+    || meta.muscleMapUrl
+    || "";
+  const label = exercise.muscle_map_label
+    || exercise.muscleMapLabel
+    || meta.muscle_map_label
+    || meta.muscleMapLabel
+    || "";
+  const key = exercise.muscle_map_key
+    || exercise.muscleMapKey
+    || meta.muscle_map_key
+    || meta.muscleMapKey
+    || label;
+  const version = exercise.muscle_map_version
+    || exercise.muscleMapVersion
+    || meta.muscle_map_version
+    || meta.muscleMapVersion
+    || "";
+  const revision = exercise.muscle_map_revision
+    || exercise.muscleMapRevision
+    || meta.muscle_map_revision
+    || meta.muscleMapRevision
+    || version;
+  const hash = exercise.muscle_map_hash
+    || exercise.muscleMapHash
+    || meta.muscle_map_hash
+    || meta.muscleMapHash
+    || revision;
+  const updatedAt = exercise.muscle_map_updated_at
+    || exercise.muscleMapUpdatedAt
+    || meta.muscle_map_updated_at
+    || meta.muscleMapUpdatedAt
+    || hash;
+
+  return {
+    muscle_map_asset_path: assetPath,
+    muscleMapAssetPath: assetPath,
+    muscle_map_url: exercise.muscle_map_url || exercise.muscleMapUrl || meta.muscle_map_url || meta.muscleMapUrl || assetPath,
+    muscleMapUrl: exercise.muscleMapUrl || exercise.muscle_map_url || meta.muscleMapUrl || meta.muscle_map_url || assetPath,
+    muscle_map_label: label,
+    muscleMapLabel: label,
+    muscle_map_key: key,
+    muscleMapKey: key,
+    muscle_map_version: version,
+    muscleMapVersion: version,
+    muscle_map_revision: revision,
+    muscleMapRevision: revision,
+    muscle_map_hash: hash,
+    muscleMapHash: hash,
+    muscle_map_updated_at: updatedAt,
+    muscleMapUpdatedAt: updatedAt,
+  };
+}
+
 function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
@@ -829,6 +890,7 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
       targetZone: selected.targetZone || selectedMeta.targetZone || "",
       restrictions: selected.restrictions || selectedMeta.restrictions || [],
       muscle_template_id: selectedTemplate.id,
+      ...exerciseMuscleMapFields(selected, selectedMeta),
       exercise_table_meta: selected.exercise_table_meta || selectedMeta || null,
       replacement_id: selected.exercise_id || selected.id || selectedName,
     };

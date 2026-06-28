@@ -80,7 +80,7 @@ export const dietTypeToRation = {
   "Вегетарианство": "Вегетарианство",
   "Без лактозы": "Без лактозы",
   "Без глютена": "Без глютена",
-  "Без глютена и без лактозы": "Без лактозы и без глютена",
+  "Без глютена и без лактозы": "Без глютена и без лактозы",
 };
 
 function normalizeLegacyValue(value, field) {
@@ -123,24 +123,25 @@ export function calculateMifflinCalories(profile = {}) {
   // BMR по формуле Миффлина-Сен Жеора
   const bmr = 10 * weight + 6.25 * height - 5 * age + (gender === "male" ? 5 : -161);
 
-  // Коэффициент активности: для обычного городского жителя 1.55 — это слишком много.
-  // 2 тренировки + сидячий образ жизни = 1.2
-  // 3 тренировки + сидячий образ жизни = 1.35
-  const activity = workouts >= 3 ? 1.35 : 1.2;
+  // Коэффициент активности по недельной частоте тренировок.
+  const activity = workouts >= 3 ? 1.55 : 1.35;
   const tdee = bmr * activity;
 
   // Дельта на цель: фиксированные ккал
   const goal = String(profile.goal || "").toLowerCase();
-  const goalDelta = goal.includes("похуд") ? -300 : goal.includes("масс") || goal.includes("набор") ? 200 : 0;
+  const isMuscleGain = goal.includes("масс") || goal.includes("набор");
+  const goalDelta = goal.includes("похуд") ? -300 : isMuscleGain ? 200 : 0;
 
   const calculated = Math.round(tdee + goalDelta);
 
   // Список доступных рационов (должен совпадать с тем, что есть в данных питания)
   const targets = [1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600, 2800, 3000];
-  const recommended = targets.reduce((best, current) =>
-    Math.abs(current - calculated) < Math.abs(best - calculated) ? current : best,
-    targets[0],
-  );
+  const recommended = isMuscleGain
+    ? (targets.find((current) => current >= calculated) || targets[targets.length - 1])
+    : targets.reduce((best, current) =>
+      Math.abs(current - calculated) < Math.abs(best - calculated) ? current : best,
+      targets[0],
+    );
 
   return {
     calculatedCalories: Math.min(Math.max(1200, calculated), 3000), // Жесткий лимит до 3000 (максимальный рацион)

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-07T14:45:16.097Z",
+  "generatedAt": "2026-06-28T20:40:00.518Z",
   "images": {
     "https://static.tildacdn.com/stor3963-3064-4565-b133-613965333837/94629715.png": {
       "localPath": "/nutrition-images/fd30aec058b5729b.webp",
@@ -694,26 +694,6 @@
     "https://static.tildacdn.com/stor3730-6532-4137-a537-666665616436/38652713.png": {
       "localPath": "/nutrition-images/d4c6b22ad8917205.webp",
       "bytes": 31082,
-      "contentType": "image/webp",
-      "optimized": {
-        "format": "webp",
-        "maxSize": 720,
-        "quality": 76
-      }
-    },
-    "https://static.tildacdn.com/stor6262-6332-4530-a332-306238306434/56920111.png": {
-      "localPath": "/nutrition-images/1a1dd4570df971e2.webp",
-      "bytes": 50850,
-      "contentType": "image/webp",
-      "optimized": {
-        "format": "webp",
-        "maxSize": 720,
-        "quality": 76
-      }
-    },
-    "https://static.tildacdn.com/stor6238-6464-4333-a131-373534373862/10570689.png": {
-      "localPath": "/nutrition-images/7773ba6bdbf93034.webp",
-      "bytes": 32414,
       "contentType": "image/webp",
       "optimized": {
         "format": "webp",
@@ -1482,9 +1462,5 @@
       }
     }
   },
-  "failures": [],
-  "optimizedAt": "2026-06-07T14:47:42.262Z",
-  "imageFormat": "webp",
-  "maxImageSize": 720,
-  "webpQuality": 76
+  "failures": []
 }

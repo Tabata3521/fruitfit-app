@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { buildMuscleProfile } from "../data/exerciseMuscles";
+import { useCachedMuscleMapImage } from "../data/muscleMapCache";
 import { assignMuscleTemplate } from "../data/muscleTemplates";
 
 function Dot({ color }) {
@@ -25,12 +26,13 @@ function MuscleList({ title, items, color, note }) {
 
 function AnatomyCard({ assigned, compact = false }) {
   const height = compact ? "h-[86px]" : "h-[292px]";
+  const imageSrc = useCachedMuscleMapImage(assigned);
 
   return (
     <div className={`grid w-full place-items-center rounded-[18px] bg-black ${compact ? "p-1.5" : "p-2.5"} ${height}`}>
-      {assigned.imageSrc ? (
+      {imageSrc ? (
         <img
-          src={assigned.imageSrc}
+          src={imageSrc}
           alt=""
           loading="lazy"
           decoding="async"
@@ -38,7 +40,7 @@ function AnatomyCard({ assigned, compact = false }) {
         />
       ) : (
         <div className="grid h-full w-full place-items-center rounded-[16px] border border-dashed border-white/14 px-3 text-center text-[11px] font-bold leading-4 text-white/48">
-          Для этой мышечной группы пока нет anatomy image
+          Карта мышц пока готовится
         </div>
       )}
     </div>
@@ -85,12 +87,6 @@ export default function MuscleWorkBlock({ exercise, className = "" }) {
             </div>
             <AnatomyCard assigned={assigned} />
           </div>
-
-          {assigned.status !== "ok" && (
-            <div className="rounded-[16px] border border-appOrange/20 bg-appOrange/10 p-3 text-[12px] font-semibold leading-5 text-white/70">
-              Статус anatomy map: {assigned.status}. {assigned.reviewStatus}
-            </div>
-          )}
 
           <MuscleList title="Основные мышцы" items={profile.primary} color="#9BE85F" note="Главные мышцы, на которые направлено упражнение." />
           <MuscleList title="Второстепенные мышцы" items={profile.secondary} color="#78A84F" note="Синергисты помогают выполнить движение и стабилизировать траекторию." />

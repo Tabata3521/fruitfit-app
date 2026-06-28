@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -147,11 +147,11 @@ function YouTubeInlinePlayer({ item, title, thumbnailUrl }) {
           </style>
         </head>
         <body>
-          <a href="${safeEmbed}" aria-label="Воспроизвести видео: ${safeTitle}">
+          <a href="${safeEmbed}" aria-label="Р’РѕСЃРїСЂРѕРёР·РІРµСЃС‚Рё РІРёРґРµРѕ: ${safeTitle}">
             <img src="${safeThumb}" alt="" />
             <span class="shade"></span>
             <span class="play"></span>
-            <span class="caption">Нажмите Play, чтобы открыть плеер внутри приложения</span>
+            <span class="caption">РќР°Р¶РјРёС‚Рµ Play, С‡С‚РѕР±С‹ РѕС‚РєСЂС‹С‚СЊ РїР»РµРµСЂ РІРЅСѓС‚СЂРё РїСЂРёР»РѕР¶РµРЅРёСЏ</span>
           </a>
         </body>
       </html>`;
@@ -199,26 +199,26 @@ function openExternalVideo(url) {
 }
 
 const defaultWidgets = [
-  { id: "lecture", title: "Мини-лекция", type: "lecture", enabled: true, order: 1, dataSource: "content", fallbackState: "Нет данных" },
-  { id: "nutrition", title: "Питание", type: "nutrition", enabled: true, order: 2, dataSource: "csv", fallbackState: "Нет данных" },
-  { id: "heart", title: "Пульс", type: "heart", enabled: true, order: 3, dataSource: "tracker", fallbackState: "Трекер не подключён" },
-  { id: "steps", title: "Шаги", type: "steps", enabled: true, order: 4, dataSource: "tracker", fallbackState: "Трекер не подключён" },
-  { id: "calories", title: "Калории", type: "calories", enabled: true, order: 5, dataSource: "tracker", fallbackState: "Трекер не подключён" },
-  { id: "sleep", title: "Сон", type: "sleep", enabled: true, order: 6, dataSource: "tracker/manual", fallbackState: "Трекер не подключён" },
-  { id: "recovery", title: "Восстановление", type: "recovery", enabled: true, order: 7, dataSource: "tracker/manual", fallbackState: "Трекер не подключён" },
-  { id: "cycle", title: "Цикл", type: "cycle", enabled: true, order: 8, dataSource: "manual", fallbackState: "Нет данных" },
-  { id: "weekly", title: "Активность за неделю", type: "weekly", enabled: true, order: 9, dataSource: "tracker", fallbackState: "Трекер не подключён" },
+  { id: "lecture", title: "РњРёРЅРё-Р»РµРєС†РёСЏ", type: "lecture", enabled: true, order: 1, dataSource: "content", fallbackState: "РќРµС‚ РґР°РЅРЅС‹С…" },
+  { id: "nutrition", title: "РџРёС‚Р°РЅРёРµ", type: "nutrition", enabled: true, order: 2, dataSource: "csv", fallbackState: "РќРµС‚ РґР°РЅРЅС‹С…" },
+  { id: "heart", title: "РџСѓР»СЊСЃ", type: "heart", enabled: true, order: 3, dataSource: "tracker", fallbackState: "РўСЂРµРєРµСЂ РЅРµ РїРѕРґРєР»СЋС‡С‘РЅ" },
+  { id: "steps", title: "РЁР°РіРё", type: "steps", enabled: true, order: 4, dataSource: "tracker", fallbackState: "РўСЂРµРєРµСЂ РЅРµ РїРѕРґРєР»СЋС‡С‘РЅ" },
+  { id: "calories", title: "РљР°Р»РѕСЂРёРё", type: "calories", enabled: true, order: 5, dataSource: "tracker", fallbackState: "РўСЂРµРєРµСЂ РЅРµ РїРѕРґРєР»СЋС‡С‘РЅ" },
+  { id: "sleep", title: "РЎРѕРЅ", type: "sleep", enabled: true, order: 6, dataSource: "tracker/manual", fallbackState: "РўСЂРµРєРµСЂ РЅРµ РїРѕРґРєР»СЋС‡С‘РЅ" },
+  { id: "recovery", title: "Р’РѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ", type: "recovery", enabled: true, order: 7, dataSource: "tracker/manual", fallbackState: "РўСЂРµРєРµСЂ РЅРµ РїРѕРґРєР»СЋС‡С‘РЅ" },
+  { id: "cycle", title: "Р¦РёРєР»", type: "cycle", enabled: true, order: 8, dataSource: "manual", fallbackState: "РќРµС‚ РґР°РЅРЅС‹С…" },
+  { id: "weekly", title: "РђРєС‚РёРІРЅРѕСЃС‚СЊ Р·Р° РЅРµРґРµР»СЋ", type: "weekly", enabled: true, order: 9, dataSource: "tracker", fallbackState: "РўСЂРµРєРµСЂ РЅРµ РїРѕРґРєР»СЋС‡С‘РЅ" },
 ];
 
 const periodTabs = [
-  { id: "today", label: "Сегодня" },
-  { id: "week", label: "Неделя" },
-  { id: "month", label: "Месяц" },
+  { id: "today", label: "РЎРµРіРѕРґРЅСЏ" },
+  { id: "week", label: "РќРµРґРµР»СЏ" },
+  { id: "month", label: "РњРµСЃСЏС†" },
 ];
 
 const WEEKLY_STEPS_GOAL = 70000;
 const WEEKLY_ACTIVITY_QUERY_MODE = "history_7d";
-const weekLabels = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+const weekLabels = ["РџРЅ", "Р’С‚", "РЎСЂ", "Р§С‚", "РџС‚", "РЎР±", "Р’СЃ"];
 
 function formatCompact(value) {
   const number = Number(value) || 0;
@@ -348,7 +348,7 @@ function LineChart({ values = [], color = "#EF4444", height = 132, labels = ["00
   return (
     <div className="rounded-[22px] border border-appBorder bg-appBg/70 p-3">
       <div className="mb-2 flex justify-between text-[10px] font-semibold text-appMuted">
-        <span>{max} уд/мин</span>
+        <span>{max} СѓРґ/РјРёРЅ</span>
         <span>{Math.round((min + max) / 2)}</span>
         <span>{min}</span>
       </div>
@@ -433,7 +433,7 @@ function NutritionWidget({ profile, onOpen }) {
   const filters = {
     ration: rations.includes(preferredRation) ? preferredRation : rations[0] || preferredRation,
     caloriesTarget,
-    day: days[0] || "Понедельник",
+    day: days[0] || "РџРѕРЅРµРґРµР»СЊРЅРёРє",
     mealType: "",
   };
   const plan = getMealPlan(data, filters);
@@ -449,15 +449,15 @@ function NutritionWidget({ profile, onOpen }) {
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <span className="inline-flex items-center gap-2 text-[13px] font-bold text-[#181F19]">
-            <Utensils size={15} className="text-appOrange" /> Питание
+            <Utensils size={15} className="text-appOrange" /> РџРёС‚Р°РЅРёРµ
           </span>
           {loading ? (
             <div className="mt-3 h-14 w-36 animate-pulse rounded-2xl bg-white/60" />
           ) : (
             <>
-              <p className="mt-3 text-[25px] font-black text-[#181F19]">{totals.calories || caloriesTarget} <span className="text-[12px] font-semibold">ккал</span></p>
-              <p className="mt-1 text-[12px] text-[#5f675f]">Б {totals.protein || 0} / Ж {totals.fat || 0} / У {totals.carbs || 0}</p>
-              <p className="mt-1 line-clamp-1 text-[11px] font-semibold text-appOrange">{filters.ration || "Рацион подобран"}</p>
+              <p className="mt-3 text-[25px] font-black text-[#181F19]">{totals.calories || caloriesTarget} <span className="text-[12px] font-semibold">РєРєР°Р»</span></p>
+              <p className="mt-1 text-[12px] text-[#5f675f]">Р‘ {totals.protein || 0} / Р– {totals.fat || 0} / РЈ {totals.carbs || 0}</p>
+              <p className="mt-1 line-clamp-1 text-[11px] font-semibold text-appOrange">{filters.ration || "Р Р°С†РёРѕРЅ РїРѕРґРѕР±СЂР°РЅ"}</p>
             </>
           )}
         </div>
@@ -479,7 +479,7 @@ function MiniLectureWidget({ access, onOpen }) {
   const visibleIds = new Set(visibleLectures.map((item) => item.id));
   const completed = visibleLectures.length > 0 && safeProgress.completedIds.filter((id) => visibleIds.has(id)).length >= visibleLectures.length;
   const percent = progressForLectureState(safeProgress, visibleLectures);
-  const cta = completed ? "Пересмотреть" : safeProgress.completedIds.length ? "Продолжить" : "Начать";
+  const cta = completed ? "РџРµСЂРµСЃРјРѕС‚СЂРµС‚СЊ" : safeProgress.completedIds.length ? "РџСЂРѕРґРѕР»Р¶РёС‚СЊ" : "РќР°С‡Р°С‚СЊ";
   return (
     <motion.button
       type="button"
@@ -489,14 +489,14 @@ function MiniLectureWidget({ access, onOpen }) {
     >
       <div className="min-w-0">
         <span className="inline-flex items-center gap-2 text-[12px] font-bold text-appMuted">
-          <BookOpen size={14} /> Лекция {currentIndex + 1} из {visibleLectures.length || lectures.length}
+          <BookOpen size={14} /> Р›РµРєС†РёСЏ {currentIndex + 1} РёР· {visibleLectures.length || lectures.length}
         </span>
         <h3 className="mt-2 line-clamp-2 text-[15px] font-black leading-tight text-appText">{currentLecture.shortTitle || currentLecture.title}</h3>
-        <p className="mt-2 text-[11px] text-appMuted">{completed ? "Все доступные лекции пройдены" : currentLecture.subtitle}</p>
+        <p className="mt-2 text-[11px] text-appMuted">{completed ? "Р’СЃРµ РґРѕСЃС‚СѓРїРЅС‹Рµ Р»РµРєС†РёРё РїСЂРѕР№РґРµРЅС‹" : currentLecture.subtitle}</p>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-appBg">
           <span className="block h-full rounded-full bg-appGreen" style={{ width: `${percent}%` }} />
         </div>
-        <p className="mt-2 text-[11px] font-black text-appGreen">{cta} · {percent}%</p>
+        <p className="mt-2 text-[11px] font-black text-appGreen">{cta} В· {percent}%</p>
       </div>
       <div className="relative grid h-[86px] place-items-center overflow-hidden rounded-[18px] bg-appDark">
         {currentLecture.thumbnailUrl ? (
@@ -514,13 +514,13 @@ function MiniLectureWidget({ access, onOpen }) {
   );
 }
 
-function EmptyHealthWidget({ title, icon: Icon, color = "#8BBE3D", onOpen, onConnect, onRefresh, headline = "Трекер не подключён", description = "После подключения Apple Health здесь появятся реальные данные.", actionLabel = "Подключить трекер" }) {
+function EmptyHealthWidget({ title, icon: Icon, color = "#8BBE3D", onOpen, onConnect, onRefresh, headline = "РўСЂРµРєРµСЂ РЅРµ РїРѕРґРєР»СЋС‡С‘РЅ", description = "РџРѕСЃР»Рµ РїРѕРґРєР»СЋС‡РµРЅРёСЏ Apple Health Р·РґРµСЃСЊ РїРѕСЏРІСЏС‚СЃСЏ СЂРµР°Р»СЊРЅС‹Рµ РґР°РЅРЅС‹Рµ.", actionLabel = "РџРѕРґРєР»СЋС‡РёС‚СЊ С‚СЂРµРєРµСЂ" }) {
   const runAction = () => {
-    if (actionLabel === "Посмотреть") {
+    if (actionLabel === "РџРѕСЃРјРѕС‚СЂРµС‚СЊ") {
       onOpen?.();
       return;
     }
-    if (actionLabel === "Обновить" || actionLabel === "Проверить") {
+    if (actionLabel === "РћР±РЅРѕРІРёС‚СЊ" || actionLabel === "РџСЂРѕРІРµСЂРёС‚СЊ") {
       onRefresh?.();
       return;
     }
@@ -538,7 +538,7 @@ function EmptyHealthWidget({ title, icon: Icon, color = "#8BBE3D", onOpen, onCon
           <Icon size={15} className="shrink-0" style={{ color }} />
           <span className="min-w-0 break-words">{title}</span>
         </span>
-        <span className="shrink-0 rounded-full bg-appBg px-2 py-1 text-[10px] font-bold text-appMuted">нет данных</span>
+        <span className="shrink-0 rounded-full bg-appBg px-2 py-1 text-[10px] font-bold text-appMuted">РЅРµС‚ РґР°РЅРЅС‹С…</span>
       </div>
       <p className="mt-3 text-[18px] font-black leading-tight text-appText">{headline}</p>
       <p className="mt-1 text-[11px] leading-4 text-appMuted">{description}</p>
@@ -578,12 +578,12 @@ function HeartWidget({ health, onOpen, onConnect, onRefresh }) {
   const rangeInfo = heartRangeInfo(heart);
   const latestLabel = heartLatestLabel(heart);
   const sourceLabel = healthSourceDisplayName(heart.latestSourcePackage || heart.sourcePackage, heart.latestSourceName || heart.sourceName);
-  const dashboardValue = rangeInfo.hasRange ? rangeInfo.rangeLabel : (rangeInfo.avg > 0 ? `${rangeInfo.avg} уд/мин` : rangeInfo.rangeLabel);
+  const dashboardValue = rangeInfo.hasRange ? rangeInfo.rangeLabel : (rangeInfo.avg > 0 ? `${rangeInfo.avg} СѓРґ/РјРёРЅ` : rangeInfo.rangeLabel);
   if (!hasHeartData) {
     const copy = friendlyEmptyCopy("heart", heart.status);
     return (
       <EmptyHealthWidget
-        title="Пульс"
+        title="РџСѓР»СЊСЃ"
         icon={Heart}
         color="#EF4444"
         onOpen={onOpen}
@@ -598,16 +598,16 @@ function HeartWidget({ health, onOpen, onConnect, onRefresh }) {
   return (
     <motion.div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(event) => openWidgetFromKeyboard(event, onOpen)} whileTap={{ scale: 0.985 }} className="cursor-pointer rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
       <div className="flex items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-2 text-[13px] font-bold text-appText"><Heart size={15} className="text-red-500" fill="currentColor" /> Пульс</span>
+        <span className="inline-flex items-center gap-2 text-[13px] font-bold text-appText"><Heart size={15} className="text-red-500" fill="currentColor" /> РџСѓР»СЊСЃ</span>
         <span className="ml-auto rounded-full bg-red-50 px-2 py-1 text-[10px] font-bold text-red-500">24</span>
         <DashboardRefreshButton onRefresh={onRefresh} />
       </div>
       <p className="mt-3 text-[24px] font-black leading-tight text-appText">{dashboardValue}</p>
-      <p className="mt-2 text-[11px] font-bold text-appMuted">средний {rangeInfo.avg > 0 ? rangeInfo.avg : "—"} · диапазон {rangeInfo.hasRange ? `${rangeInfo.min}-${rangeInfo.max}` : "—"}</p>
+      <p className="mt-2 text-[11px] font-bold text-appMuted">СЃСЂРµРґРЅРёР№ {rangeInfo.avg > 0 ? rangeInfo.avg : "вЂ”"} В· РґРёР°РїР°Р·РѕРЅ {rangeInfo.hasRange ? `${rangeInfo.min}-${rangeInfo.max}` : "вЂ”"}</p>
       <div className="hidden">
-        {rangeInfo.hasRange && <span>{rangeInfo.minLabel}: {rangeInfo.min} уд/мин</span>}
-        {rangeInfo.hasRange && rangeInfo.avg > 0 && <span>{rangeInfo.avgLabel}: {rangeInfo.avg} уд/мин</span>}
-        {rangeInfo.hasRange && <span>{rangeInfo.maxLabel}: {rangeInfo.max} уд/мин</span>}
+        {rangeInfo.hasRange && <span>{rangeInfo.minLabel}: {rangeInfo.min} СѓРґ/РјРёРЅ</span>}
+        {rangeInfo.hasRange && rangeInfo.avg > 0 && <span>{rangeInfo.avgLabel}: {rangeInfo.avg} СѓРґ/РјРёРЅ</span>}
+        {rangeInfo.hasRange && <span>{rangeInfo.maxLabel}: {rangeInfo.max} СѓРґ/РјРёРЅ</span>}
         <span>{latestLabel}</span>
       </div>
       <p className="mt-1 truncate text-[10px] font-bold text-appMuted">{sourceLabel}</p>
@@ -742,14 +742,14 @@ function isManualSleepEntry(entry = {}) {
 
 function sleepDaySourceLabel(day = {}, sleep = {}) {
   const entries = [...(day.sessions || []), ...(day.naps || [])];
-  if (!entries.length && !(day.entries || []).length) return sleep.dataSource === "manual" && sleep.minutes > 0 ? "Ручная запись" : "Нет данных";
-  if (day.hasManualNight || entries.some(isManualSleepEntry) || (day.entries || []).some(isManualSleepEntry)) return "Ручная запись";
+  if (!entries.length && !(day.entries || []).length) return sleep.dataSource === "manual" && sleep.minutes > 0 ? "Р СѓС‡РЅР°СЏ Р·Р°РїРёСЃСЊ" : "РќРµС‚ РґР°РЅРЅС‹С…";
+  if (day.hasManualNight || entries.some(isManualSleepEntry) || (day.entries || []).some(isManualSleepEntry)) return "Р СѓС‡РЅР°СЏ Р·Р°РїРёСЃСЊ";
   if (entries.length || sleep.dataSource === "tracker") return "Apple Health";
-  return "Нет данных";
+  return "РќРµС‚ РґР°РЅРЅС‹С…";
 }
 
 function sleepDuplicateWarning(totalMinutes) {
-  return Number(totalMinutes || 0) > 14 * 60 ? "Проверьте запись сна: возможный дубль данных" : "";
+  return Number(totalMinutes || 0) > 14 * 60 ? "РџСЂРѕРІРµСЂСЊС‚Рµ Р·Р°РїРёСЃСЊ СЃРЅР°: РІРѕР·РјРѕР¶РЅС‹Р№ РґСѓР±Р»СЊ РґР°РЅРЅС‹С…" : "";
 }
 
 function formatAxisValue(value, suffix = "") {
@@ -791,7 +791,7 @@ function DualMetricBarChart({ days = [], selectedIndex = 6, onSelect, height = 1
                     onSelect?.(index);
                   }}
                   className={`flex min-w-0 flex-1 flex-col items-center justify-end gap-1 rounded-2xl px-0.5 py-1 transition ${selected ? "bg-appCard shadow-sm" : "hover:bg-appCard/60"} ${day.suspicious ? "opacity-60 ring-1 ring-red-200" : ""}`}
-                  aria-label={`${activityDayTitle(day)}: ${steps} шагов, ${calories} ккал`}
+                  aria-label={`${activityDayTitle(day)}: ${steps} С€Р°РіРѕРІ, ${calories} РєРєР°Р»`}
                 >
                   <div className="h-6 text-center text-[8px] font-black leading-3 text-appText">
                     <p>{formatAxisValue(steps)}</p>
@@ -823,8 +823,8 @@ function DualMetricBarChart({ days = [], selectedIndex = 6, onSelect, height = 1
         </div>
       </div>
       <div className="flex items-center justify-center gap-3 text-[10px] font-bold text-appMuted">
-        <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-appGreen" /> Шаги</span>
-        <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#FF7A2F]" /> Активные ккал</span>
+        <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-appGreen" /> РЁР°РіРё</span>
+        <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#FF7A2F]" /> РђРєС‚РёРІРЅС‹Рµ РєРєР°Р»</span>
       </div>
     </div>
   );
@@ -848,7 +848,7 @@ function SleepDayBars({ days = [], selectedIndex = 6, onSelect }) {
             }}
             className={`rounded-2xl px-1 py-1.5 transition ${selected ? "bg-appBg shadow-sm" : "hover:bg-appBg/70"}`}
           >
-            <span className="mb-1 block text-[9px] font-black text-appText">{day.totalMinutes > 0 ? formatSleepDuration(day.totalMinutes) : "—"}</span>
+            <span className="mb-1 block text-[9px] font-black text-appText">{day.totalMinutes > 0 ? formatSleepDuration(day.totalMinutes) : "вЂ”"}</span>
             <span className="mx-auto flex h-[58px] w-full max-w-[24px] items-end overflow-hidden rounded-full bg-appBg">
               {minutes > 0 && (
                 <motion.span
@@ -867,11 +867,11 @@ function SleepDayBars({ days = [], selectedIndex = 6, onSelect }) {
 }
 
 const sleepStageMeta = {
-  1: { key: "awake", label: "Бодрствование", color: "#FBBF24" },
-  2: { key: "light", label: "Лёгкий сон", color: "#93C5FD" },
-  3: { key: "awake", label: "Пробуждение", color: "#F59E0B" },
-  4: { key: "light", label: "Лёгкий сон", color: "#60A5FA" },
-  5: { key: "deep", label: "Глубокий сон", color: "#1D4ED8" },
+  1: { key: "awake", label: "Р‘РѕРґСЂСЃС‚РІРѕРІР°РЅРёРµ", color: "#FBBF24" },
+  2: { key: "light", label: "Р›С‘РіРєРёР№ СЃРѕРЅ", color: "#93C5FD" },
+  3: { key: "awake", label: "РџСЂРѕР±СѓР¶РґРµРЅРёРµ", color: "#F59E0B" },
+  4: { key: "light", label: "Р›С‘РіРєРёР№ СЃРѕРЅ", color: "#60A5FA" },
+  5: { key: "deep", label: "Р“Р»СѓР±РѕРєРёР№ СЃРѕРЅ", color: "#1D4ED8" },
   6: { key: "rem", label: "REM", color: "#A78BFA" },
 };
 
@@ -887,7 +887,7 @@ function summarizeSleepStages(sessions = []) {
   const segments = [];
   sessions.forEach((session) => {
     (session.stages || []).forEach((stage) => {
-      const meta = sleepStageMeta[Number(stage.type)] || { key: "other", label: "Сон", color: "#BFDBFE" };
+      const meta = sleepStageMeta[Number(stage.type)] || { key: "other", label: "РЎРѕРЅ", color: "#BFDBFE" };
       if (!sleepStageMeta[Number(stage.type)]) return;
       const minutes = sleepStageMinutes(stage);
       if (minutes <= 0) return;
@@ -988,7 +988,7 @@ function SleepStageBreakdown({ day }) {
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[12px] font-black text-appText">{day?.label || ""}</p>
-          <p className="mt-1 text-[11px] text-appMuted">Ночной сон {formatSleepDuration(day?.nightMinutes || 0)} · дремы {formatSleepDuration(day?.napMinutes || 0)}</p>
+          <p className="mt-1 text-[11px] text-appMuted">РќРѕС‡РЅРѕР№ СЃРѕРЅ {formatSleepDuration(day?.nightMinutes || 0)} В· РґСЂРµРјС‹ {formatSleepDuration(day?.napMinutes || 0)}</p>
         </div>
         <p className="text-[18px] font-black text-appText">{formatSleepDuration(total)}</p>
       </div>
@@ -1006,8 +1006,8 @@ function SleepStageBreakdown({ day }) {
           </div>
           <div className="mt-3 grid grid-cols-3 gap-2">
             {[
-              ["Лёгкий", totals.light, "#60A5FA"],
-              ["Глубокий", totals.deep, "#1D4ED8"],
+              ["Р›С‘РіРєРёР№", totals.light, "#60A5FA"],
+              ["Р“Р»СѓР±РѕРєРёР№", totals.deep, "#1D4ED8"],
               ["REM", totals.rem, "#A78BFA"],
             ].map(([label, minutes, color]) => (
               <div key={label} className="rounded-[14px] bg-appCard px-2 py-2 text-center">
@@ -1018,23 +1018,23 @@ function SleepStageBreakdown({ day }) {
           </div>
         </>
       ) : (
-        <p className="mt-3 rounded-2xl bg-appCard px-3 py-2 text-[12px] leading-5 text-appMuted">Фазы сна не переданы трекером. Показываем только длительность.</p>
+        <p className="mt-3 rounded-2xl bg-appCard px-3 py-2 text-[12px] leading-5 text-appMuted">Р¤Р°Р·С‹ СЃРЅР° РЅРµ РїРµСЂРµРґР°РЅС‹ С‚СЂРµРєРµСЂРѕРј. РџРѕРєР°Р·С‹РІР°РµРј С‚РѕР»СЊРєРѕ РґР»РёС‚РµР»СЊРЅРѕСЃС‚СЊ.</p>
       )}
     </div>
   );
 }
 
 function sleepKindLabel(kind) {
-  if (kind === "night") return "Ночной сон";
-  if (kind === "fragment") return "Фрагмент сна";
-  return "Дрема";
+  if (kind === "night") return "РќРѕС‡РЅРѕР№ СЃРѕРЅ";
+  if (kind === "fragment") return "Р¤СЂР°РіРјРµРЅС‚ СЃРЅР°";
+  return "Р”СЂРµРјР°";
 }
 
 function sleepEntryRange(entry = {}) {
   if (entry.startLocal && entry.endLocal) return `${entry.startLocal}-${entry.endLocal}`;
   const start = entry.start || entry.startTime;
   const end = entry.end || entry.endTime;
-  if (!start || !end) return "Время не указано";
+  if (!start || !end) return "Р’СЂРµРјСЏ РЅРµ СѓРєР°Р·Р°РЅРѕ";
   return `${new Date(start).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}-${new Date(end).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
@@ -1056,7 +1056,7 @@ function SleepEntriesList({ title, entries = [] }) {
           ))}
         </div>
       ) : (
-        <p className="mt-2 text-[12px] leading-5 text-appMuted">Записей нет.</p>
+        <p className="mt-2 text-[12px] leading-5 text-appMuted">Р—Р°РїРёСЃРµР№ РЅРµС‚.</p>
       )}
     </div>
   );
@@ -1087,13 +1087,13 @@ function heartRangeInfo(heart = {}) {
       min,
       avg,
       max,
-      rangeLabel: `${min}-${max} уд/мин`,
-      minLabel: "Мин. 24ч",
-      avgLabel: "Средний 24ч",
-      maxLabel: "Макс. 24ч",
-      rangeTitle: "Диапазон 24ч",
-      avgTitle: "Средний 24ч",
-      hintPrefix: "Диапазон за 24 часа",
+      rangeLabel: `${min}-${max} СѓРґ/РјРёРЅ`,
+      minLabel: "РњРёРЅ. 24С‡",
+      avgLabel: "РЎСЂРµРґРЅРёР№ 24С‡",
+      maxLabel: "РњР°РєСЃ. 24С‡",
+      rangeTitle: "Р”РёР°РїР°Р·РѕРЅ 24С‡",
+      avgTitle: "РЎСЂРµРґРЅРёР№ 24С‡",
+      hintPrefix: "Р”РёР°РїР°Р·РѕРЅ Р·Р° 24 С‡Р°СЃР°",
     };
   }
   const weekRange = heart.range7d || [];
@@ -1107,13 +1107,13 @@ function heartRangeInfo(heart = {}) {
       min: weekMin,
       avg: weekAvg,
       max: weekMax,
-      rangeLabel: `${weekMin}-${weekMax} уд/мин`,
-      minLabel: "Мин. за 7 дней",
-      avgLabel: "Средний за 7 дней",
-      maxLabel: "Макс. за 7 дней",
-      rangeTitle: "Диапазон 7 дней",
-      avgTitle: "Средний 7 дней",
-      hintPrefix: "Диапазон за 7 дней",
+      rangeLabel: `${weekMin}-${weekMax} СѓРґ/РјРёРЅ`,
+      minLabel: "РњРёРЅ. Р·Р° 7 РґРЅРµР№",
+      avgLabel: "РЎСЂРµРґРЅРёР№ Р·Р° 7 РґРЅРµР№",
+      maxLabel: "РњР°РєСЃ. Р·Р° 7 РґРЅРµР№",
+      rangeTitle: "Р”РёР°РїР°Р·РѕРЅ 7 РґРЅРµР№",
+      avgTitle: "РЎСЂРµРґРЅРёР№ 7 РґРЅРµР№",
+      hintPrefix: "Р”РёР°РїР°Р·РѕРЅ Р·Р° 7 РґРЅРµР№",
     };
   }
   return {
@@ -1122,13 +1122,13 @@ function heartRangeInfo(heart = {}) {
     min: null,
     avg: null,
     max: null,
-    rangeLabel: heart.latestBpm ? `${heart.latestBpm} уд/мин` : "Нет данных",
-    minLabel: "Мин.",
-    avgLabel: "Средний",
-    maxLabel: "Макс.",
-    rangeTitle: "Пульс",
-    avgTitle: "Средний",
-    hintPrefix: "Пульс",
+    rangeLabel: heart.latestBpm ? `${heart.latestBpm} СѓРґ/РјРёРЅ` : "РќРµС‚ РґР°РЅРЅС‹С…",
+    minLabel: "РњРёРЅ.",
+    avgLabel: "РЎСЂРµРґРЅРёР№",
+    maxLabel: "РњР°РєСЃ.",
+    rangeTitle: "РџСѓР»СЊСЃ",
+    avgTitle: "РЎСЂРµРґРЅРёР№",
+    hintPrefix: "РџСѓР»СЊСЃ",
   };
 }
 
@@ -1137,28 +1137,28 @@ function heartRangeLabel(heart = {}) {
 }
 
 function heartLatestLabel(heart = {}) {
-  if (!heart.latestBpm) return "последнего измерения нет";
+  if (!heart.latestBpm) return "РїРѕСЃР»РµРґРЅРµРіРѕ РёР·РјРµСЂРµРЅРёСЏ РЅРµС‚";
   const age = heart.updatedAgoText || "";
-  return `последний: ${heart.latestBpm}, ${age}`;
+  return `РїРѕСЃР»РµРґРЅРёР№: ${heart.latestBpm}, ${age}`;
 }
 
 function recoveryHeartSummary(heart = {}) {
   const rangeInfo = heartRangeInfo(heart);
   if (rangeInfo.hasRange) {
-    return rangeInfo.avg > 0 ? `${rangeInfo.rangeLabel}, ${rangeInfo.avgTitle.toLowerCase()} ${rangeInfo.avg} уд/мин` : rangeInfo.rangeLabel;
+    return rangeInfo.avg > 0 ? `${rangeInfo.rangeLabel}, ${rangeInfo.avgTitle.toLowerCase()} ${rangeInfo.avg} СѓРґ/РјРёРЅ` : rangeInfo.rangeLabel;
   }
-  if (heart.latestBpm) return `${heart.latestBpm} уд/мин, ${heart.updatedAgoText || "без времени"}`;
-  return "нет данных";
+  if (heart.latestBpm) return `${heart.latestBpm} СѓРґ/РјРёРЅ, ${heart.updatedAgoText || "Р±РµР· РІСЂРµРјРµРЅРё"}`;
+  return "РЅРµС‚ РґР°РЅРЅС‹С…";
 }
 
 function friendlyHealthBadge(status) {
-  if (status === "rate_limited") return "кэш";
-  if (status === "fresh") return "свежие";
-  if (status === "aging") return "сегодня";
-  if (status === "today") return "сегодня";
-  if (status === "old_today") return "за 24ч";
-  if (status === "stale") return "устарели";
-  return "данные";
+  if (status === "rate_limited") return "РєСЌС€";
+  if (status === "fresh") return "СЃРІРµР¶РёРµ";
+  if (status === "aging") return "СЃРµРіРѕРґРЅСЏ";
+  if (status === "today") return "СЃРµРіРѕРґРЅСЏ";
+  if (status === "old_today") return "Р·Р° 24С‡";
+  if (status === "stale") return "СѓСЃС‚Р°СЂРµР»Рё";
+  return "РґР°РЅРЅС‹Рµ";
 }
 
 function isRateLimitedUiStatus(status) {
@@ -1168,77 +1168,77 @@ function isRateLimitedUiStatus(status) {
 function friendlyHeartHint(heart = {}) {
   if (isRateLimitedUiStatus(heart.status) || isRateLimitedUiStatus(heart.widgetState) || heart.freshness === "rate_limited") {
     return heart.dataSource || heart.latestBpm
-      ? "Apple Health временно ограничил запросы, показываем сохранённые данные."
-      : "Apple Health пока не ответил. Повторите обновление позже.";
+      ? "Apple Health РІСЂРµРјРµРЅРЅРѕ РѕРіСЂР°РЅРёС‡РёР» Р·Р°РїСЂРѕСЃС‹, РїРѕРєР°Р·С‹РІР°РµРј СЃРѕС…СЂР°РЅС‘РЅРЅС‹Рµ РґР°РЅРЅС‹Рµ."
+      : "Apple Health РїРѕРєР° РЅРµ РѕС‚РІРµС‚РёР». РџРѕРІС‚РѕСЂРёС‚Рµ РѕР±РЅРѕРІР»РµРЅРёРµ РїРѕР·Р¶Рµ.";
   }
   const rangeInfo = heartRangeInfo(heart);
   if (rangeInfo.hasRange) {
     return `${rangeInfo.hintPrefix}: ${rangeInfo.rangeLabel}. ${heartLatestLabel(heart)}.`;
   }
   if (heart.displayMode === "latest_only" && heart.latestTimestamp) {
-    return `Есть только последнее измерение: ${new Date(heart.latestTimestamp).toLocaleDateString("ru-RU")} (${heart.updatedAgoText || ""}).`;
+    return `Р•СЃС‚СЊ С‚РѕР»СЊРєРѕ РїРѕСЃР»РµРґРЅРµРµ РёР·РјРµСЂРµРЅРёРµ: ${new Date(heart.latestTimestamp).toLocaleDateString("ru-RU")} (${heart.updatedAgoText || ""}).`;
   }
-  if (heart.latestBpm) return `Последний пульс: ${heart.latestBpm} уд/мин, ${heart.updatedAgoText || "время неизвестно"}.`;
-  return "Пульс появится после синхронизации трекера.";
+  if (heart.latestBpm) return `РџРѕСЃР»РµРґРЅРёР№ РїСѓР»СЊСЃ: ${heart.latestBpm} СѓРґ/РјРёРЅ, ${heart.updatedAgoText || "РІСЂРµРјСЏ РЅРµРёР·РІРµСЃС‚РЅРѕ"}.`;
+  return "РџСѓР»СЊСЃ РїРѕСЏРІРёС‚СЃСЏ РїРѕСЃР»Рµ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё С‚СЂРµРєРµСЂР°.";
 }
 
 function friendlySourceHint(metric = {}, type = "metric") {
   if (isRateLimitedUiStatus(metric.status) || isRateLimitedUiStatus(metric.widgetState)) {
     return metric.dataSource
-      ? "Apple Health ограничил частоту запросов, показываем сохранённые данные."
-      : "Apple Health временно недоступен. Повторите обновление позже.";
+      ? "Apple Health РѕРіСЂР°РЅРёС‡РёР» С‡Р°СЃС‚РѕС‚Сѓ Р·Р°РїСЂРѕСЃРѕРІ, РїРѕРєР°Р·С‹РІР°РµРј СЃРѕС…СЂР°РЅС‘РЅРЅС‹Рµ РґР°РЅРЅС‹Рµ."
+      : "Apple Health РІСЂРµРјРµРЅРЅРѕ РЅРµРґРѕСЃС‚СѓРїРµРЅ. РџРѕРІС‚РѕСЂРёС‚Рµ РѕР±РЅРѕРІР»РµРЅРёРµ РїРѕР·Р¶Рµ.";
   }
   if (metric.isEstimated || metric.status === "estimated") {
-    return "Значение рассчитано приблизительно.";
+    return "Р—РЅР°С‡РµРЅРёРµ СЂР°СЃСЃС‡РёС‚Р°РЅРѕ РїСЂРёР±Р»РёР·РёС‚РµР»СЊРЅРѕ.";
   }
   if (!metric.dataSource) {
     return type === "sleep"
-      ? "Данных сна пока нет. Можно внести сон вручную."
-      : "Данные появятся после синхронизации трекера.";
+      ? "Р”Р°РЅРЅС‹С… СЃРЅР° РїРѕРєР° РЅРµС‚. РњРѕР¶РЅРѕ РІРЅРµСЃС‚Рё СЃРѕРЅ РІСЂСѓС‡РЅСѓСЋ."
+      : "Р”Р°РЅРЅС‹Рµ РїРѕСЏРІСЏС‚СЃСЏ РїРѕСЃР»Рµ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё С‚СЂРµРєРµСЂР°.";
   }
-  return "Данные получены из Apple Health.";
+  return "Р”Р°РЅРЅС‹Рµ РїРѕР»СѓС‡РµРЅС‹ РёР· Apple Health.";
 }
 
 function friendlyEmptyCopy(kind, status, hasPartialData = false) {
   if (isRateLimitedUiStatus(status)) {
     return {
-      headline: "Показываем сохранённые данные",
-      description: "Apple Health временно ограничил запросы. FruitFit обновит виджет после паузы.",
-      actionLabel: "Проверить",
+      headline: "РџРѕРєР°Р·С‹РІР°РµРј СЃРѕС…СЂР°РЅС‘РЅРЅС‹Рµ РґР°РЅРЅС‹Рµ",
+      description: "Apple Health РІСЂРµРјРµРЅРЅРѕ РѕРіСЂР°РЅРёС‡РёР» Р·Р°РїСЂРѕСЃС‹. FruitFit РѕР±РЅРѕРІРёС‚ РІРёРґР¶РµС‚ РїРѕСЃР»Рµ РїР°СѓР·С‹.",
+      actionLabel: "РџСЂРѕРІРµСЂРёС‚СЊ",
     };
   }
   if (status === "permission_required") {
     return {
-      headline: "Нужно разрешение",
-      description: "FruitFit нужен доступ Apple Health, чтобы читать эти данные.",
-      actionLabel: "Подключить",
+      headline: "РќСѓР¶РЅРѕ СЂР°Р·СЂРµС€РµРЅРёРµ",
+      description: "FruitFit РЅСѓР¶РµРЅ РґРѕСЃС‚СѓРї Apple Health, С‡С‚РѕР±С‹ С‡РёС‚Р°С‚СЊ СЌС‚Рё РґР°РЅРЅС‹Рµ.",
+      actionLabel: "РџРѕРґРєР»СЋС‡РёС‚СЊ",
     };
   }
   if (kind === "heart") {
     return {
-      headline: "Пульс пока не найден",
-      description: "Синхронизируйте трекер с Apple Health, и FruitFit покажет диапазон за сутки.",
-      actionLabel: "Обновить",
+      headline: "РџСѓР»СЊСЃ РїРѕРєР° РЅРµ РЅР°Р№РґРµРЅ",
+      description: "РЎРёРЅС…СЂРѕРЅРёР·РёСЂСѓР№С‚Рµ С‚СЂРµРєРµСЂ СЃ Apple Health, Рё FruitFit РїРѕРєР°Р¶РµС‚ РґРёР°РїР°Р·РѕРЅ Р·Р° СЃСѓС‚РєРё.",
+      actionLabel: "РћР±РЅРѕРІРёС‚СЊ",
     };
   }
   if (kind === "sleep") {
     return {
-      headline: "Сон пока не найден",
-      description: "Если трекер не записал сон, можно внести его вручную.",
-      actionLabel: "Посмотреть",
+      headline: "РЎРѕРЅ РїРѕРєР° РЅРµ РЅР°Р№РґРµРЅ",
+      description: "Р•СЃР»Рё С‚СЂРµРєРµСЂ РЅРµ Р·Р°РїРёСЃР°Р» СЃРѕРЅ, РјРѕР¶РЅРѕ РІРЅРµСЃС‚Рё РµРіРѕ РІСЂСѓС‡РЅСѓСЋ.",
+      actionLabel: "РџРѕСЃРјРѕС‚СЂРµС‚СЊ",
     };
   }
   if (kind === "recovery" && hasPartialData) {
     return {
-      headline: "Восстановление почти готово",
-      description: "Есть часть данных. Добавьте сон или дождитесь синхронизации, чтобы расчёт стал точнее.",
-      actionLabel: "Посмотреть",
+      headline: "Р’РѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ РїРѕС‡С‚Рё РіРѕС‚РѕРІРѕ",
+      description: "Р•СЃС‚СЊ С‡Р°СЃС‚СЊ РґР°РЅРЅС‹С…. Р”РѕР±Р°РІСЊС‚Рµ СЃРѕРЅ РёР»Рё РґРѕР¶РґРёС‚РµСЃСЊ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё, С‡С‚РѕР±С‹ СЂР°СЃС‡С‘С‚ СЃС‚Р°Р» С‚РѕС‡РЅРµРµ.",
+      actionLabel: "РџРѕСЃРјРѕС‚СЂРµС‚СЊ",
     };
   }
   return {
-    headline: "Данных пока нет",
-    description: "Apple Health подключён, данные появятся после синхронизации трекера.",
-    actionLabel: "Обновить",
+    headline: "Р”Р°РЅРЅС‹С… РїРѕРєР° РЅРµС‚",
+    description: "Apple Health РїРѕРґРєР»СЋС‡С‘РЅ, РґР°РЅРЅС‹Рµ РїРѕСЏРІСЏС‚СЃСЏ РїРѕСЃР»Рµ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё С‚СЂРµРєРµСЂР°.",
+    actionLabel: "РћР±РЅРѕРІРёС‚СЊ",
   };
 }
 
@@ -1284,7 +1284,7 @@ function AggregateProgress({ value, target, color, unit, note }) {
     <div className="rounded-[22px] border border-appBorder bg-appBg/70 p-4">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-wide text-appMuted">Всего</p>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-appMuted">Р’СЃРµРіРѕ</p>
           <p className="mt-1 text-[30px] font-black leading-none text-appText">{Number(value || 0).toLocaleString("ru-RU")} <span className="text-[13px]">{unit}</span></p>
         </div>
         <p className="text-[13px] font-black" style={{ color }}>{percent}%</p>
@@ -1317,7 +1317,7 @@ function MetricWidget({ kind = "metric", status = "no_data", title, icon: Icon, 
         </div>
         <p className="mt-3 text-[26px] font-black text-appText">0</p>
         <p className="text-[11px] text-appMuted">/ {target.toLocaleString("ru-RU")} {suffix}</p>
-        <p className="mt-1 text-[10px] font-bold text-appMuted">Сегодня шагов пока нет. Данные появятся после синхронизации трекера.</p>
+        <p className="mt-1 text-[10px] font-bold text-appMuted">РЎРµРіРѕРґРЅСЏ С€Р°РіРѕРІ РїРѕРєР° РЅРµС‚. Р”Р°РЅРЅС‹Рµ РїРѕСЏРІСЏС‚СЃСЏ РїРѕСЃР»Рµ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё С‚СЂРµРєРµСЂР°.</p>
         <div className="mt-3 h-2 rounded-full bg-appBg">
           <motion.div className="h-full rounded-full" style={{ background: color }} animate={{ width: "0%" }} />
         </div>
@@ -1353,19 +1353,19 @@ function SleepWidget({ health, onOpen, onConnect, onRefresh }) {
   const hasSleepData = Boolean(sleep.dataSource || sleep.minutes > 0 || (sleep.week || []).some((item) => Number(item.minutes || 0) > 0));
   if (!hasSleepData) {
     const copy = friendlyEmptyCopy("sleep", sleep.status);
-    copy.headline = "Сон пока не найден";
-    copy.description = "Если трекер не записал сон, можно внести его вручную.";
-    copy.actionLabel = "Внести сон";
-    return <EmptyHealthWidget title="Сон" icon={Moon} color="#60A5FA" onOpen={onOpen} onConnect={onConnect} onRefresh={onRefresh} headline={copy.headline} description={copy.description} actionLabel={copy.actionLabel} />;
+    copy.headline = "РЎРѕРЅ РїРѕРєР° РЅРµ РЅР°Р№РґРµРЅ";
+    copy.description = "Р•СЃР»Рё С‚СЂРµРєРµСЂ РЅРµ Р·Р°РїРёСЃР°Р» СЃРѕРЅ, РјРѕР¶РЅРѕ РІРЅРµСЃС‚Рё РµРіРѕ РІСЂСѓС‡РЅСѓСЋ.";
+    copy.actionLabel = "Р’РЅРµСЃС‚Рё СЃРѕРЅ";
+    return <EmptyHealthWidget title="РЎРѕРЅ" icon={Moon} color="#60A5FA" onOpen={onOpen} onConnect={onConnect} onRefresh={onRefresh} headline={copy.headline} description={copy.description} actionLabel={copy.actionLabel} />;
   }
   return (
     <motion.div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(event) => openWidgetFromKeyboard(event, onOpen)} whileTap={{ scale: 0.985 }} className="cursor-pointer rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
-      <span className="inline-flex items-center gap-2 text-[13px] font-bold text-appText"><Moon size={15} className="text-blue-500" /> Сон</span>
+      <span className="inline-flex items-center gap-2 text-[13px] font-bold text-appText"><Moon size={15} className="text-blue-500" /> РЎРѕРЅ</span>
       <div className="mt-2 flex justify-end">
         <DashboardRefreshButton onRefresh={onRefresh} />
       </div>
       <p className="mt-3 text-[24px] font-black text-appText">{formatSleepDuration(health.sleep.minutes)}</p>
-      <p className="text-[11px] text-appMuted">Качество: {health.sleep.quality}/5</p>
+      <p className="text-[11px] text-appMuted">РљР°С‡РµСЃС‚РІРѕ: {health.sleep.quality}/5</p>
       <p className="mt-1 text-[11px] leading-4 text-appMuted">{friendlySourceHint(sleep, "sleep")}</p>
       <Sparkline values={health.sleep.week.map((item) => item.minutes)} color="#60A5FA" />
     </motion.div>
@@ -1388,18 +1388,18 @@ function SleepWidgetV2({ health, onOpen, onConnect, onRefresh }) {
   const hasSleepData = Boolean(sleep.dataSource || sleep.minutes > 0 || sleepDays.some((item) => Number(item.totalMinutes || 0) > 0));
   if (!hasSleepData) {
     const copy = friendlyEmptyCopy("sleep", sleep.status);
-    return <EmptyHealthWidget title="Сон" icon={Moon} color="#60A5FA" onOpen={onOpen} onConnect={onConnect} onRefresh={onRefresh} headline={copy.headline} description={copy.description} actionLabel={copy.actionLabel} />;
+    return <EmptyHealthWidget title="РЎРѕРЅ" icon={Moon} color="#60A5FA" onOpen={onOpen} onConnect={onConnect} onRefresh={onRefresh} headline={copy.headline} description={copy.description} actionLabel={copy.actionLabel} />;
   }
   return (
     <motion.div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(event) => openWidgetFromKeyboard(event, onOpen)} whileTap={{ scale: 0.985 }} className="cursor-pointer rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
-      <span className="inline-flex items-center gap-2 text-[13px] font-bold text-appText"><Moon size={15} className="text-blue-500" /> Сон</span>
+      <span className="inline-flex items-center gap-2 text-[13px] font-bold text-appText"><Moon size={15} className="text-blue-500" /> РЎРѕРЅ</span>
       <div className="mt-2 flex justify-end">
         <DashboardRefreshButton onRefresh={onRefresh} />
       </div>
       <p className="mt-3 text-[24px] font-black text-appText">{formatSleepDuration(sleep.minutes || selectedDay?.totalMinutes || 0)}</p>
-      <p className="mt-1 text-[10px] font-bold text-appMuted">Источник: {sourceLabel}</p>
+      <p className="mt-1 text-[10px] font-bold text-appMuted">РСЃС‚РѕС‡РЅРёРє: {sourceLabel}</p>
       {warning && <p className="mt-1 text-[10px] font-black text-amber-500">{warning}</p>}
-      <p className="text-[11px] text-appMuted">Ночной сон: {formatSleepDuration(nightMinutes)} · Дремы: {formatSleepDuration(napMinutes)}</p>
+      <p className="text-[11px] text-appMuted">РќРѕС‡РЅРѕР№ СЃРѕРЅ: {formatSleepDuration(nightMinutes)} В· Р”СЂРµРјС‹: {formatSleepDuration(napMinutes)}</p>
     </motion.div>
   );
 }
@@ -1411,11 +1411,11 @@ function RecoveryWidget({ health, onOpen, onConnect, onRefresh }) {
   if (score == null) {
     const hasPartialData = Boolean(health.heart_rate?.latestBpm || health.sleep?.minutes || health.steps?.today);
     const copy = friendlyEmptyCopy("recovery", health.recovery?.status || health.readiness?.status, hasPartialData);
-    return <EmptyHealthWidget title="Восстановление" icon={Activity} color="#8BBE3D" onOpen={onOpen} onConnect={onConnect} onRefresh={onRefresh} headline={copy.headline} description={copy.description} actionLabel={copy.actionLabel} />;
+    return <EmptyHealthWidget title="Р’РѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ" icon={Activity} color="#8BBE3D" onOpen={onOpen} onConnect={onConnect} onRefresh={onRefresh} headline={copy.headline} description={copy.description} actionLabel={copy.actionLabel} />;
   }
   return (
     <motion.div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(event) => openWidgetFromKeyboard(event, onOpen)} whileTap={{ scale: 0.985 }} className="cursor-pointer overflow-hidden rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
-      <span className="inline-flex min-w-0 max-w-full items-start gap-2 text-[13px] font-bold leading-4 text-appText"><Activity size={15} className="shrink-0 text-[#8BBE3D]" /> <span className="min-w-0 break-words">Восстановление</span></span>
+      <span className="inline-flex min-w-0 max-w-full items-start gap-2 text-[13px] font-bold leading-4 text-appText"><Activity size={15} className="shrink-0 text-[#8BBE3D]" /> <span className="min-w-0 break-words">Р’РѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ</span></span>
       <div className="mt-2 flex justify-end">
         <DashboardRefreshButton onRefresh={onRefresh} />
       </div>
@@ -1424,7 +1424,7 @@ function RecoveryWidget({ health, onOpen, onConnect, onRefresh }) {
           <span className="text-[18px] font-black text-appText">{score}%</span>
         </Ring>
         <div className="min-w-0 overflow-hidden">
-          <p className="line-clamp-1 text-[13px] font-black text-appText">{readiness.status || "Готовность"}</p>
+          <p className="line-clamp-1 text-[13px] font-black text-appText">{readiness.status || "Р“РѕС‚РѕРІРЅРѕСЃС‚СЊ"}</p>
           <p className="line-clamp-2 overflow-hidden text-[10px] leading-4 text-appMuted">{readiness.recommendation}</p>
         </div>
       </div>
@@ -1444,22 +1444,22 @@ function CycleWidget({ health, onOpen }) {
   if (!cycle.configured) {
     return (
       <motion.button type="button" onClick={onOpen} whileTap={{ scale: 0.985 }} className="rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
-        <span className="inline-flex items-center gap-2 text-[13px] font-bold text-appText"><Calendar size={15} className="text-violet-500" /> Цикл</span>
-        <p className="mt-3 text-[12px] font-black leading-4 text-appText">Настройте цикл</p>
-        <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-appMuted">Добавьте дату начала последней менструации, чтобы FruitFit рассчитал прогноз.</p>
+        <span className="inline-flex items-center gap-2 text-[13px] font-bold text-appText"><Calendar size={15} className="text-violet-500" /> Р¦РёРєР»</span>
+        <p className="mt-3 text-[12px] font-black leading-4 text-appText">РќР°СЃС‚СЂРѕР№С‚Рµ С†РёРєР»</p>
+        <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-appMuted">Р”РѕР±Р°РІСЊС‚Рµ РґР°С‚Сѓ РЅР°С‡Р°Р»Р° РїРѕСЃР»РµРґРЅРµР№ РјРµРЅСЃС‚СЂСѓР°С†РёРё, С‡С‚РѕР±С‹ FruitFit СЂР°СЃСЃС‡РёС‚Р°Р» РїСЂРѕРіРЅРѕР·.</p>
       </motion.button>
     );
   }
   const progress = cycle.progress || Math.round((cycle.cycleDay / cycle.cycleLengthDays) * 100);
-  const nextPeriodText = cycle.daysUntilNextPeriod === 0 ? "сегодня" : `через ${cycle.daysUntilNextPeriod} дн.`;
+  const nextPeriodText = cycle.daysUntilNextPeriod === 0 ? "СЃРµРіРѕРґРЅСЏ" : `С‡РµСЂРµР· ${cycle.daysUntilNextPeriod} РґРЅ.`;
   return (
     <motion.button type="button" onClick={onOpen} whileTap={{ scale: 0.985 }} className="rounded-[22px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
-      <span className="inline-flex items-center gap-2 text-[13px] font-bold text-appText"><Calendar size={15} className="text-violet-500" /> Цикл</span>
+      <span className="inline-flex items-center gap-2 text-[13px] font-bold text-appText"><Calendar size={15} className="text-violet-500" /> Р¦РёРєР»</span>
       <div className="mt-3 grid grid-cols-[1fr_40px] items-center gap-1">
         <div className="min-w-0">
-          <p className="truncate text-[11px] font-black leading-4 text-appText">{cycle.cycleDay} день цикла</p>
+          <p className="truncate text-[11px] font-black leading-4 text-appText">{cycle.cycleDay} РґРµРЅСЊ С†РёРєР»Р°</p>
           <p className="truncate text-[10px] font-bold leading-4 text-violet-500">{cycle.phaseLabel}</p>
-          <p className="mt-1 text-[10px] leading-4 text-appMuted">Менструация примерно {nextPeriodText}</p>
+          <p className="mt-1 text-[10px] leading-4 text-appMuted">РњРµРЅСЃС‚СЂСѓР°С†РёСЏ РїСЂРёРјРµСЂРЅРѕ {nextPeriodText}</p>
         </div>
         <Ring value={progress} color="#A78BFA" size={40}>
           <span className="text-[11px] font-black text-appText">{cycle.cycleDay}</span>
@@ -1476,11 +1476,11 @@ function WeeklyWidget({ health, onOpen, onConnect }) {
     return (
       <motion.button type="button" onClick={onOpen} whileTap={{ scale: 0.985 }} className="col-span-2 rounded-[24px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
         <div className="flex items-center justify-between">
-        <h3 className="text-[15px] font-black text-appText">Активность за неделю</h3>
+        <h3 className="text-[15px] font-black text-appText">РђРєС‚РёРІРЅРѕСЃС‚СЊ Р·Р° РЅРµРґРµР»СЋ</h3>
           <ChevronRight size={17} className="text-appMuted" />
         </div>
-        <p className="mt-3 text-[18px] font-black text-appText">Нет данных активности</p>
-        <p className="mt-1 text-[12px] leading-5 text-appMuted">FruitFit покажет шаги и калории после подключения трекера.</p>
+        <p className="mt-3 text-[18px] font-black text-appText">РќРµС‚ РґР°РЅРЅС‹С… Р°РєС‚РёРІРЅРѕСЃС‚Рё</p>
+        <p className="mt-1 text-[12px] leading-5 text-appMuted">FruitFit РїРѕРєР°Р¶РµС‚ С€Р°РіРё Рё РєР°Р»РѕСЂРёРё РїРѕСЃР»Рµ РїРѕРґРєР»СЋС‡РµРЅРёСЏ С‚СЂРµРєРµСЂР°.</p>
         <span
           role="button"
           tabIndex={0}
@@ -1497,7 +1497,7 @@ function WeeklyWidget({ health, onOpen, onConnect }) {
           }}
           className="mt-3 inline-flex h-8 items-center rounded-full bg-appGreen px-3 text-[11px] font-black text-[#181F19]"
         >
-          Подключить
+          РџРѕРґРєР»СЋС‡РёС‚СЊ
         </span>
       </motion.button>
     );
@@ -1505,7 +1505,7 @@ function WeeklyWidget({ health, onOpen, onConnect }) {
   return (
     <motion.button type="button" onClick={onOpen} whileTap={{ scale: 0.985 }} className="col-span-2 rounded-[24px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
       <div className="flex items-center justify-between">
-        <h3 className="text-[15px] font-black text-appText">Активность за неделю</h3>
+        <h3 className="text-[15px] font-black text-appText">РђРєС‚РёРІРЅРѕСЃС‚СЊ Р·Р° РЅРµРґРµР»СЋ</h3>
         <ChevronRight size={17} className="text-appMuted" />
       </div>
       <div className="mt-3 grid grid-cols-7 items-end gap-2">
@@ -1544,11 +1544,11 @@ function WeeklyWidgetV2({ health, onOpen, onConnect }) {
     return (
       <motion.button type="button" onClick={onOpen} whileTap={{ scale: 0.985 }} className="col-span-2 rounded-[24px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
         <div className="flex items-center justify-between">
-          <h3 className="text-[15px] font-black text-appText">Активность за неделю</h3>
+          <h3 className="text-[15px] font-black text-appText">РђРєС‚РёРІРЅРѕСЃС‚СЊ Р·Р° РЅРµРґРµР»СЋ</h3>
           <ChevronRight size={17} className="text-appMuted" />
         </div>
-        <p className="mt-3 text-[18px] font-black text-appText">Нет данных активности</p>
-        <p className="mt-1 text-[12px] leading-5 text-appMuted">Подключите Apple Health, чтобы видеть недельную историю.</p>
+        <p className="mt-3 text-[18px] font-black text-appText">РќРµС‚ РґР°РЅРЅС‹С… Р°РєС‚РёРІРЅРѕСЃС‚Рё</p>
+        <p className="mt-1 text-[12px] leading-5 text-appMuted">РџРѕРґРєР»СЋС‡РёС‚Рµ Apple Health, С‡С‚РѕР±С‹ РІРёРґРµС‚СЊ РЅРµРґРµР»СЊРЅСѓСЋ РёСЃС‚РѕСЂРёСЋ.</p>
         <span
           role="button"
           tabIndex={0}
@@ -1565,7 +1565,7 @@ function WeeklyWidgetV2({ health, onOpen, onConnect }) {
           }}
           className="mt-3 inline-flex h-8 items-center rounded-full bg-appGreen px-3 text-[11px] font-black text-[#181F19]"
         >
-          Подключить
+          РџРѕРґРєР»СЋС‡РёС‚СЊ
         </span>
       </motion.button>
     );
@@ -1574,8 +1574,8 @@ function WeeklyWidgetV2({ health, onOpen, onConnect }) {
     <motion.div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(event) => openWidgetFromKeyboard(event, onOpen)} whileTap={{ scale: 0.985 }} className="col-span-2 cursor-pointer rounded-[24px] border border-appBorder bg-appCard/90 p-4 text-left shadow-sm">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-[15px] font-black text-appText">Активность за неделю</h3>
-          <p className="mt-1 text-[11px] text-appMuted">Шаги и активные калории</p>
+          <h3 className="text-[15px] font-black text-appText">РђРєС‚РёРІРЅРѕСЃС‚СЊ Р·Р° РЅРµРґРµР»СЋ</h3>
+          <p className="mt-1 text-[11px] text-appMuted">РЁР°РіРё Рё Р°РєС‚РёРІРЅС‹Рµ РєР°Р»РѕСЂРёРё</p>
         </div>
         <ChevronRight size={17} className="text-appMuted" />
       </div>
@@ -1585,15 +1585,15 @@ function WeeklyWidgetV2({ health, onOpen, onConnect }) {
       <div className="mt-3 grid grid-cols-3 gap-2 rounded-[18px] bg-appBg/70 p-2">
         <div>
           <p className="text-[9px] font-bold uppercase text-appMuted">{activityDayTitle(selectedDay)}</p>
-          <p className="mt-1 text-[13px] font-black text-appText">{Number(selectedDay.steps || 0).toLocaleString("ru-RU")} шагов</p>
+          <p className="mt-1 text-[13px] font-black text-appText">{Number(selectedDay.steps || 0).toLocaleString("ru-RU")} С€Р°РіРѕРІ</p>
         </div>
         <div>
-          <p className="text-[9px] font-bold uppercase text-appMuted">Активные</p>
-          <p className="mt-1 text-[13px] font-black text-[#FF7A2F]">{Number(selectedDay.activeCalories ?? selectedDay.calories ?? 0).toLocaleString("ru-RU")} ккал</p>
+          <p className="text-[9px] font-bold uppercase text-appMuted">РђРєС‚РёРІРЅС‹Рµ</p>
+          <p className="mt-1 text-[13px] font-black text-[#FF7A2F]">{Number(selectedDay.activeCalories ?? selectedDay.calories ?? 0).toLocaleString("ru-RU")} РєРєР°Р»</p>
         </div>
         <div>
-          <p className="text-[9px] font-bold uppercase text-appMuted">Всего</p>
-          <p className="mt-1 text-[13px] font-black text-appText">{selectedDay.totalCalories ? `${Number(selectedDay.totalCalories).toLocaleString("ru-RU")} ккал` : "—"}</p>
+          <p className="text-[9px] font-bold uppercase text-appMuted">Р’СЃРµРіРѕ</p>
+          <p className="mt-1 text-[13px] font-black text-appText">{selectedDay.totalCalories ? `${Number(selectedDay.totalCalories).toLocaleString("ru-RU")} РєРєР°Р»` : "вЂ”"}</p>
         </div>
       </div>
     </motion.div>
@@ -1731,7 +1731,7 @@ export function LectureDetailScreen({ onBack, access }) {
   const activeLecture = visibleLectures[safeIndex] || lectures[0];
   const activeLectureText = lectureTextFor(activeLecture?.id);
   const [meta, setMeta] = useState({ title: activeLecture.title, thumbnailUrl: activeLecture.thumbnailUrl, error: "" });
-  const hasSelectel = Boolean(activeLecture?.selectelUrl);
+  const hasHostedVideo = Boolean(activeLecture?.selectelUrl);
   const lectureLocked = !canOpenLecture(activeLecture, safeIndex, access, accessPolicy);
   const completed = safeProgress.completedIds.includes(activeLecture.id);
   const totalPercent = progressForLectureState(safeProgress, visibleLectures);
@@ -1746,7 +1746,7 @@ export function LectureDetailScreen({ onBack, access }) {
   async function openLecturePayment() {
     if (paymentLoading) return;
     if (!getAuthToken()) {
-      setPaymentStatus("Войдите в аккаунт, чтобы открыть полный курс.");
+      setPaymentStatus("Р’РѕР№РґРёС‚Рµ РІ Р°РєРєР°СѓРЅС‚, С‡С‚РѕР±С‹ РѕС‚РєСЂС‹С‚СЊ РїРѕР»РЅС‹Р№ РєСѓСЂСЃ.");
       return;
     }
     setPaymentLoading(true);
@@ -1756,10 +1756,10 @@ export function LectureDetailScreen({ onBack, access }) {
         productCode: "individual_program",
         recurringEnabled: false,
       });
-      if (!session?.id) throw new Error("Сервер не вернул платёжную сессию.");
+      if (!session?.id) throw new Error("РЎРµСЂРІРµСЂ РЅРµ РІРµСЂРЅСѓР» РїР»Р°С‚С‘Р¶РЅСѓСЋ СЃРµСЃСЃРёСЋ.");
       window.location.href = paymentPageUrl(session.id);
     } catch (error) {
-      setPaymentStatus(error?.message || "Не удалось открыть оплату.");
+      setPaymentStatus(error?.message || "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РєСЂС‹С‚СЊ РѕРїР»Р°С‚Сѓ.");
     } finally {
       setPaymentLoading(false);
     }
@@ -1773,7 +1773,7 @@ export function LectureDetailScreen({ onBack, access }) {
       return nextIndex;
     });
     setTextOpen(false);
-    setCopyStatus("Скопировано");
+    setCopyStatus("РЎРєРѕРїРёСЂРѕРІР°РЅРѕ");
   }
 
   function markComplete() {
@@ -1827,7 +1827,7 @@ export function LectureDetailScreen({ onBack, access }) {
 
   useEffect(() => {
     setMeta({ title: activeLecture.title, thumbnailUrl: activeLecture.thumbnailUrl, error: "" });
-    if (hasSelectel || !activeLecture?.videoId) return undefined;
+    if (hasHostedVideo || !activeLecture?.videoId) return undefined;
     let alive = true;
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 2500);
@@ -1854,16 +1854,16 @@ export function LectureDetailScreen({ onBack, access }) {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [activeLecture, hasSelectel]);
+  }, [activeLecture, hasHostedVideo]);
 
   return (
     <main className="phone-shell min-h-screen px-5 pb-[calc(24px+env(safe-area-inset-bottom))] pt-[calc(env(safe-area-inset-top)+92px)]">
       <header className="fixed-shell fixed left-1/2 top-0 z-50 flex -translate-x-1/2 items-center gap-3 border-b border-appBorder bg-appBg/95 px-5 pb-2.5 pt-[calc(env(safe-area-inset-top)+10px)] shadow-sm backdrop-blur">
-        <button type="button" onClick={onBack} className="grid h-11 w-11 place-items-center rounded-full bg-appCard text-appText shadow-sm" aria-label="Назад">
+        <button type="button" onClick={onBack} className="grid h-11 w-11 place-items-center rounded-full bg-appCard text-appText shadow-sm" aria-label="РќР°Р·Р°Рґ">
           <ChevronLeft size={22} />
         </button>
         <div className="min-w-0">
-          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-appGreen">Лекция {safeIndex + 1} из {visibleLectures.length || lectures.length}</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-appGreen">Р›РµРєС†РёСЏ {safeIndex + 1} РёР· {visibleLectures.length || lectures.length}</p>
           <h1 className="line-clamp-1 text-[23px] font-black leading-tight text-appText">{activeLecture.shortTitle || activeLecture.title}</h1>
         </div>
       </header>
@@ -1876,8 +1876,8 @@ export function LectureDetailScreen({ onBack, access }) {
                 <Lock size={24} />
               </div>
               <div>
-                <p className="text-[15px] font-black text-appText">Лекция доступна после оплаты</p>
-                <p className="mt-1 text-[12px] font-semibold leading-5 text-appMuted">Paid и VIP открывают все мини-лекции.</p>
+                <p className="text-[15px] font-black text-appText">Р›РµРєС†РёСЏ РґРѕСЃС‚СѓРїРЅР° РїРѕСЃР»Рµ РѕРїР»Р°С‚С‹</p>
+                <p className="mt-1 text-[12px] font-semibold leading-5 text-appMuted">Paid Рё VIP РѕС‚РєСЂС‹РІР°СЋС‚ РІСЃРµ РјРёРЅРё-Р»РµРєС†РёРё.</p>
               </div>
             </div>
           ) : (
@@ -1885,7 +1885,7 @@ export function LectureDetailScreen({ onBack, access }) {
           )}
         </div>
         <div className="p-4">
-          <p className="text-[12px] font-black uppercase tracking-wide text-appMuted">Прогресс: {totalPercent}%</p>
+          <p className="text-[12px] font-black uppercase tracking-wide text-appMuted">РџСЂРѕРіСЂРµСЃСЃ: {totalPercent}%</p>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-appBg">
             <span className="block h-full rounded-full bg-appGreen" style={{ width: `${totalPercent}%` }} />
           </div>
@@ -1893,11 +1893,11 @@ export function LectureDetailScreen({ onBack, access }) {
           <p className="mt-2 text-[13px] font-semibold leading-5 text-appMuted">{activeLecture.subtitle}</p>
           {lectureLocked ? (
             <p className="mt-3 rounded-2xl bg-appBg px-3 py-3 text-[12px] leading-5 text-appMuted">
-              Эта лекция закрыта для бесплатного доступа. Paid и VIP видят все лекции.
+              Р­С‚Р° Р»РµРєС†РёСЏ Р·Р°РєСЂС‹С‚Р° РґР»СЏ Р±РµСЃРїР»Р°С‚РЅРѕРіРѕ РґРѕСЃС‚СѓРїР°. Paid Рё VIP РІРёРґСЏС‚ РІСЃРµ Р»РµРєС†РёРё.
             </p>
           ) : showLecturePaymentCta ? (
             <div className="mt-3 rounded-2xl bg-appBg px-3 py-3">
-              <p className="text-[14px] font-black leading-5 text-appText">У тебя всё получится! 💪</p>
+              <p className="text-[14px] font-black leading-5 text-appText">РЈ С‚РµР±СЏ РІСЃС‘ РїРѕР»СѓС‡РёС‚СЃСЏ! рџ’Є</p>
               <button
                 type="button"
                 onClick={openLecturePayment}
@@ -1905,17 +1905,17 @@ export function LectureDetailScreen({ onBack, access }) {
                 className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-appGreen px-4 text-[14px] font-black text-[#181F19] disabled:opacity-70"
               >
                 <CreditCard size={17} />
-                {paymentLoading ? "Открываем оплату..." : "Купить полный курс"}
+                {paymentLoading ? "Р“РѕС‚РѕРІРёРј РѕС„РѕСЂРјР»РµРЅРёРµ..." : "РћС„РѕСЂРјРёС‚СЊ РїРµСЂСЃРѕРЅР°Р»СЊРЅСѓСЋ РїСЂРѕРіСЂР°РјРјСѓ"}
               </button>
               {paymentStatus && <p className="mt-2 text-[12px] font-semibold leading-5 text-appMuted">{paymentStatus}</p>}
             </div>
           ) : null}
           <div className="mt-4 grid grid-cols-2 gap-2">
             <button type="button" onClick={() => move(-1)} className="flex h-11 items-center justify-center gap-2 rounded-full bg-appBg text-[13px] font-black text-appText">
-              <ChevronLeft size={17} /> Назад
+              <ChevronLeft size={17} /> РќР°Р·Р°Рґ
             </button>
             <button type="button" onClick={() => move(1)} className="flex h-11 items-center justify-center gap-2 rounded-full bg-appBg text-[13px] font-black text-appText">
-              Далее <ChevronRight size={17} />
+              Р”Р°Р»РµРµ <ChevronRight size={17} />
             </button>
           </div>
           <button
@@ -1924,7 +1924,7 @@ export function LectureDetailScreen({ onBack, access }) {
             disabled={lectureLocked}
             className={`mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black ${lectureLocked ? "bg-appBg text-appMuted" : "bg-appGreen text-[#181F19]"}`}
           >
-            <CheckCircle2 size={18} /> {completed ? "Пройдено" : "Отметить пройденной"}
+            <CheckCircle2 size={18} /> {completed ? "РџСЂРѕР№РґРµРЅРѕ" : "РћС‚РјРµС‚РёС‚СЊ РїСЂРѕР№РґРµРЅРЅРѕР№"}
           </button>
           <button
             type="button"
@@ -1932,14 +1932,14 @@ export function LectureDetailScreen({ onBack, access }) {
             disabled={lectureLocked}
             className={`mt-3 flex h-12 w-full items-center justify-center rounded-full text-[14px] font-black ${lectureLocked ? "bg-appBg text-appMuted" : "bg-appDark text-appGreen"}`}
           >
-            Открыть видео
+            РћС‚РєСЂС‹С‚СЊ РІРёРґРµРѕ
           </button>
         </div>
       </section>
 
       <section className="mt-4 overflow-hidden rounded-[24px] border border-appBorder bg-appCard">
         <button type="button" onClick={() => setTextOpen((value) => !value)} className="flex min-h-[52px] w-full items-center justify-between px-4 py-3 text-left">
-          <span className="text-[14px] font-black text-appText">Текст лекции</span>
+          <span className="text-[14px] font-black text-appText">РўРµРєСЃС‚ Р»РµРєС†РёРё</span>
           <ChevronRight size={17} className={`text-appMuted transition ${textOpen ? "rotate-90" : ""}`} />
         </button>
         {textOpen && (
@@ -1947,13 +1947,13 @@ export function LectureDetailScreen({ onBack, access }) {
             {activeLectureText ? (
               <>
                 <div className="mb-3 flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-semibold text-appMuted">{activeLectureText.length.toLocaleString("ru-RU")} символов</span>
+                  <span className="text-[11px] font-semibold text-appMuted">{activeLectureText.length.toLocaleString("ru-RU")} СЃРёРјРІРѕР»РѕРІ</span>
                   <button
                     type="button"
                     onClick={copyLectureText}
                     className="inline-flex h-9 items-center gap-2 rounded-full bg-appGreen px-3 text-[11px] font-black text-[#181F19]"
                   >
-                    <Copy size={14} /> {copyStatus || "Скопировать"}
+                    <Copy size={14} /> {copyStatus || "РЎРєРѕРїРёСЂРѕРІР°С‚СЊ"}
                   </button>
                 </div>
                 <div className="allow-select max-h-[52vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-appBorder bg-appBg px-3 py-3 text-[12px] leading-5 text-appText">
@@ -1961,7 +1961,7 @@ export function LectureDetailScreen({ onBack, access }) {
                 </div>
               </>
             ) : (
-              <p className="text-[12px] leading-5 text-appMuted">Текст лекции пока недоступен.</p>
+              <p className="text-[12px] leading-5 text-appMuted">РўРµРєСЃС‚ Р»РµРєС†РёРё РїРѕРєР° РЅРµРґРѕСЃС‚СѓРїРµРЅ.</p>
             )}
           </div>
         )}
@@ -1980,8 +1980,8 @@ function MetricDetail({ type, health }) {
   };
   const metric = metricByType[type] || {};
   const color = isSteps ? "#8BBE3D" : "#FF7A2F";
-  const title = isSteps ? "Шаги" : "Калории";
-  const unit = isSteps ? "шагов" : "ккал";
+  const title = isSteps ? "РЁР°РіРё" : "РљР°Р»РѕСЂРёРё";
+  const unit = isSteps ? "С€Р°РіРѕРІ" : "РєРєР°Р»";
 
   const activityWeek = useMemo(() => buildActivityWeekForUi(health), [health]);
   const historyRows = Array.isArray(health.history7d?.[type]) ? health.history7d[type] : [];
@@ -2027,7 +2027,7 @@ function MetricDetail({ type, health }) {
     : formatPercent(value, target);
 
   if (!sourceAvailable) {
-    return <p className="rounded-[22px] bg-appBg p-4 text-[13px] text-appMuted">{isSteps ? "Шаги" : "Калории"} пока не найдены. Проверьте подключение Apple Health.</p>;
+    return <p className="rounded-[22px] bg-appBg p-4 text-[13px] text-appMuted">{isSteps ? "РЁР°РіРё" : "РљР°Р»РѕСЂРёРё"} РїРѕРєР° РЅРµ РЅР°Р№РґРµРЅС‹. РџСЂРѕРІРµСЂСЊС‚Рµ РїРѕРґРєР»СЋС‡РµРЅРёРµ Apple Health.</p>;
   }
 
   return (
@@ -2047,16 +2047,16 @@ function MetricDetail({ type, health }) {
       <div className="mt-5">
         <p className="text-[12px] font-bold uppercase tracking-wide text-appMuted">{title}</p>
         <p className="mt-1 text-[44px] font-black leading-none text-appText">{value.toLocaleString("ru-RU")}</p>
-        <p className="mt-2 text-[13px] text-appMuted">Цель: {target.toLocaleString("ru-RU")} {unit} · {detailPercent}%</p>
+        <p className="mt-2 text-[13px] text-appMuted">Р¦РµР»СЊ: {target.toLocaleString("ru-RU")} {unit} В· {detailPercent}%</p>
         <p className="mt-1 text-[12px] font-semibold text-appMuted">{friendlySourceHint(metric, type)}</p>
       </div>
       {!isSteps && (
         <div className="mt-4 grid grid-cols-1 gap-2">
-          <StatPill label="Активные" value={`${Number(metric.activeToday ?? metric.today ?? 0).toLocaleString("ru-RU")} ккал`} accent />
-          {Number(metric.restingToday || 0) > 0 && <StatPill label="Базовые / BMR" value={`${Number(metric.restingToday || 0).toLocaleString("ru-RU")} ккал`} />}
+          <StatPill label="РђРєС‚РёРІРЅС‹Рµ" value={`${Number(metric.activeToday ?? metric.today ?? 0).toLocaleString("ru-RU")} РєРєР°Р»`} accent />
+          {Number(metric.restingToday || 0) > 0 && <StatPill label="Р‘Р°Р·РѕРІС‹Рµ / BMR" value={`${Number(metric.restingToday || 0).toLocaleString("ru-RU")} РєРєР°Р»`} />}
           {Number(metric.totalToday || 0) > 0
-            ? <StatPill label="Всего" value={`${Number(metric.totalToday || 0).toLocaleString("ru-RU")} ккал`} />
-            : <ChartEmptyState>Общие калории пока не пришли из Apple Health.</ChartEmptyState>}
+            ? <StatPill label="Р’СЃРµРіРѕ" value={`${Number(metric.totalToday || 0).toLocaleString("ru-RU")} РєРєР°Р»`} />
+            : <ChartEmptyState>РћР±С‰РёРµ РєР°Р»РѕСЂРёРё РїРѕРєР° РЅРµ РїСЂРёС€Р»Рё РёР· Apple Health.</ChartEmptyState>}
         </div>
       )}
       <div className="mt-4">
@@ -2067,8 +2067,8 @@ function MetricDetail({ type, health }) {
             color={color}
             unit={unit}
             note={isSteps
-              ? "За сегодня есть агрегированное значение. Детальная разбивка появится после синхронизации истории."
-              : "За сегодня есть агрегированное значение калорий, история обновится после синхронизации."}
+              ? "Р—Р° СЃРµРіРѕРґРЅСЏ РµСЃС‚СЊ Р°РіСЂРµРіРёСЂРѕРІР°РЅРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ. Р”РµС‚Р°Р»СЊРЅР°СЏ СЂР°Р·Р±РёРІРєР° РїРѕСЏРІРёС‚СЃСЏ РїРѕСЃР»Рµ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё РёСЃС‚РѕСЂРёРё."
+              : "Р—Р° СЃРµРіРѕРґРЅСЏ РµСЃС‚СЊ Р°РіСЂРµРіРёСЂРѕРІР°РЅРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ РєР°Р»РѕСЂРёР№, РёСЃС‚РѕСЂРёСЏ РѕР±РЅРѕРІРёС‚СЃСЏ РїРѕСЃР»Рµ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё."}
           />
         ) : chartHasData ? (
           <div
@@ -2088,7 +2088,7 @@ function MetricDetail({ type, health }) {
             <BarChart values={values} color={color} labels={labels} />
           </div>
         ) : (
-          <ChartEmptyState>{period === "today" ? "За сегодня почасовой истории нет." : "За выбранный период истории пока нет."}</ChartEmptyState>
+          <ChartEmptyState>{period === "today" ? "Р—Р° СЃРµРіРѕРґРЅСЏ РїРѕС‡Р°СЃРѕРІРѕР№ РёСЃС‚РѕСЂРёРё РЅРµС‚." : "Р—Р° РІС‹Р±СЂР°РЅРЅС‹Р№ РїРµСЂРёРѕРґ РёСЃС‚РѕСЂРёРё РїРѕРєР° РЅРµС‚."}</ChartEmptyState>
         )}
         {activeValue !== null && (
           <p className="mt-2 rounded-2xl bg-appBg px-3 py-2 text-[12px] font-bold text-appText">
@@ -2097,10 +2097,10 @@ function MetricDetail({ type, health }) {
         )}
       </div>
       <MiniGuide
-        title={isSteps ? "На что влияют шаги?" : "На что влияют калории?"}
+        title={isSteps ? "РќР° С‡С‚Рѕ РІР»РёСЏСЋС‚ С€Р°РіРё?" : "РќР° С‡С‚Рѕ РІР»РёСЏСЋС‚ РєР°Р»РѕСЂРёРё?"}
         items={isSteps
-          ? ["Шаги помогают понять общий уровень активности за день.", "Если шагов мало и восстановление среднее, лучше выбрать мягкую нагрузку или прогулку.", "История может обновиться после синхронизации часов с Apple Health."]
-          : ["Калории помогают сопоставить питание, активность и восстановление.", "Смотрите отдельно активные и общие калории: они считаются по-разному.", "Если данные выглядят странно, обновите Apple Health и приложение часов."]}
+          ? ["РЁР°РіРё РїРѕРјРѕРіР°СЋС‚ РїРѕРЅСЏС‚СЊ РѕР±С‰РёР№ СѓСЂРѕРІРµРЅСЊ Р°РєС‚РёРІРЅРѕСЃС‚Рё Р·Р° РґРµРЅСЊ.", "Р•СЃР»Рё С€Р°РіРѕРІ РјР°Р»Рѕ Рё РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ СЃСЂРµРґРЅРµРµ, Р»СѓС‡С€Рµ РІС‹Р±СЂР°С‚СЊ РјСЏРіРєСѓСЋ РЅР°РіСЂСѓР·РєСѓ РёР»Рё РїСЂРѕРіСѓР»РєСѓ.", "РСЃС‚РѕСЂРёСЏ РјРѕР¶РµС‚ РѕР±РЅРѕРІРёС‚СЊСЃСЏ РїРѕСЃР»Рµ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё С‡Р°СЃРѕРІ СЃ Apple Health."]
+          : ["РљР°Р»РѕСЂРёРё РїРѕРјРѕРіР°СЋС‚ СЃРѕРїРѕСЃС‚Р°РІРёС‚СЊ РїРёС‚Р°РЅРёРµ, Р°РєС‚РёРІРЅРѕСЃС‚СЊ Рё РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ.", "РЎРјРѕС‚СЂРёС‚Рµ РѕС‚РґРµР»СЊРЅРѕ Р°РєС‚РёРІРЅС‹Рµ Рё РѕР±С‰РёРµ РєР°Р»РѕСЂРёРё: РѕРЅРё СЃС‡РёС‚Р°СЋС‚СЃСЏ РїРѕ-СЂР°Р·РЅРѕРјСѓ.", "Р•СЃР»Рё РґР°РЅРЅС‹Рµ РІС‹РіР»СЏРґСЏС‚ СЃС‚СЂР°РЅРЅРѕ, РѕР±РЅРѕРІРёС‚Рµ Apple Health Рё РїСЂРёР»РѕР¶РµРЅРёРµ С‡Р°СЃРѕРІ."]}
       />
     </>
   );
@@ -2115,26 +2115,26 @@ function HeartDetailV2({ health, setHeartCondition }) {
   const weekValues = heartWeekValues(heart);
   const chartValues = period === "week" ? weekValues : dayValues;
   const chartLabels = period === "week" ? heartWeekLabels(heart) : ["00", "06", "12", "18", "24"];
-  const heartOptions = ["норма", "усталость", "стресс", "после тренировки", "плохо"];
-  const lastHeartTime = heart.latestTimestamp ? new Date(heart.latestTimestamp).toLocaleString("ru-RU") : "нет данных";
+  const heartOptions = ["РЅРѕСЂРјР°", "СѓСЃС‚Р°Р»РѕСЃС‚СЊ", "СЃС‚СЂРµСЃСЃ", "РїРѕСЃР»Рµ С‚СЂРµРЅРёСЂРѕРІРєРё", "РїР»РѕС…Рѕ"];
+  const lastHeartTime = heart.latestTimestamp ? new Date(heart.latestTimestamp).toLocaleString("ru-RU") : "РЅРµС‚ РґР°РЅРЅС‹С…";
   const heartAgeHours = Number(heart.latestAgeMinutes || 0) > 0 ? Math.round(Number(heart.latestAgeMinutes) / 60) : null;
   const heartStatusText = heart.freshness === "stale"
-    ? "Новых измерений давно не было"
+    ? "РќРѕРІС‹С… РёР·РјРµСЂРµРЅРёР№ РґР°РІРЅРѕ РЅРµ Р±С‹Р»Рѕ"
     : heart.freshness === "no_data"
-      ? "Пульс пока не найден"
-      : "Данные пульса доступны";
+      ? "РџСѓР»СЊСЃ РїРѕРєР° РЅРµ РЅР°Р№РґРµРЅ"
+      : "Р”Р°РЅРЅС‹Рµ РїСѓР»СЊСЃР° РґРѕСЃС‚СѓРїРЅС‹";
   const heartAdvice = heart.latestTimestamp
     ? (heartAgeHours && heartAgeHours > 4
-      ? "Откройте приложение часов или Mi Fitness/Samsung Health и дождитесь синхронизации с Apple Health."
+      ? "РћС‚РєСЂРѕР№С‚Рµ РїСЂРёР»РѕР¶РµРЅРёРµ С‡Р°СЃРѕРІ РёР»Рё Mi Fitness/Samsung Health Рё РґРѕР¶РґРёС‚РµСЃСЊ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё СЃ Apple Health."
       : friendlyHeartHint(heart))
-    : "Разрешите пульс в Apple Health и синхронизируйте часы.";
+    : "Р Р°Р·СЂРµС€РёС‚Рµ РїСѓР»СЊСЃ РІ Apple Health Рё СЃРёРЅС…СЂРѕРЅРёР·РёСЂСѓР№С‚Рµ С‡Р°СЃС‹.";
 
   return (
     <>
       <div className="flex rounded-full bg-appBg p-1">
         {[
-          ["day", "24 часа"],
-          ["week", "7 дней"],
+          ["day", "24 С‡Р°СЃР°"],
+          ["week", "7 РґРЅРµР№"],
         ].map(([id, label]) => (
           <button
             key={id}
@@ -2150,26 +2150,26 @@ function HeartDetailV2({ health, setHeartCondition }) {
       <div className="mt-4">
         {hasChartData(chartValues)
           ? <LineChart values={chartValues} color="#EF4444" labels={chartLabels} />
-          : <ChartEmptyState>График пульса пока пуст. Данные появятся после синхронизации.</ChartEmptyState>}
+          : <ChartEmptyState>Р“СЂР°С„РёРє РїСѓР»СЊСЃР° РїРѕРєР° РїСѓСЃС‚. Р”Р°РЅРЅС‹Рµ РїРѕСЏРІСЏС‚СЃСЏ РїРѕСЃР»Рµ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё.</ChartEmptyState>}
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
         <StatPill label={rangeInfo.rangeTitle} value={rangeInfo.rangeLabel} accent />
-        <StatPill label={rangeInfo.avgTitle} value={rangeInfo.avg > 0 ? `${rangeInfo.avg} уд/мин` : "нет данных"} />
-        <StatPill label="Последний" value={heart.latestBpm ? `${heart.latestBpm} уд/мин` : "нет данных"} />
-        <StatPill label="Покой" value={heart.resting ? `${heart.resting} уд/мин` : "нет данных"} />
-        <StatPill label="Источник" value={sourceName} />
-        <StatPill label="Обновлено" value={heart.updatedAgoText || "нет данных"} />
+        <StatPill label={rangeInfo.avgTitle} value={rangeInfo.avg > 0 ? `${rangeInfo.avg} СѓРґ/РјРёРЅ` : "РЅРµС‚ РґР°РЅРЅС‹С…"} />
+        <StatPill label="РџРѕСЃР»РµРґРЅРёР№" value={heart.latestBpm ? `${heart.latestBpm} СѓРґ/РјРёРЅ` : "РЅРµС‚ РґР°РЅРЅС‹С…"} />
+        <StatPill label="РџРѕРєРѕР№" value={heart.resting ? `${heart.resting} СѓРґ/РјРёРЅ` : "РЅРµС‚ РґР°РЅРЅС‹С…"} />
+        <StatPill label="РСЃС‚РѕС‡РЅРёРє" value={sourceName} />
+        <StatPill label="РћР±РЅРѕРІР»РµРЅРѕ" value={heart.updatedAgoText || "РЅРµС‚ РґР°РЅРЅС‹С…"} />
       </div>
 
       <div className="mt-3 rounded-[18px] border border-appBorder bg-appBg/70 p-3 text-[11px] leading-5 text-appMuted">
-        <p><span className="font-black text-appText">Статус:</span> {heartStatusText}</p>
-        <p><span className="font-black text-appText">Последнее измерение:</span> {lastHeartTime}</p>
+        <p><span className="font-black text-appText">РЎС‚Р°С‚СѓСЃ:</span> {heartStatusText}</p>
+        <p><span className="font-black text-appText">РџРѕСЃР»РµРґРЅРµРµ РёР·РјРµСЂРµРЅРёРµ:</span> {lastHeartTime}</p>
         <p>{heartAdvice}</p>
       </div>
 
       <div className="mt-4 rounded-[22px] border border-appBorder bg-appBg/70 p-3">
-        <p className="text-[12px] font-black text-appText">Самочувствие</p>
+        <p className="text-[12px] font-black text-appText">РЎР°РјРѕС‡СѓРІСЃС‚РІРёРµ</p>
         <div className="mt-3 grid grid-cols-2 gap-2">
           {heartOptions.map((item) => {
             const active = heart.condition === item;
@@ -2186,16 +2186,16 @@ function HeartDetailV2({ health, setHeartCondition }) {
           })}
         </div>
         <p className="mt-3 text-[12px] leading-5 text-appMuted">
-          Отметка самочувствия помогает сопоставить пульс, нагрузку и восстановление.
+          РћС‚РјРµС‚РєР° СЃР°РјРѕС‡СѓРІСЃС‚РІРёСЏ РїРѕРјРѕРіР°РµС‚ СЃРѕРїРѕСЃС‚Р°РІРёС‚СЊ РїСѓР»СЊСЃ, РЅР°РіСЂСѓР·РєСѓ Рё РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ.
         </p>
       </div>
 
       <MiniGuide
-        title="На что смотреть?"
+        title="РќР° С‡С‚Рѕ СЃРјРѕС‚СЂРµС‚СЊ?"
         items={[
-          "Смотрите не только последнее измерение, а диапазон и средний пульс за сутки.",
-          "Если средний пульс выше обычного, снизьте интенсивность тренировки.",
-          "FruitFit учитывает пульс в восстановлении вместе со сном и активностью.",
+          "РЎРјРѕС‚СЂРёС‚Рµ РЅРµ С‚РѕР»СЊРєРѕ РїРѕСЃР»РµРґРЅРµРµ РёР·РјРµСЂРµРЅРёРµ, Р° РґРёР°РїР°Р·РѕРЅ Рё СЃСЂРµРґРЅРёР№ РїСѓР»СЊСЃ Р·Р° СЃСѓС‚РєРё.",
+          "Р•СЃР»Рё СЃСЂРµРґРЅРёР№ РїСѓР»СЊСЃ РІС‹С€Рµ РѕР±С‹С‡РЅРѕРіРѕ, СЃРЅРёР·СЊС‚Рµ РёРЅС‚РµРЅСЃРёРІРЅРѕСЃС‚СЊ С‚СЂРµРЅРёСЂРѕРІРєРё.",
+          "FruitFit СѓС‡РёС‚С‹РІР°РµС‚ РїСѓР»СЊСЃ РІ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРё РІРјРµСЃС‚Рµ СЃРѕ СЃРЅРѕРј Рё Р°РєС‚РёРІРЅРѕСЃС‚СЊСЋ.",
         ]}
       />
     </>
@@ -2206,39 +2206,39 @@ function HeartDetail({ health, setHeartCondition }) {
   const heart = health.heart_rate;
   const rangeInfo = heartRangeInfo(heart);
   const sourceName = healthSourceDisplayName(heart.latestSourcePackage || heart.sourcePackage, heart.latestSourceName || heart.sourceName);
-  const heartOptions = ["норма", "усталость", "стресс", "после тренировки", "плохо"];
-  const lastHeartTime = heart.latestTimestamp ? new Date(heart.latestTimestamp).toLocaleString("ru-RU") : "нет данных";
+  const heartOptions = ["РЅРѕСЂРјР°", "СѓСЃС‚Р°Р»РѕСЃС‚СЊ", "СЃС‚СЂРµСЃСЃ", "РїРѕСЃР»Рµ С‚СЂРµРЅРёСЂРѕРІРєРё", "РїР»РѕС…Рѕ"];
+  const lastHeartTime = heart.latestTimestamp ? new Date(heart.latestTimestamp).toLocaleString("ru-RU") : "РЅРµС‚ РґР°РЅРЅС‹С…";
   const heartAgeHours = Number(heart.latestAgeMinutes || 0) > 0 ? Math.round(Number(heart.latestAgeMinutes) / 60) : null;
   const heartStatusText = heart.freshness === "stale"
-    ? "Новых измерений давно не было"
+    ? "РќРѕРІС‹С… РёР·РјРµСЂРµРЅРёР№ РґР°РІРЅРѕ РЅРµ Р±С‹Р»Рѕ"
     : heart.freshness === "no_data"
-      ? "Пульс пока не найден"
-      : "Данные пульса доступны";
+      ? "РџСѓР»СЊСЃ РїРѕРєР° РЅРµ РЅР°Р№РґРµРЅ"
+      : "Р”Р°РЅРЅС‹Рµ РїСѓР»СЊСЃР° РґРѕСЃС‚СѓРїРЅС‹";
   const heartAdvice = heart.latestTimestamp
     ? (heartAgeHours && heartAgeHours > 4
-      ? "Откройте приложение часов или Mi Fitness/Samsung Health и дождитесь синхронизации с Apple Health."
+      ? "РћС‚РєСЂРѕР№С‚Рµ РїСЂРёР»РѕР¶РµРЅРёРµ С‡Р°СЃРѕРІ РёР»Рё Mi Fitness/Samsung Health Рё РґРѕР¶РґРёС‚РµСЃСЊ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё СЃ Apple Health."
       : friendlyHeartHint(heart))
-    : "Разрешите пульс в Apple Health и синхронизируйте часы.";
+    : "Р Р°Р·СЂРµС€РёС‚Рµ РїСѓР»СЊСЃ РІ Apple Health Рё СЃРёРЅС…СЂРѕРЅРёР·РёСЂСѓР№С‚Рµ С‡Р°СЃС‹.";
   return (
     <>
       {hasChartData(heart.hourly)
         ? <LineChart values={heart.hourly} color="#EF4444" />
-        : <ChartEmptyState>График пульса пока пуст. Данные появятся после синхронизации.</ChartEmptyState>}
+        : <ChartEmptyState>Р“СЂР°С„РёРє РїСѓР»СЊСЃР° РїРѕРєР° РїСѓСЃС‚. Р”Р°РЅРЅС‹Рµ РїРѕСЏРІСЏС‚СЃСЏ РїРѕСЃР»Рµ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё.</ChartEmptyState>}
       <div className="mt-4 grid grid-cols-2 gap-2">
         <StatPill label={rangeInfo.rangeTitle} value={rangeInfo.rangeLabel} accent />
-        <StatPill label={rangeInfo.avgTitle} value={rangeInfo.avg > 0 ? `${rangeInfo.avg} уд/мин` : "нет данных"} />
-        <StatPill label="Последний" value={heart.latestBpm ? `${heart.latestBpm} уд/мин` : "нет данных"} />
-        <StatPill label="Покой" value={heart.resting ? `${heart.resting} уд/мин` : "нет данных"} />
-        <StatPill label="Источник" value={sourceName} />
-        <StatPill label="Обновлено" value={heart.updatedAgoText || "нет данных"} />
+        <StatPill label={rangeInfo.avgTitle} value={rangeInfo.avg > 0 ? `${rangeInfo.avg} СѓРґ/РјРёРЅ` : "РЅРµС‚ РґР°РЅРЅС‹С…"} />
+        <StatPill label="РџРѕСЃР»РµРґРЅРёР№" value={heart.latestBpm ? `${heart.latestBpm} СѓРґ/РјРёРЅ` : "РЅРµС‚ РґР°РЅРЅС‹С…"} />
+        <StatPill label="РџРѕРєРѕР№" value={heart.resting ? `${heart.resting} СѓРґ/РјРёРЅ` : "РЅРµС‚ РґР°РЅРЅС‹С…"} />
+        <StatPill label="РСЃС‚РѕС‡РЅРёРє" value={sourceName} />
+        <StatPill label="РћР±РЅРѕРІР»РµРЅРѕ" value={heart.updatedAgoText || "РЅРµС‚ РґР°РЅРЅС‹С…"} />
       </div>
       <div className="mt-3 rounded-[18px] border border-appBorder bg-appBg/70 p-3 text-[11px] leading-5 text-appMuted">
-        <p><span className="font-black text-appText">Статус:</span> {heartStatusText}</p>
-        <p><span className="font-black text-appText">Последнее измерение:</span> {lastHeartTime}</p>
+        <p><span className="font-black text-appText">РЎС‚Р°С‚СѓСЃ:</span> {heartStatusText}</p>
+        <p><span className="font-black text-appText">РџРѕСЃР»РµРґРЅРµРµ РёР·РјРµСЂРµРЅРёРµ:</span> {lastHeartTime}</p>
         <p>{heartAdvice}</p>
       </div>
       <div className="mt-4 rounded-[22px] border border-appBorder bg-appBg/70 p-3">
-        <p className="text-[12px] font-black text-appText">Самочувствие</p>
+        <p className="text-[12px] font-black text-appText">РЎР°РјРѕС‡СѓРІСЃС‚РІРёРµ</p>
         <div className="mt-3 grid grid-cols-2 gap-2">
           {heartOptions.map((item) => {
             const active = heart.condition === item;
@@ -2255,15 +2255,15 @@ function HeartDetail({ health, setHeartCondition }) {
           })}
         </div>
         <p className="mt-3 text-[12px] leading-5 text-appMuted">
-          Отметка самочувствия помогает сопоставить пульс, нагрузку и восстановление.
+          РћС‚РјРµС‚РєР° СЃР°РјРѕС‡СѓРІСЃС‚РІРёСЏ РїРѕРјРѕРіР°РµС‚ СЃРѕРїРѕСЃС‚Р°РІРёС‚СЊ РїСѓР»СЊСЃ, РЅР°РіСЂСѓР·РєСѓ Рё РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ.
         </p>
       </div>
       <MiniGuide
-        title="На что смотреть?"
+        title="РќР° С‡С‚Рѕ СЃРјРѕС‚СЂРµС‚СЊ?"
         items={[
-          "Смотрите не только последнее измерение, а диапазон и средний пульс за сутки.",
-          "Если средний пульс выше обычного, снизьте интенсивность тренировки.",
-          "FruitFit учитывает пульс в восстановлении вместе со сном и активностью.",
+          "РЎРјРѕС‚СЂРёС‚Рµ РЅРµ С‚РѕР»СЊРєРѕ РїРѕСЃР»РµРґРЅРµРµ РёР·РјРµСЂРµРЅРёРµ, Р° РґРёР°РїР°Р·РѕРЅ Рё СЃСЂРµРґРЅРёР№ РїСѓР»СЊСЃ Р·Р° СЃСѓС‚РєРё.",
+          "Р•СЃР»Рё СЃСЂРµРґРЅРёР№ РїСѓР»СЊСЃ РІС‹С€Рµ РѕР±С‹С‡РЅРѕРіРѕ, СЃРЅРёР·СЊС‚Рµ РёРЅС‚РµРЅСЃРёРІРЅРѕСЃС‚СЊ С‚СЂРµРЅРёСЂРѕРІРєРё.",
+          "FruitFit СѓС‡РёС‚С‹РІР°РµС‚ РїСѓР»СЊСЃ РІ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРё РІРјРµСЃС‚Рµ СЃРѕ СЃРЅРѕРј Рё Р°РєС‚РёРІРЅРѕСЃС‚СЊСЋ.",
         ]}
       />
     </>
@@ -2309,7 +2309,7 @@ function SleepTimeInput({ label, value, onChange }) {
         }}
         className="mt-2 h-12 w-full rounded-2xl border border-appBorder bg-appBg px-3 text-center text-[26px] font-black leading-none text-appText outline-none placeholder:text-appMuted/45"
       />
-      <span className="mt-2 block text-[10px] font-semibold text-appMuted">Формат: 23:30</span>
+      <span className="mt-2 block text-[10px] font-semibold text-appMuted">Р¤РѕСЂРјР°С‚: 23:30</span>
     </label>
   );
 }
@@ -2318,7 +2318,7 @@ function SleepDetail({ health, updateSleepManual }) {
   const [sleep, setSleep] = useState(health.sleep);
   const [saved, setSaved] = useState(false);
   const [period, setPeriod] = useState("week");
-  const source = health.sleep.dataSource === "manual" ? "Ручной ввод" : "Данные трекера";
+  const source = health.sleep.dataSource === "manual" ? "Р СѓС‡РЅРѕР№ РІРІРѕРґ" : "Р”Р°РЅРЅС‹Рµ С‚СЂРµРєРµСЂР°";
   const sleepWeekValues = health.sleep.week.map((item) => item.minutes);
   const sleepValues = period === "week"
     ? sleepWeekValues
@@ -2348,10 +2348,10 @@ function SleepDetail({ health, updateSleepManual }) {
       <div className="rounded-[24px] bg-appBg p-4">
         <p className="text-[12px] font-bold uppercase tracking-wide text-appMuted">{source}</p>
         <p className="mt-2 text-[46px] font-black leading-none text-appText">{formatSleepDuration(health.sleep.minutes)}</p>
-        <p className="mt-2 text-[13px] text-appMuted">Качество: {health.sleep.quality}/5</p>
+        <p className="mt-2 text-[13px] text-appMuted">РљР°С‡РµСЃС‚РІРѕ: {health.sleep.quality}/5</p>
       </div>
       <div className="mt-4 flex rounded-full bg-appBg p-1">
-        {[["week", "Неделя"], ["month", "Месяц"]].map(([id, label]) => (
+        {[["week", "РќРµРґРµР»СЏ"], ["month", "РњРµСЃСЏС†"]].map(([id, label]) => (
           <button key={id} type="button" onClick={() => setPeriod(id)} className={`h-9 flex-1 rounded-full text-[12px] font-bold transition ${period === id ? "bg-appCard text-appText shadow-sm" : "text-appMuted"}`}>
             {label}
           </button>
@@ -2360,41 +2360,41 @@ function SleepDetail({ health, updateSleepManual }) {
       <div className="mt-4">
         {hasChartData(sleepValues)
           ? <BarChart values={sleepValues} color="#60A5FA" labels={sleepLabels} />
-          : <ChartEmptyState>{period === "week" ? "За неделю истории сна пока нет." : "За месяц истории сна пока нет."}</ChartEmptyState>}
+          : <ChartEmptyState>{period === "week" ? "Р—Р° РЅРµРґРµР»СЋ РёСЃС‚РѕСЂРёРё СЃРЅР° РїРѕРєР° РЅРµС‚." : "Р—Р° РјРµСЃСЏС† РёСЃС‚РѕСЂРёРё СЃРЅР° РїРѕРєР° РЅРµС‚."}</ChartEmptyState>}
       </div>
       <div className="mt-4 rounded-[22px] border border-appBorder bg-appBg/70 p-3">
-        <h3 className="text-[13px] font-black text-appText">Ручной ввод сна</h3>
-        <label className="mt-3 block text-[11px] font-bold uppercase text-appMuted">Дата
+        <h3 className="text-[13px] font-black text-appText">Р СѓС‡РЅРѕР№ РІРІРѕРґ СЃРЅР°</h3>
+        <label className="mt-3 block text-[11px] font-bold uppercase text-appMuted">Р”Р°С‚Р°
           <input type="date" value={sleep.date || new Date().toISOString().slice(0, 10)} onChange={(event) => update("date", event.target.value)} className="mt-1 h-11 w-full rounded-2xl border border-appBorder bg-appCard px-3 text-appText outline-none" />
         </label>
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <SleepTimeInput label="Начало" value={sleep.bed} onChange={(value) => update("bed", value)} />
-          <SleepTimeInput label="Конец" value={sleep.wake} onChange={(value) => update("wake", value)} />
+          <SleepTimeInput label="РќР°С‡Р°Р»Рѕ" value={sleep.bed} onChange={(value) => update("bed", value)} />
+          <SleepTimeInput label="РљРѕРЅРµС†" value={sleep.wake} onChange={(value) => update("wake", value)} />
         </div>
-        <label className="mt-3 block text-[11px] font-bold uppercase text-appMuted">Качество: {sleep.quality}/5
+        <label className="mt-3 block text-[11px] font-bold uppercase text-appMuted">РљР°С‡РµСЃС‚РІРѕ: {sleep.quality}/5
           <input type="range" min="1" max="5" value={sleep.quality} onChange={(event) => update("quality", event.target.value)} className="mt-2 w-full accent-[#60A5FA]" />
         </label>
         <label className="mt-3 block text-[11px] font-bold uppercase text-appMuted">
-          <textarea value={sleep.notes || ""} onChange={(event) => update("notes", event.target.value)} placeholder="Например: просыпался, жарко, хороший сон" className="mt-1 min-h-20 w-full resize-none rounded-2xl border border-appBorder bg-appCard px-3 py-2 text-[13px] text-appText outline-none placeholder:text-appMuted/50" />
+          <textarea value={sleep.notes || ""} onChange={(event) => update("notes", event.target.value)} placeholder="РќР°РїСЂРёРјРµСЂ: РїСЂРѕСЃС‹РїР°Р»СЃСЏ, Р¶Р°СЂРєРѕ, С…РѕСЂРѕС€РёР№ СЃРѕРЅ" className="mt-1 min-h-20 w-full resize-none rounded-2xl border border-appBorder bg-appCard px-3 py-2 text-[13px] text-appText outline-none placeholder:text-appMuted/50" />
         </label>
         <div className="mt-3 grid grid-cols-3 gap-2 rounded-[18px] bg-appCard p-2">
-          {["Лёгкий", "Глубокий", "REM"].map((phase, index) => (
+          {["Р›С‘РіРєРёР№", "Р“Р»СѓР±РѕРєРёР№", "REM"].map((phase, index) => (
             <div key={phase} className="rounded-[14px] bg-appBg px-2 py-2 text-center">
               <p className="text-[10px] font-bold text-appMuted">{phase}</p>
               <p className="mt-1 text-[13px] font-black text-appText">{[22, 56, 22][index]}%</p>
             </div>
           ))}
         </div>
-        <p className="mt-3 text-[12px] leading-5 text-appMuted">Ручной сон используется в карточке сна и восстановлении.</p>
-        <p className="mt-2 text-[11px] leading-5 text-appMuted">Фазы показаны только как ориентир, если трекер их не передал.</p>
-        <button type="button" onClick={saveManualSleep} className="mt-3 h-11 w-full rounded-full bg-appGreen text-[13px] font-black text-[#181F19]">Сохранить сон</button>
-        {saved && <p className="mt-2 text-center text-[11px] font-bold text-[#86B936]">Сон сохранён</p>}
+        <p className="mt-3 text-[12px] leading-5 text-appMuted">Р СѓС‡РЅРѕР№ СЃРѕРЅ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РІ РєР°СЂС‚РѕС‡РєРµ СЃРЅР° Рё РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРё.</p>
+        <p className="mt-2 text-[11px] leading-5 text-appMuted">Р¤Р°Р·С‹ РїРѕРєР°Р·Р°РЅС‹ С‚РѕР»СЊРєРѕ РєР°Рє РѕСЂРёРµРЅС‚РёСЂ, РµСЃР»Рё С‚СЂРµРєРµСЂ РёС… РЅРµ РїРµСЂРµРґР°Р».</p>
+        <button type="button" onClick={saveManualSleep} className="mt-3 h-11 w-full rounded-full bg-appGreen text-[13px] font-black text-[#181F19]">РЎРѕС…СЂР°РЅРёС‚СЊ СЃРѕРЅ</button>
+        {saved && <p className="mt-2 text-center text-[11px] font-bold text-[#86B936]">РЎРѕРЅ СЃРѕС…СЂР°РЅС‘РЅ</p>}
       </div>
       <MiniGuide
-        title="Как использовать сон?"
+        title="РљР°Рє РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ СЃРѕРЅ?"
         items={[
-          "Если трекер не записал ночь, внесите сон вручную: он попадёт в восстановление.",
-          "Дремы помогают восстановлению, но не заменяют полноценный ночной сон.",
+          "Р•СЃР»Рё С‚СЂРµРєРµСЂ РЅРµ Р·Р°РїРёСЃР°Р» РЅРѕС‡СЊ, РІРЅРµСЃРёС‚Рµ СЃРѕРЅ РІСЂСѓС‡РЅСѓСЋ: РѕРЅ РїРѕРїР°РґС‘С‚ РІ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ.",
+          "Р”СЂРµРјС‹ РїРѕРјРѕРіР°СЋС‚ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЋ, РЅРѕ РЅРµ Р·Р°РјРµРЅСЏСЋС‚ РїРѕР»РЅРѕС†РµРЅРЅС‹Р№ РЅРѕС‡РЅРѕР№ СЃРѕРЅ.",
         ]}
       />
     </>
@@ -2404,21 +2404,21 @@ function SleepDetail({ health, updateSleepManual }) {
 function RecoveryDetail({ health }) {
   const readiness = health.readiness;
   const recoveryStats = [
-    ["Сон прошлой ночью", readiness.sleepLastNightMinutes ? formatSleepDuration(readiness.sleepLastNightMinutes) : "нет данных"],
-    ["Средний сон 7д", readiness.sleep7dAverageMinutes ? formatSleepDuration(readiness.sleep7dAverageMinutes) : "нет данных"],
-    ["Дремы", readiness.napsTodayMinutes ? formatSleepDuration(readiness.napsTodayMinutes) : "нет"],
-    ["Пульс 24ч", readiness.heartAvg24h ? `${readiness.heartRange24h?.[0] || "?"}-${readiness.heartRange24h?.[1] || "?"}` : "нет данных"],
-    ["Пульс 7д", readiness.heartAvg7d ? `${readiness.heartRange7d?.[0] || "?"}-${readiness.heartRange7d?.[1] || "?"}` : "нет данных"],
-    ["Шаги", readiness.stepsToday ? `${Number(readiness.stepsToday).toLocaleString("ru-RU")} шагов` : "нет данных"],
+    ["РЎРѕРЅ РїСЂРѕС€Р»РѕР№ РЅРѕС‡СЊСЋ", readiness.sleepLastNightMinutes ? formatSleepDuration(readiness.sleepLastNightMinutes) : "РЅРµС‚ РґР°РЅРЅС‹С…"],
+    ["РЎСЂРµРґРЅРёР№ СЃРѕРЅ 7Рґ", readiness.sleep7dAverageMinutes ? formatSleepDuration(readiness.sleep7dAverageMinutes) : "РЅРµС‚ РґР°РЅРЅС‹С…"],
+    ["Р”СЂРµРјС‹", readiness.napsTodayMinutes ? formatSleepDuration(readiness.napsTodayMinutes) : "РЅРµС‚"],
+    ["РџСѓР»СЊСЃ 24С‡", readiness.heartAvg24h ? `${readiness.heartRange24h?.[0] || "?"}-${readiness.heartRange24h?.[1] || "?"}` : "РЅРµС‚ РґР°РЅРЅС‹С…"],
+    ["РџСѓР»СЊСЃ 7Рґ", readiness.heartAvg7d ? `${readiness.heartRange7d?.[0] || "?"}-${readiness.heartRange7d?.[1] || "?"}` : "РЅРµС‚ РґР°РЅРЅС‹С…"],
+    ["РЁР°РіРё", readiness.stepsToday ? `${Number(readiness.stepsToday).toLocaleString("ru-RU")} С€Р°РіРѕРІ` : "РЅРµС‚ РґР°РЅРЅС‹С…"],
   ];
   if (readiness.score == null) {
     return (
       <div className="rounded-[24px] bg-appBg p-4">
-        <p className="text-[18px] font-black text-appText">Недостаточно данных</p>
+        <p className="text-[18px] font-black text-appText">РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РґР°РЅРЅС‹С…</p>
         <p className="mt-2 text-[13px] leading-5 text-appMuted">
-          Пульс: {recoveryHeartSummary(health.heart_rate)}. Сон: {health.sleep?.minutes ? formatSleepDuration(health.sleep.minutes) : "нет данных"}. Шаги: {(health.steps?.today || 0).toLocaleString("ru-RU")}.
+          РџСѓР»СЊСЃ: {recoveryHeartSummary(health.heart_rate)}. РЎРѕРЅ: {health.sleep?.minutes ? formatSleepDuration(health.sleep.minutes) : "РЅРµС‚ РґР°РЅРЅС‹С…"}. РЁР°РіРё: {(health.steps?.today || 0).toLocaleString("ru-RU")}.
         </p>
-        <p className="mt-3 text-[12px] leading-5 text-appMuted">Добавьте сон или дождитесь синхронизации трекера, чтобы FruitFit рассчитал восстановление.</p>
+        <p className="mt-3 text-[12px] leading-5 text-appMuted">Р”РѕР±Р°РІСЊС‚Рµ СЃРѕРЅ РёР»Рё РґРѕР¶РґРёС‚РµСЃСЊ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё С‚СЂРµРєРµСЂР°, С‡С‚РѕР±С‹ FruitFit СЂР°СЃСЃС‡РёС‚Р°Р» РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ.</p>
       </div>
     );
   }
@@ -2429,11 +2429,11 @@ function RecoveryDetail({ health }) {
           <Ring value={readiness.score} size={112}>
             <div className="text-center">
               <p className="text-[28px] font-black leading-none text-appText">{readiness.score}%</p>
-              <p className="mt-1 text-[10px] font-bold uppercase text-appMuted">готовность</p>
+              <p className="mt-1 text-[10px] font-bold uppercase text-appMuted">РіРѕС‚РѕРІРЅРѕСЃС‚СЊ</p>
             </div>
           </Ring>
           <div className="min-w-0">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-appMuted">Рекомендация</p>
+            <p className="text-[12px] font-bold uppercase tracking-wide text-appMuted">Р РµРєРѕРјРµРЅРґР°С†РёСЏ</p>
             <p className="mt-2 text-[15px] font-bold leading-5 text-appText">{readiness.recommendation}</p>
           </div>
         </div>
@@ -2453,14 +2453,14 @@ function RecoveryDetail({ health }) {
         ))}
       </div>
       <div className="mt-4 rounded-[22px] border border-appBorder bg-appBg/70 p-4">
-        <p className="text-[13px] font-black text-appText">Детали расчёта</p>
+        <p className="text-[13px] font-black text-appText">Р”РµС‚Р°Р»Рё СЂР°СЃС‡С‘С‚Р°</p>
         <div className="mt-3 grid grid-cols-2 gap-2">
           {recoveryStats.map(([label, value]) => (
             <StatPill key={label} label={label} value={value} />
           ))}
         </div>
         <p className="mt-3 text-[12px] leading-5 text-appMuted">{readiness.recommendation}</p>
-        <p className="mt-2 text-[11px] leading-5 text-appMuted">Полнота данных: {readiness.dataCompleteness ?? 0}% · активность: {readiness.activityStatus || "unknown"}</p>
+        <p className="mt-2 text-[11px] leading-5 text-appMuted">РџРѕР»РЅРѕС‚Р° РґР°РЅРЅС‹С…: {readiness.dataCompleteness ?? 0}% В· Р°РєС‚РёРІРЅРѕСЃС‚СЊ: {readiness.activityStatus || "unknown"}</p>
       </div>
     </>
   );
@@ -2517,33 +2517,33 @@ function CycleDetail({ health, updateCycle }) {
     return (
       <>
         <div className="rounded-[24px] bg-appBg p-4">
-          <p className="text-[18px] font-black text-appText">Цикл не настроен</p>
-          <p className="mt-2 text-[13px] leading-5 text-appMuted">Добавьте дату начала последней менструации, чтобы FruitFit рассчитал день цикла, фазу и ориентировочный прогноз.</p>
+          <p className="text-[18px] font-black text-appText">Р¦РёРєР» РЅРµ РЅР°СЃС‚СЂРѕРµРЅ</p>
+          <p className="mt-2 text-[13px] leading-5 text-appMuted">Р”РѕР±Р°РІСЊС‚Рµ РґР°С‚Сѓ РЅР°С‡Р°Р»Р° РїРѕСЃР»РµРґРЅРµР№ РјРµРЅСЃС‚СЂСѓР°С†РёРё, С‡С‚РѕР±С‹ FruitFit СЂР°СЃСЃС‡РёС‚Р°Р» РґРµРЅСЊ С†РёРєР»Р°, С„Р°Р·Сѓ Рё РѕСЂРёРµРЅС‚РёСЂРѕРІРѕС‡РЅС‹Р№ РїСЂРѕРіРЅРѕР·.</p>
         </div>
 	        <div className="mt-4 grid gap-3 rounded-[22px] border border-appBorder bg-appBg/70 p-4">
-	          <CycleField label="Дата начала последней менструации">
+	          <CycleField label="Р”Р°С‚Р° РЅР°С‡Р°Р»Р° РїРѕСЃР»РµРґРЅРµР№ РјРµРЅСЃС‚СЂСѓР°С†РёРё">
 	            <input type="date" value={draft.lastPeriodStartDate} onChange={(event) => updateDraft("lastPeriodStartDate", event.target.value)} className={`${cycleInputClass} cycle-date-input text-center`} />
 	          </CycleField>
 	          <div className="grid grid-cols-2 gap-2">
-	            <CycleField label="Длина цикла">
+	            <CycleField label="Р”Р»РёРЅР° С†РёРєР»Р°">
 	              <input value={draft.cycleLengthDays} inputMode="numeric" onChange={(event) => updateDraft("cycleLengthDays", event.target.value)} className={cycleInputClass} />
 	            </CycleField>
-	            <CycleField label="Дней менструации">
+	            <CycleField label="Р”РЅРµР№ РјРµРЅСЃС‚СЂСѓР°С†РёРё">
 	              <input value={draft.periodLengthDays} inputMode="numeric" onChange={(event) => updateDraft("periodLengthDays", event.target.value)} className={cycleInputClass} />
 	            </CycleField>
 	          </div>
-	          <button type="button" onClick={saveCycle} className="h-11 rounded-full bg-appGreen text-[13px] font-black text-[#181F19]">Сохранить</button>
+	          <button type="button" onClick={saveCycle} className="h-11 rounded-full bg-appGreen text-[13px] font-black text-[#181F19]">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
 	        </div>
       </>
     );
   }
 
   const ovulationText = cycle.daysUntilOvulation == null
-    ? `примерно ${cycle.ovulationDate || "в этом цикле"}`
+    ? `РїСЂРёРјРµСЂРЅРѕ ${cycle.ovulationDate || "РІ СЌС‚РѕРј С†РёРєР»Рµ"}`
     : cycle.daysUntilOvulation === 0
-      ? "примерно сегодня"
-      : `примерно через ${cycle.daysUntilOvulation} дн.`;
-  const nextPeriodText = cycle.daysUntilNextPeriod === 0 ? "сегодня" : `через ${cycle.daysUntilNextPeriod} дн.`;
+      ? "РїСЂРёРјРµСЂРЅРѕ СЃРµРіРѕРґРЅСЏ"
+      : `РїСЂРёРјРµСЂРЅРѕ С‡РµСЂРµР· ${cycle.daysUntilOvulation} РґРЅ.`;
+  const nextPeriodText = cycle.daysUntilNextPeriod === 0 ? "СЃРµРіРѕРґРЅСЏ" : `С‡РµСЂРµР· ${cycle.daysUntilNextPeriod} РґРЅ.`;
   return (
     <>
       <div className="rounded-[24px] bg-appBg p-4">
@@ -2551,13 +2551,13 @@ function CycleDetail({ health, updateCycle }) {
           <Ring value={cycle.progress || Math.round((cycle.cycleDay / cycle.cycleLengthDays) * 100)} color={phaseColor} size={98}>
             <div className="text-center">
               <p className="text-[24px] font-black leading-none text-appText">{cycle.cycleDay}</p>
-              <p className="mt-1 text-[10px] font-bold uppercase text-appMuted">день</p>
+              <p className="mt-1 text-[10px] font-bold uppercase text-appMuted">РґРµРЅСЊ</p>
             </div>
           </Ring>
           <div>
-            <p className="text-[13px] font-bold uppercase text-appMuted">Фаза</p>
+            <p className="text-[13px] font-bold uppercase text-appMuted">Р¤Р°Р·Р°</p>
             <p className="mt-1 text-[20px] font-black text-appText">{cycle.phaseLabel}</p>
-            <p className="mt-2 text-[12px] text-appMuted">Овуляция {ovulationText}</p>
+            <p className="mt-2 text-[12px] text-appMuted">РћРІСѓР»СЏС†РёСЏ {ovulationText}</p>
           </div>
         </div>
         <div className="mt-4 h-3 rounded-full bg-appCard">
@@ -2567,27 +2567,27 @@ function CycleDetail({ health, updateCycle }) {
         </div>
       </div>
       <div className="mt-4 rounded-[20px] bg-appBg p-3">
-        <h3 className="text-[13px] font-black text-appText">Подсказка по нагрузке</h3>
+        <h3 className="text-[13px] font-black text-appText">РџРѕРґСЃРєР°Р·РєР° РїРѕ РЅР°РіСЂСѓР·РєРµ</h3>
         <p className="mt-2 text-[12px] leading-5 text-appMuted">{cycle.recommendation}</p>
-        <p className="mt-2 text-[11px] leading-5 text-appMuted">Прогноз ориентировочный и зависит от введённых данных.</p>
+        <p className="mt-2 text-[11px] leading-5 text-appMuted">РџСЂРѕРіРЅРѕР· РѕСЂРёРµРЅС‚РёСЂРѕРІРѕС‡РЅС‹Р№ Рё Р·Р°РІРёСЃРёС‚ РѕС‚ РІРІРµРґС‘РЅРЅС‹С… РґР°РЅРЅС‹С….</p>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <StatPill label="Следующая менструация" value={`${nextPeriodText}${cycle.nextPeriodDate ? ` · ${compactDateLabel(cycle.nextPeriodDate)}` : ""}`} accent />
-        <StatPill label="Овуляция" value={`${ovulationText}${cycle.ovulationDate ? ` · ${compactDateLabel(cycle.ovulationDate)}` : ""}`} />
+        <StatPill label="РЎР»РµРґСѓСЋС‰Р°СЏ РјРµРЅСЃС‚СЂСѓР°С†РёСЏ" value={`${nextPeriodText}${cycle.nextPeriodDate ? ` В· ${compactDateLabel(cycle.nextPeriodDate)}` : ""}`} accent />
+        <StatPill label="РћРІСѓР»СЏС†РёСЏ" value={`${ovulationText}${cycle.ovulationDate ? ` В· ${compactDateLabel(cycle.ovulationDate)}` : ""}`} />
       </div>
 	      <div className="mt-4 grid gap-3 rounded-[22px] border border-appBorder bg-appBg/70 p-4">
-	        <CycleField label="Дата начала последней менструации">
+	        <CycleField label="Р”Р°С‚Р° РЅР°С‡Р°Р»Р° РїРѕСЃР»РµРґРЅРµР№ РјРµРЅСЃС‚СЂСѓР°С†РёРё">
 	          <input type="date" value={draft.lastPeriodStartDate} onChange={(event) => updateDraft("lastPeriodStartDate", event.target.value)} className={`${cycleInputClass} cycle-date-input text-center`} />
 	        </CycleField>
 	        <div className="grid grid-cols-2 gap-2">
-	          <CycleField label="Длина цикла">
+	          <CycleField label="Р”Р»РёРЅР° С†РёРєР»Р°">
 	            <input value={draft.cycleLengthDays} inputMode="numeric" onChange={(event) => updateDraft("cycleLengthDays", event.target.value)} className={cycleInputClass} />
 	          </CycleField>
-	          <CycleField label="Дней менструации">
+	          <CycleField label="Р”РЅРµР№ РјРµРЅСЃС‚СЂСѓР°С†РёРё">
 	            <input value={draft.periodLengthDays} inputMode="numeric" onChange={(event) => updateDraft("periodLengthDays", event.target.value)} className={cycleInputClass} />
 	          </CycleField>
 	        </div>
-	        <button type="button" onClick={saveCycle} className="h-11 rounded-full bg-appGreen text-[13px] font-black text-[#181F19]">Сохранить настройки цикла</button>
+	        <button type="button" onClick={saveCycle} className="h-11 rounded-full bg-appGreen text-[13px] font-black text-[#181F19]">РЎРѕС…СЂР°РЅРёС‚СЊ РЅР°СЃС‚СЂРѕР№РєРё С†РёРєР»Р°</button>
 	      </div>
     </>
   );
@@ -2600,8 +2600,8 @@ function WeeklyDetail({ health }) {
   if (!hasData) {
     return (
       <div className="rounded-[22px] bg-appBg p-4">
-        <p className="text-[18px] font-black text-appText">Нет данных активности</p>
-        <p className="mt-2 text-[13px] leading-5 text-appMuted">Подключите Apple Health, чтобы FruitFit показал историю за неделю.</p>
+        <p className="text-[18px] font-black text-appText">РќРµС‚ РґР°РЅРЅС‹С… Р°РєС‚РёРІРЅРѕСЃС‚Рё</p>
+        <p className="mt-2 text-[13px] leading-5 text-appMuted">РџРѕРґРєР»СЋС‡РёС‚Рµ Apple Health, С‡С‚РѕР±С‹ FruitFit РїРѕРєР°Р·Р°Р» РёСЃС‚РѕСЂРёСЋ Р·Р° РЅРµРґРµР»СЋ.</p>
       </div>
     );
   }
@@ -2614,10 +2614,10 @@ function WeeklyDetail({ health }) {
   return (
     <>
       <div className="grid grid-cols-2 gap-2">
-        <StatPill label="Шаги за неделю" value={totalSteps.toLocaleString("ru-RU")} accent />
-        <StatPill label="Калории" value={totalCalories.toLocaleString("ru-RU")} />
-        <StatPill label="Средние шаги" value={avgSteps.toLocaleString("ru-RU")} />
-        <StatPill label="Активные дни" value={`${activeDays}/7`} />
+        <StatPill label="РЁР°РіРё Р·Р° РЅРµРґРµР»СЋ" value={totalSteps.toLocaleString("ru-RU")} accent />
+        <StatPill label="РљР°Р»РѕСЂРёРё" value={totalCalories.toLocaleString("ru-RU")} />
+        <StatPill label="РЎСЂРµРґРЅРёРµ С€Р°РіРё" value={avgSteps.toLocaleString("ru-RU")} />
+        <StatPill label="РђРєС‚РёРІРЅС‹Рµ РґРЅРё" value={`${activeDays}/7`} />
       </div>
       <div className="mt-4">
         <BarChart values={week.map((item) => item.steps)} color="#8BBE3D" labels={week.map((item) => item.label)} />
@@ -2665,7 +2665,7 @@ function ManualSleepSection({ health, updateSleepManual, selectedDate }) {
 
   function saveManualSleep() {
     if (existingManualEntry && typeof window !== "undefined") {
-      const confirmed = window.confirm("За этот день уже есть запись сна. Заменить её?");
+      const confirmed = window.confirm("Р—Р° СЌС‚РѕС‚ РґРµРЅСЊ СѓР¶Рµ РµСЃС‚СЊ Р·Р°РїРёСЃСЊ СЃРЅР°. Р—Р°РјРµРЅРёС‚СЊ РµС‘?");
       if (!confirmed) return;
     }
     updateSleepManual?.({
@@ -2683,20 +2683,20 @@ function ManualSleepSection({ health, updateSleepManual, selectedDate }) {
 
   return (
     <div className="mt-4 rounded-[22px] border border-appBorder bg-appBg/70 p-3">
-      <h3 className="text-[13px] font-black text-appText">{existingManualEntry ? "Изменить запись сна" : "Добавить сон"}</h3>
-      <label className="mt-3 block text-[11px] font-bold uppercase text-appMuted">Дата
+      <h3 className="text-[13px] font-black text-appText">{existingManualEntry ? "РР·РјРµРЅРёС‚СЊ Р·Р°РїРёСЃСЊ СЃРЅР°" : "Р”РѕР±Р°РІРёС‚СЊ СЃРѕРЅ"}</h3>
+      <label className="mt-3 block text-[11px] font-bold uppercase text-appMuted">Р”Р°С‚Р°
         <input type="date" value={sleep.date} onChange={(event) => update("date", event.target.value)} className="mt-1 h-11 w-full rounded-2xl border border-appBorder bg-appCard px-3 text-appText outline-none" />
       </label>
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <SleepTimeInput label="Начало" value={sleep.bed} onChange={(value) => update("bed", value)} />
-        <SleepTimeInput label="Конец" value={sleep.wake} onChange={(value) => update("wake", value)} />
+        <SleepTimeInput label="РќР°С‡Р°Р»Рѕ" value={sleep.bed} onChange={(value) => update("bed", value)} />
+        <SleepTimeInput label="РљРѕРЅРµС†" value={sleep.wake} onChange={(value) => update("wake", value)} />
       </div>
-      <label className="mt-3 block text-[11px] font-bold uppercase text-appMuted">Качество: {sleep.quality}/5
+      <label className="mt-3 block text-[11px] font-bold uppercase text-appMuted">РљР°С‡РµСЃС‚РІРѕ: {sleep.quality}/5
         <input type="range" min="1" max="5" value={sleep.quality} onChange={(event) => update("quality", event.target.value)} className="mt-2 w-full accent-[#60A5FA]" />
       </label>
-      <textarea value={sleep.notes || ""} onChange={(event) => update("notes", event.target.value)} placeholder="Комментарий" className="mt-3 min-h-16 w-full resize-none rounded-2xl border border-appBorder bg-appCard px-3 py-2 text-[13px] text-appText outline-none placeholder:text-appMuted/50" />
-      <button type="button" onClick={saveManualSleep} className="mt-3 h-11 w-full rounded-full bg-appGreen text-[13px] font-black text-[#181F19]">{existingManualEntry ? "Изменить запись" : "Сохранить сон"}</button>
-      {saved && <p className="mt-2 text-center text-[11px] font-bold text-[#86B936]">Сон сохранён</p>}
+      <textarea value={sleep.notes || ""} onChange={(event) => update("notes", event.target.value)} placeholder="РљРѕРјРјРµРЅС‚Р°СЂРёР№" className="mt-3 min-h-16 w-full resize-none rounded-2xl border border-appBorder bg-appCard px-3 py-2 text-[13px] text-appText outline-none placeholder:text-appMuted/50" />
+      <button type="button" onClick={saveManualSleep} className="mt-3 h-11 w-full rounded-full bg-appGreen text-[13px] font-black text-[#181F19]">{existingManualEntry ? "РР·РјРµРЅРёС‚СЊ Р·Р°РїРёСЃСЊ" : "РЎРѕС…СЂР°РЅРёС‚СЊ СЃРѕРЅ"}</button>
+      {saved && <p className="mt-2 text-center text-[11px] font-bold text-[#86B936]">РЎРѕРЅ СЃРѕС…СЂР°РЅС‘РЅ</p>}
     </div>
   );
 }
@@ -2724,8 +2724,8 @@ function SleepDetailV2({ health, updateSleepManual }) {
     return (
       <>
         <div className="rounded-[22px] bg-appBg p-4">
-          <p className="text-[18px] font-black text-appText">Сон пока не найден</p>
-          <p className="mt-2 text-[13px] leading-5 text-appMuted">Apple Health не передал записи сна. Можно внести сон вручную.</p>
+          <p className="text-[18px] font-black text-appText">РЎРѕРЅ РїРѕРєР° РЅРµ РЅР°Р№РґРµРЅ</p>
+          <p className="mt-2 text-[13px] leading-5 text-appMuted">Apple Health РЅРµ РїРµСЂРµРґР°Р» Р·Р°РїРёСЃРё СЃРЅР°. РњРѕР¶РЅРѕ РІРЅРµСЃС‚Рё СЃРѕРЅ РІСЂСѓС‡РЅСѓСЋ.</p>
         </div>
         <ManualSleepSection health={health} updateSleepManual={updateSleepManual} selectedDate={sleepDays[6]?.date || sleepDays[6]?.key} />
       </>
@@ -2734,22 +2734,22 @@ function SleepDetailV2({ health, updateSleepManual }) {
   return (
     <>
       <div className="rounded-[24px] bg-appBg p-4">
-        <p className="text-[12px] font-bold uppercase tracking-wide text-appMuted">Источник: {selectedSourceLabel}</p>
+        <p className="text-[12px] font-bold uppercase tracking-wide text-appMuted">РСЃС‚РѕС‡РЅРёРє: {selectedSourceLabel}</p>
         <p className="mt-2 text-[42px] font-black leading-none text-appText">{formatSleepDuration(selectedDay?.totalMinutes || sleep.minutes || 0)}</p>
         {selectedWarning && <p className="mt-2 rounded-2xl bg-amber-100 px-3 py-2 text-[11px] font-black text-amber-700">{selectedWarning}</p>}
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <StatPill label="Ночной сон" value={formatSleepDuration(nightTotal)} accent />
-          <StatPill label="Дремы" value={formatSleepDuration(napTotal)} />
+          <StatPill label="РќРѕС‡РЅРѕР№ СЃРѕРЅ" value={formatSleepDuration(nightTotal)} accent />
+          <StatPill label="Р”СЂРµРјС‹" value={formatSleepDuration(napTotal)} />
         </div>
       </div>
-      {nightTotal <= 0 && napTotal > 0 && <p className="mt-3 rounded-2xl bg-appBg px-3 py-2 text-[11px] font-bold text-appMuted">Ночной сон не найден. Есть только дремы или короткие фрагменты.</p>}
+      {nightTotal <= 0 && napTotal > 0 && <p className="mt-3 rounded-2xl bg-appBg px-3 py-2 text-[11px] font-bold text-appMuted">РќРѕС‡РЅРѕР№ СЃРѕРЅ РЅРµ РЅР°Р№РґРµРЅ. Р•СЃС‚СЊ С‚РѕР»СЊРєРѕ РґСЂРµРјС‹ РёР»Рё РєРѕСЂРѕС‚РєРёРµ С„СЂР°РіРјРµРЅС‚С‹.</p>}
       <SleepDayBars days={sleepDays} selectedIndex={selectedIndex} onSelect={setSelectedIndex} />
       <SleepStageBreakdown day={selectedDay} />
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <StatPill label="Сон прошлой ночи" value={formatSleepDuration(selectedDay?.nightMinutes || sleep.nightMinutes || 0)} accent />
-        <StatPill label="Средний сон 7д" value={avgNight7d ? formatSleepDuration(avgNight7d) : "нет данных"} />
-        <StatPill label="Дремы за неделю" value={formatSleepDuration(napTotal)} />
-        <StatPill label="Качество" value={manualQuality ? `${manualQuality}/5` : "нет данных"} />
+        <StatPill label="РЎРѕРЅ РїСЂРѕС€Р»РѕР№ РЅРѕС‡Рё" value={formatSleepDuration(selectedDay?.nightMinutes || sleep.nightMinutes || 0)} accent />
+        <StatPill label="РЎСЂРµРґРЅРёР№ СЃРѕРЅ 7Рґ" value={avgNight7d ? formatSleepDuration(avgNight7d) : "РЅРµС‚ РґР°РЅРЅС‹С…"} />
+        <StatPill label="Р”СЂРµРјС‹ Р·Р° РЅРµРґРµР»СЋ" value={formatSleepDuration(napTotal)} />
+        <StatPill label="РљР°С‡РµСЃС‚РІРѕ" value={manualQuality ? `${manualQuality}/5` : "РЅРµС‚ РґР°РЅРЅС‹С…"} />
       </div>
       <ManualSleepSection health={health} updateSleepManual={updateSleepManual} selectedDate={selectedDay?.date || selectedDay?.key} />
     </>
@@ -2771,8 +2771,8 @@ function WeeklyDetailV2({ health }) {
   if (!hasData) {
     return (
       <div className="rounded-[22px] bg-appBg p-4">
-        <p className="text-[18px] font-black text-appText">Нет данных активности</p>
-        <p className="mt-2 text-[13px] leading-5 text-appMuted">Подключите Apple Health, чтобы FruitFit показал недельную историю.</p>
+        <p className="text-[18px] font-black text-appText">РќРµС‚ РґР°РЅРЅС‹С… Р°РєС‚РёРІРЅРѕСЃС‚Рё</p>
+        <p className="mt-2 text-[13px] leading-5 text-appMuted">РџРѕРґРєР»СЋС‡РёС‚Рµ Apple Health, С‡С‚РѕР±С‹ FruitFit РїРѕРєР°Р·Р°Р» РЅРµРґРµР»СЊРЅСѓСЋ РёСЃС‚РѕСЂРёСЋ.</p>
       </div>
     );
   }
@@ -2785,10 +2785,10 @@ function WeeklyDetailV2({ health }) {
   return (
     <>
       <div className="grid grid-cols-2 gap-2">
-        <StatPill label="Шаги за неделю" value={totalSteps.toLocaleString("ru-RU")} accent />
-        <StatPill label="Активные ккал" value={totalCalories.toLocaleString("ru-RU")} />
-        <StatPill label="Всего ккал" value={totalAllCalories ? totalAllCalories.toLocaleString("ru-RU") : "нет данных"} />
-        <StatPill label="Средние шаги" value={avgSteps.toLocaleString("ru-RU")} />
+        <StatPill label="РЁР°РіРё Р·Р° РЅРµРґРµР»СЋ" value={totalSteps.toLocaleString("ru-RU")} accent />
+        <StatPill label="РђРєС‚РёРІРЅС‹Рµ РєРєР°Р»" value={totalCalories.toLocaleString("ru-RU")} />
+        <StatPill label="Р’СЃРµРіРѕ РєРєР°Р»" value={totalAllCalories ? totalAllCalories.toLocaleString("ru-RU") : "РЅРµС‚ РґР°РЅРЅС‹С…"} />
+        <StatPill label="РЎСЂРµРґРЅРёРµ С€Р°РіРё" value={avgSteps.toLocaleString("ru-RU")} />
       </div>
       <div className="mt-4">
         <DualMetricBarChart days={week} selectedIndex={selectedIndex} onSelect={setSelectedIndex} height={154} />
@@ -2796,13 +2796,13 @@ function WeeklyDetailV2({ health }) {
       <div className="mt-4 rounded-[22px] border border-appBorder bg-appBg/70 p-4">
         <p className="text-[12px] font-black uppercase text-appMuted">{activityDayTitle(selectedDay)}</p>
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <StatPill label="Шаги" value={Number(selectedDay.steps || 0).toLocaleString("ru-RU")} accent />
-          <StatPill label="Активные ккал" value={Number(selectedDay.activeCalories ?? selectedDay.calories ?? 0).toLocaleString("ru-RU")} />
-          <StatPill label="Всего ккал" value={selectedDay.totalCalories ? Number(selectedDay.totalCalories).toLocaleString("ru-RU") : "нет данных"} />
-          <StatPill label="Дистанция" value={selectedDay.distance ? `${selectedDay.distance} м` : "нет данных"} />
-          <StatPill label="Пульс" value={selectedDay.heart ? `${selectedDay.heart} уд/мин` : "нет данных"} />
+          <StatPill label="РЁР°РіРё" value={Number(selectedDay.steps || 0).toLocaleString("ru-RU")} accent />
+          <StatPill label="РђРєС‚РёРІРЅС‹Рµ РєРєР°Р»" value={Number(selectedDay.activeCalories ?? selectedDay.calories ?? 0).toLocaleString("ru-RU")} />
+          <StatPill label="Р’СЃРµРіРѕ РєРєР°Р»" value={selectedDay.totalCalories ? Number(selectedDay.totalCalories).toLocaleString("ru-RU") : "РЅРµС‚ РґР°РЅРЅС‹С…"} />
+          <StatPill label="Р”РёСЃС‚Р°РЅС†РёСЏ" value={selectedDay.distance ? `${selectedDay.distance} Рј` : "РЅРµС‚ РґР°РЅРЅС‹С…"} />
+          <StatPill label="РџСѓР»СЊСЃ" value={selectedDay.heart ? `${selectedDay.heart} СѓРґ/РјРёРЅ` : "РЅРµС‚ РґР°РЅРЅС‹С…"} />
         </div>
-        {selectedDay.suspicious && <p className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-[11px] font-bold text-red-500">Этот день помечен как подозрительный и не используется для масштаба графика.</p>}
+        {selectedDay.suspicious && <p className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-[11px] font-bold text-red-500">Р­С‚РѕС‚ РґРµРЅСЊ РїРѕРјРµС‡РµРЅ РєР°Рє РїРѕРґРѕР·СЂРёС‚РµР»СЊРЅС‹Р№ Рё РЅРµ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РґР»СЏ РјР°СЃС€С‚Р°Р±Р° РіСЂР°С„РёРєР°.</p>}
       </div>
     </>
   );
@@ -2824,7 +2824,7 @@ function DashboardRefreshButton({ onRefresh }) {
         onRefresh();
       }}
       className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-appBg text-appMuted shadow-sm transition active:scale-95"
-      aria-label="Обновить данные Apple Health"
+      aria-label="РћР±РЅРѕРІРёС‚СЊ РґР°РЅРЅС‹Рµ Apple Health"
     >
       <RefreshCcw size={14} />
     </button>
@@ -2835,13 +2835,13 @@ export function HealthDetailScreen({ type, onBack }) {
   const { health, setHeartCondition, updateSleepManual, updateCycle, syncNativeHealth, syncing, syncError } = useHealth();
   const [refreshNote, setRefreshNote] = useState("");
   const titles = {
-    heart: "Пульс",
-    steps: "Шаги",
-    calories: "Калории",
-    sleep: "Сон",
-    recovery: "Восстановление",
-    cycle: "Цикл",
-    weekly: "Активность",
+    heart: "РџСѓР»СЊСЃ",
+    steps: "РЁР°РіРё",
+    calories: "РљР°Р»РѕСЂРёРё",
+    sleep: "РЎРѕРЅ",
+    recovery: "Р’РѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ",
+    cycle: "Р¦РёРєР»",
+    weekly: "РђРєС‚РёРІРЅРѕСЃС‚СЊ",
   };
   const refreshMs = type === "heart" ? 2 * 60 * 1000 : type === "sleep" ? 20 * 60 * 1000 : 4 * 60 * 1000;
   const detailQueryMode = type === "cycle" ? "dashboard" : "history";
@@ -2855,25 +2855,25 @@ export function HealthDetailScreen({ type, onBack }) {
   async function handleRefresh() {
     setRefreshNote("");
     const result = await syncNativeHealth?.({ force: true, reason: `detail-${type}`, queryMode: detailQueryMode });
-    setRefreshNote(result?.message ? "Данные скоро обновятся" : "Синхронизация проверена");
+    setRefreshNote(result?.message ? "Р”Р°РЅРЅС‹Рµ СЃРєРѕСЂРѕ РѕР±РЅРѕРІСЏС‚СЃСЏ" : "РЎРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ РїСЂРѕРІРµСЂРµРЅР°");
   }
 
   return (
     <main className="phone-shell min-h-screen px-5 pb-[calc(24px+env(safe-area-inset-bottom))] pt-[calc(env(safe-area-inset-top)+92px)]">
       <header className="fixed-shell fixed left-1/2 top-0 z-50 flex -translate-x-1/2 items-center gap-3 border-b border-appBorder bg-appBg/95 px-5 pb-2.5 pt-[calc(env(safe-area-inset-top)+10px)] shadow-sm backdrop-blur">
-        <button type="button" onClick={onBack} className="grid h-11 w-11 place-items-center rounded-full bg-appCard text-appText shadow-sm" aria-label="Назад">
+        <button type="button" onClick={onBack} className="grid h-11 w-11 place-items-center rounded-full bg-appCard text-appText shadow-sm" aria-label="РќР°Р·Р°Рґ">
           <ChevronLeft size={22} />
         </button>
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.16em] text-appGreen">Apple Health</p>
-          <h1 className="text-[24px] font-black leading-tight text-appText">{titles[type] || "Детали"}</h1>
+          <h1 className="text-[24px] font-black leading-tight text-appText">{titles[type] || "Р”РµС‚Р°Р»Рё"}</h1>
         </div>
         <button
           type="button"
           onClick={handleRefresh}
           disabled={syncing}
           className="ml-auto grid h-10 w-10 place-items-center rounded-full bg-appCard text-appMuted shadow-sm disabled:opacity-50"
-          aria-label="Обновить данные"
+          aria-label="РћР±РЅРѕРІРёС‚СЊ РґР°РЅРЅС‹Рµ"
         >
           <RefreshCcw size={17} className={syncing ? "animate-spin" : ""} />
         </button>
@@ -2881,10 +2881,10 @@ export function HealthDetailScreen({ type, onBack }) {
 
       <section className="rounded-[28px] border border-appBorder bg-appCard/95 p-4 shadow-sm">
         <p className="mb-3 rounded-2xl bg-appBg/70 px-3 py-2 text-[11px] font-semibold text-appMuted">
-          Синхронизация: {health.lastFruitFitRefreshAt ? new Date(health.lastFruitFitRefreshAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }) : "данные скоро появятся"}
-          {refreshNote ? ` · ${refreshNote}` : ""}
+          РЎРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ: {health.lastFruitFitRefreshAt ? new Date(health.lastFruitFitRefreshAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }) : "РґР°РЅРЅС‹Рµ СЃРєРѕСЂРѕ РїРѕСЏРІСЏС‚СЃСЏ"}
+          {refreshNote ? ` В· ${refreshNote}` : ""}
         </p>
-        {syncError && <p className="mb-3 rounded-2xl border border-appBorder bg-appBg/80 px-3 py-2 text-[11px] font-bold text-appMuted">Данные скоро обновятся. Проверьте, что трекер синхронизировался с Apple Health.</p>}
+        {syncError && <p className="mb-3 rounded-2xl border border-appBorder bg-appBg/80 px-3 py-2 text-[11px] font-bold text-appMuted">Р”Р°РЅРЅС‹Рµ СЃРєРѕСЂРѕ РѕР±РЅРѕРІСЏС‚СЃСЏ. РџСЂРѕРІРµСЂСЊС‚Рµ, С‡С‚Рѕ С‚СЂРµРєРµСЂ СЃРёРЅС…СЂРѕРЅРёР·РёСЂРѕРІР°Р»СЃСЏ СЃ Apple Health.</p>}
         {type === "heart" && <HeartDetailV2 health={health} setHeartCondition={setHeartCondition} />}
         {type === "steps" && <MetricDetail type="steps" health={health} />}
         {type === "calories" && <MetricDetail type="calories" health={health} />}
@@ -2929,9 +2929,9 @@ export default function WidgetGrid({ profile, access, onNavigate }) {
       case "heart":
         return <HeartWidget key={widget.id} health={health} onOpen={() => onNavigate?.("health:heart")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-heart", queryMode: "dashboard" })} />;
       case "steps":
-        return <MetricWidget key={widget.id} kind="steps" status={health.steps.status} title="Шаги" icon={Footprints} value={health.steps.today} target={health.steps.goal} color="#8BBE3D" suffix="шагов" sourceNote={friendlySourceHint(health.steps, "steps")} onOpen={() => onNavigate?.("health:steps")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-steps-history7d", queryMode: WEEKLY_ACTIVITY_QUERY_MODE })} />;
+        return <MetricWidget key={widget.id} kind="steps" status={health.steps.status} title="РЁР°РіРё" icon={Footprints} value={health.steps.today} target={health.steps.goal} color="#8BBE3D" suffix="С€Р°РіРѕРІ" sourceNote={friendlySourceHint(health.steps, "steps")} onOpen={() => onNavigate?.("health:steps")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-steps-history7d", queryMode: WEEKLY_ACTIVITY_QUERY_MODE })} />;
       case "calories":
-        return <MetricWidget key={widget.id} kind="calories" status={health.calories.status} title="Калории" icon={Flame} value={health.calories.today} target={health.calories.goal} color="#FF7A2F" suffix="ккал" sourceNote={friendlySourceHint(health.calories, "calories")} onOpen={() => onNavigate?.("health:calories")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-calories-history7d", queryMode: WEEKLY_ACTIVITY_QUERY_MODE })} />;
+        return <MetricWidget key={widget.id} kind="calories" status={health.calories.status} title="РљР°Р»РѕСЂРёРё" icon={Flame} value={health.calories.today} target={health.calories.goal} color="#FF7A2F" suffix="РєРєР°Р»" sourceNote={friendlySourceHint(health.calories, "calories")} onOpen={() => onNavigate?.("health:calories")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-calories-history7d", queryMode: WEEKLY_ACTIVITY_QUERY_MODE })} />;
       case "sleep":
         return <SleepWidgetV2 key={widget.id} health={health} onOpen={() => onNavigate?.("health:sleep")} onConnect={requestConnection} onRefresh={() => syncNativeHealth?.({ force: true, reason: "dashboard-sleep", queryMode: "dashboard" })} />;
       case "recovery":
@@ -2949,7 +2949,7 @@ export default function WidgetGrid({ profile, access, onNavigate }) {
     <>
       <div className="mt-4 flex justify-end">
         <button type="button" onClick={() => setEditMode((value) => !value)} className="inline-flex min-h-10 items-center gap-2 rounded-full bg-appCard/90 px-3 text-[12px] font-bold text-appMuted shadow-sm">
-        <SlidersHorizontal size={14} /> {editMode ? "Готово" : "Настройка виджетов"}
+        <SlidersHorizontal size={14} /> {editMode ? "Р“РѕС‚РѕРІРѕ" : "РќР°СЃС‚СЂРѕР№РєР° РІРёРґР¶РµС‚РѕРІ"}
         </button>
       </div>
 
@@ -2961,22 +2961,22 @@ export default function WidgetGrid({ profile, access, onNavigate }) {
               <div key={widget.id} className={`grid grid-cols-[1fr_32px_32px_72px] items-center gap-1 rounded-2xl p-1 ${disabled ? "opacity-55" : ""}`}>
                 <div className="min-w-0">
                   <span className="block truncate text-[12px] font-bold text-appText">{widget.title}</span>
-                  {disabled && <span className="block truncate text-[10px] text-appMuted">Доступно для женского профиля</span>}
+                  {disabled && <span className="block truncate text-[10px] text-appMuted">Р”РѕСЃС‚СѓРїРЅРѕ РґР»СЏ Р¶РµРЅСЃРєРѕРіРѕ РїСЂРѕС„РёР»СЏ</span>}
                 </div>
                 <button type="button" onClick={() => move(widget.id, -1)} className="grid h-8 w-8 place-items-center rounded-full bg-appBg text-appMuted"><ArrowUp size={13} /></button>
                 <button type="button" onClick={() => move(widget.id, 1)} className="grid h-8 w-8 place-items-center rounded-full bg-appBg text-appMuted"><ArrowDown size={13} /></button>
                 <button type="button" disabled={disabled} onClick={() => toggle(widget.id)} className={`h-8 rounded-full px-2 text-[11px] font-bold ${widget.enabled && !disabled ? "bg-appGreen text-[#181F19]" : "bg-appBg text-appMuted"}`}>
-                  {widget.enabled && !disabled ? "Вкл" : "Выкл"}
+                  {widget.enabled && !disabled ? "Р’РєР»" : "Р’С‹РєР»"}
                 </button>
               </div>
             );
           })}
           <div className="grid grid-cols-2 gap-2 pt-1">
             <button type="button" onClick={() => commit(defaultWidgets)} className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-appBg text-[12px] font-bold text-appMuted">
-              <RefreshCcw size={13} /> Сбросить
+              <RefreshCcw size={13} /> РЎР±СЂРѕСЃРёС‚СЊ
             </button>
             <button type="button" onClick={() => setEditMode(false)} className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-appGreen text-[12px] font-black text-[#181F19]">
-              <CheckCircle2 size={14} /> Готово
+              <CheckCircle2 size={14} /> Р“РѕС‚РѕРІРѕ
             </button>
           </div>
         </motion.div>

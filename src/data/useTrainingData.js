@@ -28,6 +28,67 @@ function normalizeLesson(lesson) {
   };
 }
 
+function muscleMapFields(exercise = {}, meta = {}) {
+  const assetPath = exercise.muscle_map_asset_path
+    || exercise.muscleMapAssetPath
+    || exercise.muscle_map_url
+    || exercise.muscleMapUrl
+    || meta.muscle_map_asset_path
+    || meta.muscleMapAssetPath
+    || meta.muscle_map_url
+    || meta.muscleMapUrl
+    || "";
+  const label = exercise.muscle_map_label
+    || exercise.muscleMapLabel
+    || meta.muscle_map_label
+    || meta.muscleMapLabel
+    || "";
+  const key = exercise.muscle_map_key
+    || exercise.muscleMapKey
+    || meta.muscle_map_key
+    || meta.muscleMapKey
+    || label;
+  const version = exercise.muscle_map_version
+    || exercise.muscleMapVersion
+    || meta.muscle_map_version
+    || meta.muscleMapVersion
+    || "";
+  const revision = exercise.muscle_map_revision
+    || exercise.muscleMapRevision
+    || meta.muscle_map_revision
+    || meta.muscleMapRevision
+    || version;
+  const hash = exercise.muscle_map_hash
+    || exercise.muscleMapHash
+    || meta.muscle_map_hash
+    || meta.muscleMapHash
+    || revision;
+  const updatedAt = exercise.muscle_map_updated_at
+    || exercise.muscleMapUpdatedAt
+    || meta.muscle_map_updated_at
+    || meta.muscleMapUpdatedAt
+    || hash;
+
+  return {
+    muscle_map_asset_path: assetPath,
+    muscleMapAssetPath: assetPath,
+    muscle_map_url: exercise.muscle_map_url || exercise.muscleMapUrl || meta.muscle_map_url || meta.muscleMapUrl || assetPath,
+    muscleMapUrl: exercise.muscleMapUrl || exercise.muscle_map_url || meta.muscleMapUrl || meta.muscle_map_url || assetPath,
+    muscle_map_label: label,
+    muscleMapLabel: label,
+    muscle_map_key: key,
+    muscleMapKey: key,
+    muscle_map_version: version,
+    muscleMapVersion: version,
+    muscle_map_revision: revision,
+    muscleMapRevision: revision,
+    muscle_map_hash: hash,
+    muscleMapHash: hash,
+    muscle_map_updated_at: updatedAt,
+    muscleMapUpdatedAt: updatedAt,
+  };
+}
+
 function normalizeExercise(exercise) {
   const title = cleanTitle(exercise.exercise_name);
   const resolvedMeta = resolveDidacticExercise(title);
@@ -43,6 +104,7 @@ function normalizeExercise(exercise) {
     video_url: resolvedVideo,
     rf_video_url: resolvedVideo,
     muscle_template_id: template.id,
+    ...muscleMapFields(exercise, resolvedMeta),
     exercise_table_meta: resolvedMeta || null,
     group_id: exercise.group_id || exercise.superset_id || exercise.block_id || null,
   };
@@ -64,6 +126,7 @@ function normalizeCatalogExercise(exercise) {
     video_url: exercise.video_url || exercise.rfVideoUrl || null,
     rf_video_url: exercise.rfVideoUrl || exercise.video_url || null,
     muscle_template_id: exercise.muscle_template_id || template.id,
+    ...muscleMapFields(exercise, resolvedMeta),
     exercise_table_meta: resolvedMeta || null,
   };
 }
