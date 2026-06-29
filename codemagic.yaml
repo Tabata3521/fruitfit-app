@@ -8,6 +8,9 @@ workflows:
       app_store_connect: fruitfit_app_store_connect
 
     environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.tagirfruit.fruitfit
       xcode: latest
       node: latest
       vars:
@@ -33,17 +36,8 @@ workflows:
         script: |
           npx cap sync ios
 
-      - name: Initialize signing keychain
-        script: |
-          keychain initialize
-
-      - name: Fetch App Store signing files
-        script: |
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
-
       - name: Apply signing profiles to Xcode project
         script: |
-          keychain add-certificates
           xcode-project use-profiles
 
       - name: Build signed IPA
@@ -54,3 +48,7 @@ workflows:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
+    publishing:
+      app_store_connect:
+        auth: integration
