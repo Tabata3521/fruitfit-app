@@ -9,8 +9,10 @@ workflows:
 
     environment:
       ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.tagirfruit.fruitfit
+        certificates:
+          - fruitfit_distribution
+        provisioning_profiles:
+          - fruitfit_app_store_profile
       xcode: latest
       node: latest
       vars:
