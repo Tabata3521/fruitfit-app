@@ -56,15 +56,15 @@ import { currentUserId } from "../data/userScopedCache";
 
 const PROVIDER_META = {
   telegram: { label: "Telegram", color: "text-[#229ED9]", dot: "bg-[#229ED9]" },
-  yandex: { label: "РЇРЅРґРµРєСЃ", color: "text-[#FC3F1D]", dot: "bg-[#FC3F1D]" },
+  yandex: { label: "Яндекс", color: "text-[#FC3F1D]", dot: "bg-[#FC3F1D]" },
   google: { label: "Google", color: "text-[#4285F4]", dot: "bg-[#4285F4]" },
   apple: { label: "Apple", color: "text-appText", dot: "bg-appText" },
 };
 
 const PHOTO_TYPES = [
-  { id: "front", label: "РЎРїРµСЂРµРґРё" },
-  { id: "side", label: "РЎР±РѕРєСѓ" },
-  { id: "back", label: "РЎР·Р°РґРё" },
+  { id: "front", label: "Спереди" },
+  { id: "side", label: "Сбоку" },
+  { id: "back", label: "Сзади" },
 ];
 const PHOTO_PREVIEW_CACHE_KEY = "fruitfit.progressPhotoPreviews";
 const STEP_SOURCE_STORAGE_KEY = "fruitfit.health.preferredSourcePackage";
@@ -74,9 +74,9 @@ const HEALTH_PROVIDER_NAME = IS_IOS_PLATFORM ? "Apple Health" : "Health Connect"
 const FEEDBACK_FORM_URL = "https://forms.gle/MygV9mU445St16ez5";
 
 const androidStepSourceOptions = [
-  { value: "", label: "Auto", hint: "РђРІС‚РѕРјР°С‚РёС‡РµСЃРєРёР№ РІС‹Р±РѕСЂ FruitFit" },
-  { value: "com.google.android.apps.fitness", label: "Google Fit", hint: "Р•СЃР»Рё С€Р°РіРё С‚РѕС‡РЅРµРµ РІ Google Fit" },
-  { value: "android", label: "Android / phone", hint: "РЎРёСЃС‚РµРјРЅС‹Р№ РёСЃС‚РѕС‡РЅРёРє С‚РµР»РµС„РѕРЅР°" },
+  { value: "", label: "Auto", hint: "Автоматический выбор FruitFit" },
+  { value: "com.google.android.apps.fitness", label: "Google Fit", hint: "Если шаги точнее в Google Fit" },
+  { value: "android", label: "Android / phone", hint: "Системный источник телефона" },
   { value: "com.xiaomi.wearable", label: "Mi Fitness", hint: "Xiaomi Watch / Mi Fitness" },
   { value: "zepp", label: "Zepp / Amazfit", hint: "Amazfit / Zepp" },
   { value: "fitbit", label: "Fitbit", hint: "Fitbit" },
@@ -85,13 +85,13 @@ const androidStepSourceOptions = [
 ];
 
 const iosStepSourceOptions = [
-  { value: "", label: "Auto", hint: "Apple Health РІС‹Р±РёСЂР°РµС‚ Р°РєС‚СѓР°Р»СЊРЅС‹Р№ РёСЃС‚РѕС‡РЅРёРє" },
+  { value: "", label: "Auto", hint: "Apple Health выбирает актуальный источник" },
   { value: "apple", label: "Apple Health", hint: "iPhone / Apple Watch" },
-  { value: "apple_watch", label: "Apple Watch", hint: "Р§РµСЂРµР· Apple Health", missingHint: "РќРµС‚ РґР°РЅРЅС‹С… РІ Apple Health" },
-  { value: "fitbit", label: "Fitbit", hint: "Р§РµСЂРµР· Apple Health", missingHint: "РќРµС‚ РґР°РЅРЅС‹С… РІ Apple Health" },
-  { value: "whoop", label: "WHOOP", hint: "Р§РµСЂРµР· Apple Health", missingHint: "РќРµС‚ РґР°РЅРЅС‹С… РІ Apple Health" },
-  { value: "garmin", label: "Garmin", hint: "Р§РµСЂРµР· Apple Health", missingHint: "РќРµС‚ РґР°РЅРЅС‹С… РІ Apple Health" },
-  { value: "oura", label: "Oura", hint: "Р§РµСЂРµР· Apple Health", missingHint: "РќРµС‚ РґР°РЅРЅС‹С… РІ Apple Health" },
+  { value: "apple_watch", label: "Apple Watch", hint: "Через Apple Health", missingHint: "Нет данных в Apple Health" },
+  { value: "fitbit", label: "Fitbit", hint: "Через Apple Health", missingHint: "Нет данных в Apple Health" },
+  { value: "whoop", label: "WHOOP", hint: "Через Apple Health", missingHint: "Нет данных в Apple Health" },
+  { value: "garmin", label: "Garmin", hint: "Через Apple Health", missingHint: "Нет данных в Apple Health" },
+  { value: "oura", label: "Oura", hint: "Через Apple Health", missingHint: "Нет данных в Apple Health" },
 ];
 
 const stepSourceOptionsBase = IS_IOS_PLATFORM ? iosStepSourceOptions : androidStepSourceOptions;
@@ -174,12 +174,12 @@ function progressPhotoUrl(photo) {
 function ThemeSection({ theme, onThemeChange }) {
   return (
     <section className="rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">
-      <h2 className="text-[16px] font-black text-appText">РўРµРјР°</h2>
+      <h2 className="text-[16px] font-black text-appText">Тема</h2>
       <div className="mt-3 grid grid-cols-3 gap-2">
         {[
-          ["light", "РЎРІРµС‚Р»Р°СЏ", Sun],
-          ["dark", "РўС‘РјРЅР°СЏ", Moon],
-          ["system", "РЎРёСЃС‚РµРјРЅР°СЏ", Bell],
+          ["light", "Светлая", Sun],
+          ["dark", "Тёмная", Moon],
+          ["system", "Системная", Bell],
         ].map(([id, label, Icon]) => (
           <button key={id} type="button" onClick={() => onThemeChange(id)} className={`grid h-20 place-items-center rounded-[18px] border text-[12px] font-bold ${theme === id ? "border-appGreen bg-appGreen text-[#181F19]" : "border-appBorder bg-appBg text-appMuted"}`}>
             <Icon size={18} />
@@ -242,9 +242,9 @@ function FeedbackSettingsSection() {
           <MessageCircle size={18} />
         </span>
         <div className="min-w-0">
-          <h2 className="text-[16px] font-black text-appText">РћР±СЂР°С‚РЅР°СЏ СЃРІСЏР·СЊ</h2>
+          <h2 className="text-[16px] font-black text-appText">Обратная связь</h2>
           <p className="mt-1 text-[12px] leading-5 text-appMuted">
-            Р Р°СЃСЃРєР°Р¶РёС‚Рµ, С‡С‚Рѕ СЂР°Р±РѕС‚Р°РµС‚ РЅРµСѓРґРѕР±РЅРѕ РёР»Рё С‡РµРіРѕ РЅРµ С…РІР°С‚Р°РµС‚. Р¤РѕСЂРјР° РѕС‚РєСЂРѕРµС‚СЃСЏ РІ Р±СЂР°СѓР·РµСЂРµ.
+            Расскажите, что работает неудобно или чего не хватает. Форма откроется в браузере.
           </p>
         </div>
       </div>
@@ -255,7 +255,7 @@ function FeedbackSettingsSection() {
         className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full border border-appBorder bg-appBg text-[14px] font-black text-appText"
       >
         <Link2 size={17} />
-        РћС‚РєСЂС‹С‚СЊ С„РѕСЂРјСѓ
+        Открыть форму
       </button>
     </section>
   );
@@ -269,18 +269,18 @@ function PrivacySettingsSection() {
           <ShieldCheck size={18} />
         </span>
         <div className="min-w-0">
-          <h2 className="text-[16px] font-black text-appText">РљРѕРЅС„РёРґРµРЅС†РёР°Р»СЊРЅРѕСЃС‚СЊ</h2>
+          <h2 className="text-[16px] font-black text-appText">Конфиденциальность</h2>
           <p className="mt-1 text-[12px] leading-5 text-appMuted">
-            FruitFit РёСЃРїРѕР»СЊР·СѓРµС‚ РґР°РЅРЅС‹Рµ Р°РєРєР°СѓРЅС‚Р°, Р°РЅРєРµС‚Сѓ, РїСЂРѕРіСЂР°РјРјСѓ, РїРёС‚Р°РЅРёРµ, Р·Р°РјРµСЂС‹, РѕС‚С‡С‘С‚С‹, Р°РєС‚РёРІРЅРѕСЃС‚СЊ Рё РёСЃС‚РѕСЂРёСЋ С‡Р°С‚Р° С‚РѕР»СЊРєРѕ РґР»СЏ СЂР°Р±РѕС‚С‹ РїСЂРёР»РѕР¶РµРЅРёСЏ, СЂРµРєРѕРјРµРЅРґР°С†РёР№ Рё РїРѕРґРґРµСЂР¶РєРё РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ.
+            FruitFit использует данные аккаунта, анкету, программу, питание, замеры, отчёты, активность и историю чата только для работы приложения, рекомендаций и поддержки пользователя.
           </p>
         </div>
       </div>
 
       <div className="mt-3 space-y-2 rounded-[18px] border border-appBorder bg-appBg p-3 text-[12px] font-semibold leading-5 text-appMuted">
-        <p>AI Coach СЂР°Р±РѕС‚Р°РµС‚ СЃ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµРј OpenAI. РџРµСЂРµРґ РїРµСЂРІС‹Рј Р·Р°РїСЂРѕСЃРѕРј РїСЂРёР»РѕР¶РµРЅРёРµ РѕС‚РґРµР»СЊРЅРѕ РїРѕРїСЂРѕСЃРёС‚ СЃРѕРіР»Р°СЃРёРµ.</p>
-        <p>Р’ AI РјРѕРіСѓС‚ РїРµСЂРµРґР°РІР°С‚СЊСЃСЏ РІРѕРїСЂРѕСЃ, РїРѕСЃР»РµРґРЅРёРµ СЃРѕРѕР±С‰РµРЅРёСЏ, РїСЂРѕС„РёР»СЊ, С‚РµРєСѓС‰Р°СЏ РїСЂРѕРіСЂР°РјРјР°, РІС‹Р±СЂР°РЅРЅР°СЏ С‚СЂРµРЅРёСЂРѕРІРєР°, С†РµР»СЊ РїРёС‚Р°РЅРёСЏ Рё РєСЂР°С‚РєР°СЏ СЃРІРѕРґРєР° Р°РєС‚РёРІРЅРѕСЃС‚Рё, РµСЃР»Рё С‚СЂРµРєРµСЂ РїРѕРґРєР»СЋС‡С‘РЅ.</p>
-        <p>РџР»Р°С‚С‘Р¶РЅС‹Рµ РґР°РЅРЅС‹Рµ, С‚РѕРєРµРЅС‹ РІС…РѕРґР° Рё СЃРµРєСЂРµС‚С‹ РЅРµ РїРµСЂРµРґР°СЋС‚СЃСЏ РІ AI. РћРїР»Р°С‚Р° РїСЂРѕС…РѕРґРёС‚ С‡РµСЂРµР· Р·Р°С‰РёС‰С‘РЅРЅС‹Р№ backend Рё РїР»Р°С‚С‘Р¶РЅСѓСЋ СЃС‚СЂР°РЅРёС†Сѓ.</p>
-        <p>РђРєРєР°СѓРЅС‚ РјРѕР¶РЅРѕ СѓРґР°Р»РёС‚СЊ РІ РЅР°СЃС‚СЂРѕР№РєР°С…: РїСЂРѕС„РёР»СЊ, Р·Р°РјРµСЂС‹, РїСЂРѕРіСЂРµСЃСЃ Рё health-РґР°РЅРЅС‹Рµ Р±СѓРґСѓС‚ СѓРґР°Р»РµРЅС‹ РїРѕ Р·Р°РїСЂРѕСЃСѓ.</p>
+        <p>AI Coach работает с использованием OpenAI. Перед первым запросом приложение отдельно попросит согласие.</p>
+        <p>В AI могут передаваться вопрос, последние сообщения, профиль, текущая программа, выбранная тренировка, цель питания и краткая сводка активности, если трекер подключён.</p>
+        <p>Платёжные данные, токены входа и секреты не передаются в AI. Оплата проходит через защищённый backend и платёжную страницу.</p>
+        <p>Аккаунт можно удалить в настройках: профиль, замеры, прогресс и health-данные будут удалены по запросу.</p>
       </div>
 
       <button
@@ -289,7 +289,7 @@ function PrivacySettingsSection() {
         className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full border border-appBorder bg-appBg text-[14px] font-black text-appText"
       >
         <Link2 size={17} />
-        РћС‚РєСЂС‹С‚СЊ РїРѕР»РёС‚РёРєСѓ
+        Открыть политику
       </button>
     </section>
   );
@@ -303,7 +303,7 @@ function ContactSettingsSection({ hasAuth, form, status, onChange, onSave }) {
           <Phone size={18} />
         </span>
         <div className="min-w-0">
-          <h2 className="text-[16px] font-black text-appText">РљРѕРЅС‚Р°РєС‚С‹</h2>
+          <h2 className="text-[16px] font-black text-appText">Контакты</h2>
           <p className="mt-1 text-[12px] leading-5 text-appMuted">
             Телефон и Telegram нужны только для связи с тренером.
           </p>
@@ -312,7 +312,7 @@ function ContactSettingsSection({ hasAuth, form, status, onChange, onSave }) {
 
       <div className="mt-3 grid gap-2">
         <label className="grid gap-1 text-[11px] font-black uppercase tracking-[0.1em] text-appMuted">
-          РўРµР»РµС„РѕРЅ
+          Телефон
           <span className="relative">
             <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-appMuted" />
             <input
@@ -348,9 +348,9 @@ function ContactSettingsSection({ hasAuth, form, status, onChange, onSave }) {
         className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-appGreen text-[14px] font-black text-[#181F19] disabled:opacity-60"
       >
         {status.loading ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}
-        РЎРѕС…СЂР°РЅРёС‚СЊ РєРѕРЅС‚Р°РєС‚С‹
+        Сохранить контакты
       </button>
-      {!hasAuth && <p className="mt-2 rounded-2xl bg-appBg px-3 py-2 text-[11px] font-bold text-appMuted">Р’РѕР№РґРёС‚Рµ РІ Р°РєРєР°СѓРЅС‚, С‡С‚РѕР±С‹ СЃРѕС…СЂР°РЅРёС‚СЊ РєРѕРЅС‚Р°РєС‚С‹.</p>}
+      {!hasAuth && <p className="mt-2 rounded-2xl bg-appBg px-3 py-2 text-[11px] font-bold text-appMuted">Войдите в аккаунт, чтобы сохранить контакты.</p>}
       {status.message && <p className="mt-2 rounded-2xl bg-appBg px-3 py-2 text-[11px] font-bold text-appMuted">{status.message}</p>}
     </section>
   );
@@ -371,9 +371,9 @@ function StepSourceSettingsSection({ health, preferredSourcePackage, onPreferred
           <SlidersHorizontal size={18} />
         </span>
         <div className="min-w-0">
-          <h2 className="text-[16px] font-black text-appText">Р Р°СЃС€РёСЂРµРЅРЅС‹Рµ РЅР°СЃС‚СЂРѕР№РєРё Р°РєС‚РёРІРЅРѕСЃС‚Рё</h2>
+          <h2 className="text-[16px] font-black text-appText">Расширенные настройки активности</h2>
           <p className="mt-1 text-[12px] leading-5 text-appMuted">
-            Р’С‹Р±РµСЂРёС‚Рµ Р±РѕР»РµРµ С‚РѕС‡РЅС‹Р№ РёСЃС‚РѕС‡РЅРёРє С€Р°РіРѕРІ, РµСЃР»Рё С‡Р°СЃС‹, Р±СЂР°СЃР»РµС‚ РёР»Рё РїСЂРёР»РѕР¶РµРЅРёРµ РґСѓР±Р»РёСЂСѓСЋС‚ РґР°РЅРЅС‹Рµ. РћР±С‹С‡РЅРѕ РјРѕР¶РЅРѕ РѕСЃС‚Р°РІРёС‚СЊ Auto.
+            Выберите более точный источник шагов, если часы, браслет или приложение дублируют данные. Обычно можно оставить Auto.
           </p>
         </div>
       </div>
@@ -381,8 +381,8 @@ function StepSourceSettingsSection({ health, preferredSourcePackage, onPreferred
       <div className="mt-3 rounded-[18px] border border-appBorder bg-appBg p-3">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.08em] text-appMuted">РСЃС‚РѕС‡РЅРёРє С€Р°РіРѕРІ</p>
-            <p className="mt-1 text-[12px] font-bold text-appText">РЎРµР№С‡Р°СЃ: {selectedStepSource?.label || "Auto"}</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.08em] text-appMuted">Источник шагов</p>
+            <p className="mt-1 text-[12px] font-bold text-appText">Сейчас: {selectedStepSource?.label || "Auto"}</p>
           </div>
           {stepsToday > 0 && <span className="shrink-0 rounded-full bg-appCard px-2 py-1 text-[10px] font-black text-appText">{stepsToday.toLocaleString("ru-RU")}</span>}
         </div>
@@ -425,20 +425,20 @@ function DeleteAccountModal({ loading, error, onCancel, onConfirm }) {
             <Trash2 size={20} />
           </span>
           <div>
-            <h2 className="text-[18px] font-black text-appText">Р’С‹ СѓРІРµСЂРµРЅС‹?</h2>
+            <h2 className="text-[18px] font-black text-appText">Вы уверены?</h2>
             <p className="mt-2 text-[13px] leading-5 text-appMuted">
-              РџСЂРѕС„РёР»СЊ, Р·Р°РјРµСЂС‹, РїСЂРѕРіСЂРµСЃСЃ Рё health-РґР°РЅРЅС‹Рµ Р±СѓРґСѓС‚ СѓРґР°Р»РµРЅС‹. Р­С‚Рѕ РґРµР№СЃС‚РІРёРµ РЅРµР»СЊР·СЏ РѕС‚РјРµРЅРёС‚СЊ.
+              Профиль, замеры, прогресс и health-данные будут удалены. Это действие нельзя отменить.
             </p>
           </div>
         </div>
         {error && <p className="mt-3 rounded-2xl bg-red-500/10 px-3 py-2 text-[12px] font-bold text-red-500">{error}</p>}
         <div className="mt-4 grid grid-cols-2 gap-2">
           <button type="button" onClick={onCancel} disabled={loading} className="h-11 rounded-full border border-appBorder bg-appBg text-[13px] font-black text-appText disabled:opacity-60">
-            РћС‚РјРµРЅР°
+            Отмена
           </button>
           <button type="button" onClick={onConfirm} disabled={loading} className="flex h-11 items-center justify-center gap-2 rounded-full bg-red-500 text-[13px] font-black text-white disabled:opacity-70">
             {loading ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={15} />}
-            РЈРґР°Р»РёС‚СЊ
+            Удалить
           </button>
         </div>
       </section>
@@ -446,7 +446,7 @@ function DeleteAccountModal({ loading, error, onCancel, onConfirm }) {
   );
 }
 
-function PlaceholderCard({ icon: Icon, title, text, badge = "РіРѕС‚РѕРІРёС‚СЃСЏ" }) {
+function PlaceholderCard({ icon: Icon, title, text, badge = "готовится" }) {
   return (
     <div className="rounded-[20px] border border-appBorder bg-appBg p-3">
       <div className="flex items-start gap-3">
@@ -568,7 +568,7 @@ function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(reader.error || new Error("РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕС‡РёС‚Р°С‚СЊ С„Р°Р№Р»"));
+    reader.onerror = () => reject(reader.error || new Error("Не удалось прочитать файл"));
     reader.readAsDataURL(file);
   });
 }
@@ -577,13 +577,13 @@ function loadImage(dataUrl) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±СЂР°Р±РѕС‚Р°С‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ"));
+    img.onerror = () => reject(new Error("Не удалось обработать изображение"));
     img.src = dataUrl;
   });
 }
 
 function photoTypeLabel(type) {
-  return PHOTO_TYPES.find((item) => item.id === type)?.label || "Р¤РѕС‚Рѕ";
+  return PHOTO_TYPES.find((item) => item.id === type)?.label || "Фото";
 }
 
 function photoTypeFromItem(item) {
@@ -775,18 +775,18 @@ function readStoredHealthForReport() {
 
 function formatReportNumber(value, unit = "") {
   const number = Number(value);
-  if (!Number.isFinite(number) || number <= 0) return "РЅРµС‚ РґР°РЅРЅС‹С…";
+  if (!Number.isFinite(number) || number <= 0) return "нет данных";
   return `${Math.round(number).toLocaleString("ru-RU")}${unit ? ` ${unit}` : ""}`;
 }
 
 function formatReportSleep(minutes) {
   const value = Number(minutes);
-  if (!Number.isFinite(value) || value <= 0) return "РЅРµС‚ РґР°РЅРЅС‹С…";
+  if (!Number.isFinite(value) || value <= 0) return "нет данных";
   const total = Math.round(value);
   const hours = Math.floor(total / 60);
   const rest = total % 60;
-  if (!hours) return `${rest} РјРёРЅ`;
-  return `${hours} С‡ ${rest} РјРёРЅ`;
+  if (!hours) return `${rest} мин`;
+  return `${hours} ч ${rest} мин`;
 }
 
 export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBack }) {
@@ -947,9 +947,9 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
       setAuthUser(loadAuthUser());
       setAccessState(loadAccessState());
       setIdentities(await fetchAuthIdentities());
-      setAccountStatus({ loading: false, message: "РЎС‚Р°С‚СѓСЃС‹ Р°РєРєР°СѓРЅС‚РѕРІ РѕР±РЅРѕРІР»РµРЅС‹" });
+      setAccountStatus({ loading: false, message: "Статусы аккаунтов обновлены" });
     } catch (error) {
-      setAccountStatus({ loading: false, message: error?.message || "РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ Р°РєРєР°СѓРЅС‚С‹" });
+      setAccountStatus({ loading: false, message: error?.message || "Не удалось обновить аккаунты" });
     }
   }
 
@@ -964,7 +964,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
       const linked = nextIdentities.some((identity) => identityProvider(identity) === provider);
       setAccountStatus({
         loading: false,
-        message: linked ? `${providerDisplay(provider)} РїСЂРёРІСЏР·Р°РЅ` : `РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґС‚РІРµСЂРґРёС‚СЊ РїСЂРёРІСЏР·РєСѓ ${providerDisplay(provider)}`,
+        message: linked ? `${providerDisplay(provider)} привязан` : `Не удалось подтвердить привязку ${providerDisplay(provider)}`,
       });
     }
     window.addEventListener("fruitfit:auth-link-returned", refreshAfterAuthReturn);
@@ -979,7 +979,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
 
   async function linkProvider(provider) {
     if (!hasAuth) {
-      setAccountStatus({ loading: false, message: "РЎРЅР°С‡Р°Р»Р° РІРѕР№РґРёС‚Рµ РІ FruitFit, Р·Р°С‚РµРј РїСЂРёРІСЏР¶РёС‚Рµ РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Рµ СЃРµСЂРІРёСЃС‹." });
+      setAccountStatus({ loading: false, message: "Сначала войдите в FruitFit, затем привяжите дополнительные сервисы." });
       return;
     }
     if (provider === "telegram") {
@@ -988,33 +988,33 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
         return;
       }
       setTelegramWidgetOpen(true);
-      setAccountStatus({ loading: false, message: "РџРѕРґС‚РІРµСЂРґРёС‚Рµ Telegram РІ Р±Р»РѕРєРµ РЅРёР¶Рµ. Р•СЃР»Рё Telegram РЅРµ СѓСЃС‚Р°РЅРѕРІР»РµРЅ, РїРѕРґРєР»СЋС‡РµРЅРёРµ РјРѕР¶РЅРѕ РїРѕРІС‚РѕСЂРёС‚СЊ РїРѕР·Р¶Рµ." });
+      setAccountStatus({ loading: false, message: "Подтвердите Telegram в блоке ниже. Если Telegram не установлен, подключение можно повторить позже." });
       return;
     }
     if (provider === "apple") {
-      setAccountStatus({ loading: false, message: "Apple ID Р±СѓРґРµС‚ РґРѕСЃС‚СѓРїРµРЅ РїРѕСЃР»Рµ РЅР°СЃС‚СЂРѕР№РєРё РЅР° СЃРµСЂРІРµСЂРµ РґР»СЏ non-RU СЂРµРіРёРѕРЅР°." });
+      setAccountStatus({ loading: false, message: "Apple ID будет доступен после настройки на сервере для non-RU региона." });
       return;
     }
     sessionStorage.setItem("fruitfit.pendingProviderLink", provider);
-    setAccountStatus({ loading: true, message: `РћС‚РєСЂС‹РІР°РµРј ${providerDisplay(provider)}...` });
+    setAccountStatus({ loading: true, message: `Открываем ${providerDisplay(provider)}...` });
     window.location.href = providerAuthUrl(apiUrl, provider, await authQueryString());
   }
 
   async function linkTelegramNative() {
     setTelegramWidgetOpen(false);
-    setAccountStatus({ loading: true, message: "РћС‚РєСЂС‹РІР°РµРј Telegram РґР»СЏ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ..." });
+    setAccountStatus({ loading: true, message: "Открываем Telegram для подтверждения..." });
     try {
       const nativeResult = await startTelegramNativeLogin();
-      setAccountStatus({ loading: true, message: "РџСЂРѕРІРµСЂСЏРµРј Telegram..." });
+      setAccountStatus({ loading: true, message: "Проверяем Telegram..." });
       const updated = await linkAuthProvider("telegram", {
         telegramOidc: { idToken: nativeResult.idToken },
         device: await getDeviceRegistrationPayloadAsync(),
       });
       const nextIdentities = updated || await fetchAuthIdentities();
       setIdentities(nextIdentities);
-      setAccountStatus({ loading: false, message: "Telegram РїСЂРёРІСЏР·Р°РЅ" });
+      setAccountStatus({ loading: false, message: "Telegram привязан" });
     } catch (error) {
-      setAccountStatus({ loading: false, message: "РџРѕРґС‚РІРµСЂРґРёС‚Рµ Telegram РІ Р±Р»РѕРєРµ РЅРёР¶Рµ. Р•СЃР»Рё Telegram РЅРµ СѓСЃС‚Р°РЅРѕРІР»РµРЅ, РїРѕРґРєР»СЋС‡РµРЅРёРµ РјРѕР¶РЅРѕ РїРѕРІС‚РѕСЂРёС‚СЊ РїРѕР·Р¶Рµ." });
+      setAccountStatus({ loading: false, message: "Подтвердите Telegram в блоке ниже. Если Telegram не установлен, подключение можно повторить позже." });
     }
   }
 
@@ -1025,10 +1025,10 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
 
     window.onTelegramSettingsAuth = async (user) => {
       if (!user) {
-        setAccountStatus({ loading: false, message: "Telegram РЅРµ РїРµСЂРµРґР°Р» РґР°РЅРЅС‹Рµ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ." });
+        setAccountStatus({ loading: false, message: "Telegram не передал данные пользователя." });
         return;
       }
-      setAccountStatus({ loading: true, message: "РџСЂРѕРІРµСЂСЏРµРј Telegram..." });
+      setAccountStatus({ loading: true, message: "Проверяем Telegram..." });
       try {
         const updated = await linkAuthProvider("telegram", {
           telegram: user,
@@ -1037,9 +1037,9 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
         const nextIdentities = updated || await fetchAuthIdentities();
         setIdentities(nextIdentities);
         setTelegramWidgetOpen(false);
-        setAccountStatus({ loading: false, message: "Telegram РїСЂРёРІСЏР·Р°РЅ" });
+        setAccountStatus({ loading: false, message: "Telegram привязан" });
       } catch (error) {
-        setAccountStatus({ loading: false, message: error?.message || "РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРёРІСЏР·Р°С‚СЊ Telegram" });
+        setAccountStatus({ loading: false, message: error?.message || "Не удалось привязать Telegram" });
       }
     };
 
@@ -1060,20 +1060,20 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
   async function unlinkProvider(identity) {
     const provider = identityProvider(identity);
     const label = providerDisplay(provider);
-    if (!window.confirm(`РћС‚РІСЏР·Р°С‚СЊ ${label}?`)) return;
+    if (!window.confirm(`Отвязать ${label}?`)) return;
     setAccountStatus({ loading: true, message: "" });
     try {
       const updated = await unlinkAuthProvider(provider, identityProviderUserId(identity));
       setIdentities(updated || await fetchAuthIdentities());
-      setAccountStatus({ loading: false, message: `${label} РѕС‚РІСЏР·Р°РЅ` });
+      setAccountStatus({ loading: false, message: `${label} отвязан` });
     } catch (error) {
-      setAccountStatus({ loading: false, message: error?.message || `РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РІСЏР·Р°С‚СЊ ${label}` });
+      setAccountStatus({ loading: false, message: error?.message || `Не удалось отвязать ${label}` });
     }
   }
 
   async function uploadPhoto(type, file) {
     if (!file) return;
-    setPhotoStatus({ loadingType: type, message: "Р“РѕС‚РѕРІРёРј С„РѕС‚Рѕ..." });
+    setPhotoStatus({ loadingType: type, message: "Готовим фото..." });
     try {
       const existingPhotos = photosByType.get(type) || [];
       const sourceDataUrl = await readFileAsDataUrl(file);
@@ -1100,16 +1100,16 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
       }
       const nextPhotos = await fetchProgressPhotos();
       setPhotos(nextPhotos);
-      setPhotoStatus({ loadingType: "", message: "Р¤РѕС‚Рѕ СЃРѕС…СЂР°РЅРµРЅРѕ РЅР° СЃРµСЂРІРµСЂРµ" });
+      setPhotoStatus({ loadingType: "", message: "Фото сохранено на сервере" });
     } catch (error) {
-      setPhotoStatus({ loadingType: "", message: error?.message || "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ С„РѕС‚Рѕ" });
+      setPhotoStatus({ loadingType: "", message: error?.message || "Не удалось сохранить фото" });
     }
   }
 
   async function removePhoto(type) {
     const slotPhotos = photosByType.get(type) || [];
     if (!slotPhotos.length && !localPhotoPreviews[type]) return;
-    if (!window.confirm("РЈРґР°Р»РёС‚СЊ С„РѕС‚Рѕ РёР· СЌС‚РѕРіРѕ СЃР»РѕС‚Р°?")) return;
+    if (!window.confirm("Удалить фото из этого слота?")) return;
     setPhotoStatus({ loadingType: type, message: "" });
     try {
       setLocalPhotoPreviews((current) => {
@@ -1124,22 +1124,22 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
         if (failed) throw failed.reason;
       }
       setPhotos(await fetchProgressPhotos());
-      setPhotoStatus({ loadingType: "", message: "Р¤РѕС‚Рѕ СѓРґР°Р»РµРЅРѕ" });
+      setPhotoStatus({ loadingType: "", message: "Фото удалено" });
     } catch (error) {
-      setPhotoStatus({ loadingType: "", message: error?.message || "РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ С„РѕС‚Рѕ" });
+      setPhotoStatus({ loadingType: "", message: error?.message || "Не удалось удалить фото" });
     }
   }
 
   async function sendTrainerReport() {
     if (!hasAuth) {
-      setReportStatus({ loading: false, message: "РЎРЅР°С‡Р°Р»Р° РІРѕР№РґРёС‚Рµ РІ FruitFit." });
+      setReportStatus({ loading: false, message: "Сначала войдите в FruitFit." });
       return;
     }
     setReportStatus({ loading: true, message: "" });
     try {
       let reportHealth = health;
       if (syncNativeHealth) {
-        setReportStatus({ loading: true, message: "РћР±РЅРѕРІР»СЏРµРј Apple Health..." });
+        setReportStatus({ loading: true, message: "Обновляем Apple Health..." });
         try {
           await syncNativeHealth({ force: true, reason: "trainer-report-submit", queryMode: "history", bypassCooldown: true });
           await new Promise((resolve) => window.setTimeout(resolve, 60));
@@ -1176,9 +1176,9 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
       });
       const nextReports = await fetchTrainerReports();
       setReports(nextReports);
-      setReportStatus({ loading: false, message: item ? "РћС‚С‡С‘С‚ РѕС‚РїСЂР°РІР»РµРЅ С‚СЂРµРЅРµСЂСѓ" : "РћС‚С‡С‘С‚ РѕС‚РїСЂР°РІР»РµРЅ" });
+      setReportStatus({ loading: false, message: item ? "Отчёт отправлен тренеру" : "Отчёт отправлен" });
     } catch (error) {
-      setReportStatus({ loading: false, message: error?.message || "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ РѕС‚С‡С‘С‚ С‚СЂРµРЅРµСЂСѓ" });
+      setReportStatus({ loading: false, message: error?.message || "Не удалось отправить отчёт тренеру" });
     }
   }
 
@@ -1193,7 +1193,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
 
   async function confirmDeleteAccount() {
     if (!getAuthToken()) {
-      setDeleteStatus({ loading: false, message: "РЎРЅР°С‡Р°Р»Р° РІРѕР№РґРёС‚Рµ РІ Р°РєРєР°СѓРЅС‚." });
+      setDeleteStatus({ loading: false, message: "Сначала войдите в аккаунт." });
       setDeleteDialogOpen(false);
       return;
     }
@@ -1205,7 +1205,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
       setDeleteDialogOpen(false);
       onNavigate?.("home");
     } catch (error) {
-      setDeleteStatus({ loading: false, message: error?.message || "РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ Р°РєРєР°СѓРЅС‚" });
+      setDeleteStatus({ loading: false, message: error?.message || "Не удалось удалить аккаунт" });
     }
   }
 
@@ -1215,7 +1215,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
       const result = await checkAndroidAppUpdate();
       setUpdateState({ status: "done", result, error: "" });
     } catch (error) {
-      setUpdateState({ status: "error", result: null, error: error?.message || "РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕРІРµСЂРёС‚СЊ РѕР±РЅРѕРІР»РµРЅРёРµ" });
+      setUpdateState({ status: "error", result: null, error: error?.message || "Не удалось проверить обновление" });
     }
   }
 
@@ -1227,8 +1227,8 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
             <ArrowLeft size={18} />
           </button>
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-appGreen">РџСЂРѕС„РёР»СЊ</p>
-            <h1 className="text-[25px] font-black text-appText">РќР°СЃС‚СЂРѕР№РєРё</h1>
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-appGreen">Профиль</p>
+            <h1 className="text-[25px] font-black text-appText">Настройки</h1>
           </div>
         </header>
 
@@ -1255,9 +1255,9 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.14em] text-appGreen">VIP</p>
-                  <h2 className="text-[16px] font-black text-appText">РћС‚С‡С‘С‚ С‚СЂРµРЅРµСЂСѓ</h2>
+                  <h2 className="text-[16px] font-black text-appText">Отчёт тренеру</h2>
                   <p className="mt-1 text-[12px] leading-5 text-appMuted">
-                    Р¤РѕС‚Рѕ, СЃР°РјРѕС‡СѓРІСЃС‚РІРёРµ Рё РїРѕСЃР»РµРґРЅРёРµ Р·Р°РјРµСЂС‹ СѓР№РґСѓС‚ РІ Р°РґРјРёРЅРєСѓ.
+                    Фото, самочувствие и последние замеры уйдут в админку.
                   </p>
                 </div>
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-appGreen/15 text-appGreen">
@@ -1291,7 +1291,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
                       <p className="mt-2 truncate text-center text-[11px] font-black text-appText">{type.label}</p>
                       {latestPhoto?.created_at && <p className="mt-0.5 truncate text-center text-[9px] font-bold text-appMuted">{formatDateTime(latestPhoto.created_at)}</p>}
                       <label className="mt-2 flex h-8 cursor-pointer items-center justify-center rounded-full bg-appCard text-[10px] font-black text-appText">
-                        {loading ? <Loader2 size={14} className="animate-spin" /> : slotCount ? "Р—Р°РјРµРЅРёС‚СЊ" : "Р”РѕР±Р°РІРёС‚СЊ"}
+                        {loading ? <Loader2 size={14} className="animate-spin" /> : slotCount ? "Заменить" : "Добавить"}
                         <input
                           type="file"
                           accept="image/*"
@@ -1301,7 +1301,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
                       </label>
                       {(slotCount > 0 || localPhotoPreviews[type.id]) && (
                         <button type="button" onClick={() => removePhoto(type.id)} className="mt-1 h-7 w-full rounded-full text-[10px] font-bold text-red-500">
-                          РЈРґР°Р»РёС‚СЊ
+                          Удалить
                         </button>
                       )}
                     </div>
@@ -1315,58 +1315,58 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
                 <textarea
                   value={reportForm.comment}
                   onChange={(event) => updateReportField("comment", event.target.value)}
-                  placeholder="РљРѕРјРјРµРЅС‚Р°СЂРёР№ С‚СЂРµРЅРµСЂСѓ"
+                  placeholder="Комментарий тренеру"
                   className="mt-3 min-h-[88px] w-full resize-none rounded-[16px] border border-appBorder bg-appCard px-3 py-2 text-[12px] font-semibold text-appText outline-none placeholder:text-appMuted"
                 />
               </div>
 
               <div className="mt-3 rounded-[20px] border border-appBorder bg-appBg p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-[12px] font-black text-appText">Р—Р°РјРµСЂС‹ РІ РѕС‚С‡С‘С‚Рµ</p>
+                  <p className="text-[12px] font-black text-appText">Замеры в отчёте</p>
                   <span className="rounded-full bg-appCard px-2 py-1 text-[10px] font-black text-appMuted">{measurementPreview.length}</span>
                 </div>
                 {measurementPreview.length ? (
                   <div className="mt-2 space-y-1.5">
                     {measurementPreview.slice(0, 3).map((item) => (
                       <p key={`${item.date}-${item.id}`} className="rounded-2xl bg-appCard px-3 py-2 text-[11px] font-semibold leading-4 text-appMuted">
-                        <span className="font-black text-appText">{item.date}</span> В· Р’РµСЃ {item.weight || "-"} В· РўР°Р»РёСЏ {item.waist || "-"} В· Р“СЂСѓРґСЊ {item.chest || "-"} В· Р‘С‘РґСЂР° {item.hips || "-"}
+                        <span className="font-black text-appText">{item.date}</span> · Вес {item.weight || "-"} · Талия {item.waist || "-"} · Грудь {item.chest || "-"} · Бёдра {item.hips || "-"}
                       </p>
                     ))}
                   </div>
                 ) : (
                   <p className="mt-2 rounded-2xl bg-appCard px-3 py-2 text-[11px] font-semibold leading-4 text-appMuted">
-                    Р РµР°Р»СЊРЅС‹С… Р·Р°РјРµСЂРѕРІ РїРѕРєР° РЅРµС‚. Р”РѕР±Р°РІСЊС‚Рµ Р·Р°РјРµСЂ РІ РїСЂРѕС„РёР»Рµ, Рё РѕРЅ РїРѕРїР°РґС‘С‚ СЃСЋРґР°.
+                    Реальных замеров пока нет. Добавьте замер в профиле, и он попадёт сюда.
                   </p>
                 )}
               </div>
 
               <div className="mt-3 rounded-[20px] border border-appBorder bg-appBg p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-[12px] font-black text-appText">Health РІ РѕС‚С‡С‘С‚Рµ</p>
+                  <p className="text-[12px] font-black text-appText">Health в отчёте</p>
                   <span className="rounded-full bg-appCard px-2 py-1 text-[10px] font-black text-appMuted">
                     {reportHealthPreview.summary.providerSource || "cache"}
                   </span>
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <div className="rounded-2xl bg-appCard px-3 py-2">
-                    <p className="text-[10px] font-black uppercase tracking-[0.08em] text-appMuted">РЁР°РіРё</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.08em] text-appMuted">Шаги</p>
                     <p className="mt-1 text-[13px] font-black text-appText">{formatReportNumber(reportHealthPreview.summary.stepsToday)}</p>
                   </div>
                   <div className="rounded-2xl bg-appCard px-3 py-2">
-                    <p className="text-[10px] font-black uppercase tracking-[0.08em] text-appMuted">РЎРѕРЅ</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.08em] text-appMuted">Сон</p>
                     <p className="mt-1 text-[13px] font-black text-appText">{formatReportSleep(reportHealthPreview.summary.sleepMinutes)}</p>
                   </div>
                   <div className="rounded-2xl bg-appCard px-3 py-2">
-                    <p className="text-[10px] font-black uppercase tracking-[0.08em] text-appMuted">РџСѓР»СЊСЃ</p>
-                    <p className="mt-1 text-[13px] font-black text-appText">{formatReportNumber(reportHealthPreview.summary.latestBpm, "СѓРґ/РјРёРЅ")}</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.08em] text-appMuted">Пульс</p>
+                    <p className="mt-1 text-[13px] font-black text-appText">{formatReportNumber(reportHealthPreview.summary.latestBpm, "уд/мин")}</p>
                   </div>
                   <div className="rounded-2xl bg-appCard px-3 py-2">
-                    <p className="text-[10px] font-black uppercase tracking-[0.08em] text-appMuted">РђРєС‚РёРІРЅС‹Рµ РєРєР°Р»</p>
-                    <p className="mt-1 text-[13px] font-black text-appText">{formatReportNumber(reportHealthPreview.summary.activeCaloriesToday, "РєРєР°Р»")}</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.08em] text-appMuted">Активные ккал</p>
+                    <p className="mt-1 text-[13px] font-black text-appText">{formatReportNumber(reportHealthPreview.summary.activeCaloriesToday, "ккал")}</p>
                   </div>
                 </div>
                 <p className="mt-2 text-[11px] font-semibold leading-4 text-appMuted">
-                  РџРµСЂРµРґ РѕС‚РїСЂР°РІРєРѕР№ РѕС‚С‡С‘С‚Р° РїСЂРёР»РѕР¶РµРЅРёРµ РїРѕРїСЂРѕР±СѓРµС‚ РѕР±РЅРѕРІРёС‚СЊ Apple Health Рё РїСЂРёР»РѕР¶РёС‚ РЅРµРґРµР»СЊРЅСѓСЋ Р°РєС‚РёРІРЅРѕСЃС‚СЊ.
+                  Перед отправкой отчёта приложение попробует обновить Apple Health и приложит недельную активность.
                 </p>
               </div>
 
@@ -1377,17 +1377,17 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
                 className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-appDark text-[14px] font-black text-appGreen disabled:opacity-70"
               >
                 {reportStatus.loading ? <Loader2 size={17} className="animate-spin" /> : <ShieldCheck size={17} />}
-                РћС‚РїСЂР°РІРёС‚СЊ РѕС‚С‡С‘С‚
+                Отправить отчёт
               </button>
-              {latestReport && <p className="mt-2 text-center text-[11px] font-bold text-appMuted">РџРѕСЃР»РµРґРЅРёР№ РѕС‚С‡С‘С‚: {formatDateTime(latestReport.submittedAt || latestReport.submitted_at || latestReport.createdAt || latestReport.created_at)}</p>}
+              {latestReport && <p className="mt-2 text-center text-[11px] font-bold text-appMuted">Последний отчёт: {formatDateTime(latestReport.submittedAt || latestReport.submitted_at || latestReport.createdAt || latestReport.created_at)}</p>}
               {reportStatus.message && <p className="mt-2 rounded-2xl bg-appBg px-3 py-2 text-center text-[12px] font-bold text-appMuted">{reportStatus.message}</p>}
             </section>
           )}
 
           <section className="rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">
-            <h2 className="text-[16px] font-black text-appText">РђРєРєР°СѓРЅС‚</h2>
+            <h2 className="text-[16px] font-black text-appText">Аккаунт</h2>
             <p className="mt-1 text-[12px] leading-5 text-appMuted">
-              {hasAuth ? "РњРѕР¶РЅРѕ РІС‹Р№С‚Рё РёР· С‚РµРєСѓС‰РµРіРѕ Р°РєРєР°СѓРЅС‚Р° РЅР° СЌС‚РѕРј СѓСЃС‚СЂРѕР№СЃС‚РІРµ." : "РЎРµР№С‡Р°СЃ РІС…РѕРґ РІ Р°РєРєР°СѓРЅС‚ РЅРµ РІС‹РїРѕР»РЅРµРЅ."}
+              {hasAuth ? "Можно выйти из текущего аккаунта на этом устройстве." : "Сейчас вход в аккаунт не выполнен."}
             </p>
             <button
               type="button"
@@ -1396,14 +1396,14 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
               className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full border border-appBorder bg-appBg text-[14px] font-black text-appText disabled:opacity-50"
             >
               <LogOut size={17} />
-              Р’С‹Р№С‚Рё РёР· Р°РєРєР°СѓРЅС‚Р°
+              Выйти из аккаунта
             </button>
           </section>
 
           <section className="rounded-[26px] border border-red-500/30 bg-red-500/10 p-4 shadow-sm">
-            <h2 className="text-[16px] font-black text-appText">РЈРґР°Р»РµРЅРёРµ Р°РєРєР°СѓРЅС‚Р°</h2>
+            <h2 className="text-[16px] font-black text-appText">Удаление аккаунта</h2>
             <p className="mt-1 text-[12px] leading-5 text-appMuted">
-              Р‘СѓРґСѓС‚ СѓРґР°Р»РµРЅС‹ РїСЂРѕС„РёР»СЊ, Р·Р°РјРµСЂС‹, РїСЂРѕРіСЂРµСЃСЃ Рё health-РґР°РЅРЅС‹Рµ, СЃРІСЏР·Р°РЅРЅС‹Рµ СЃ Р°РєРєР°СѓРЅС‚РѕРј.
+              Будут удалены профиль, замеры, прогресс и health-данные, связанные с аккаунтом.
             </p>
             <button
               type="button"
@@ -1415,7 +1415,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
               className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-red-500 text-[14px] font-black text-white disabled:opacity-70"
             >
               {deleteStatus.loading ? <Loader2 size={17} className="animate-spin" /> : <Trash2 size={17} />}
-              РЈРґР°Р»РёС‚СЊ Р°РєРєР°СѓРЅС‚
+              Удалить аккаунт
             </button>
             {deleteStatus.message && <p className="mt-3 rounded-2xl bg-appCard px-3 py-2 text-[12px] leading-5 text-red-500">{deleteStatus.message}</p>}
           </section>

@@ -50,10 +50,10 @@ function SelectPill({ value, options, onChange }) {
 
 function ChoiceChips({ value, options, onChange, label }) {
   const labelFor = (option) => ({
-    "Р‘РµР· РѕРіСЂР°РЅРёС‡РµРЅРёР№": "РћР±С‹С‡РЅРѕРµ РїРёС‚Р°РЅРёРµ",
-    "РњСЏСЃРѕРµРґС‹": "Р›СЋР±Р»СЋ РјСЏСЃРѕ",
-    "Р С‹Р±РѕРµРґС‹": "Р›СЋР±Р»СЋ СЂС‹Р±Сѓ",
-  }[option] || option || "Р’СЃРµ РїСЂРёС‘РјС‹");
+    "Без ограничений": "Обычное питание",
+    "Мясоеды": "Люблю мясо",
+    "Рыбоеды": "Люблю рыбу",
+  }[option] || option || "Все приёмы");
   const visibleOptions = (options || []).filter((option) => option !== undefined && option !== null);
   return (
     <div className="min-w-0">

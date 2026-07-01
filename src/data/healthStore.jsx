@@ -3339,7 +3339,7 @@ export function HealthProvider({ children }) {
       setAvailability({
         state: next.providerState || "not_supported",
         source: next.providerSource || "web",
-        message: next.providerMessage || "РўСЂРµРєРµСЂ РЅРµ РїРѕРґРєР»СЋС‡С‘РЅ",
+        message: next.providerMessage || "Трекер не подключён",
       });
     }
     window.addEventListener("fruitfit:health-reset", resetHealthForUser);

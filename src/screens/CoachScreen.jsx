@@ -346,7 +346,7 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
           id: "auth-required",
           userId: "",
           role: "assistant",
-          content: error.message || "Р’РѕР№РґРёС‚Рµ РІ Р°РєРєР°СѓРЅС‚, С‡С‚РѕР±С‹ РїРѕР»СЊР·РѕРІР°С‚СЊСЃСЏ AI Coach.",
+          content: error.message || "Войдите в аккаунт, чтобы пользоваться AI Coach.",
           createdAt: new Date().toISOString(),
         }]);
       } finally {
