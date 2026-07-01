@@ -412,11 +412,15 @@ function overlayCalendarHistory(series = [], historyValues = [], todayValue = 0)
 }
 
 function hasPositiveSeries(values = []) {
-  return values.some((value) => Number(value || 0) > 0);
+  return asArray(values).some((value) => Number(value || 0) > 0);
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
 }
 
 function positiveNumbers(values = []) {
-  return (values || [])
+  return asArray(values)
     .map((value) => Number(value || 0))
     .filter((value) => Number.isFinite(value) && value > 0);
 }
@@ -448,12 +452,12 @@ function sleepSessionFingerprint(session = {}) {
 
 function sleepSessionQuality(session = {}) {
   const manualBonus = session.manual || session.sourcePackage === "manual" ? 1000000 : 0;
-  return manualBonus + (session.stages || []).length * 10000 + Number(session.minutes || 0);
+  return manualBonus + asArray(session.stages).length * 10000 + Number(session.minutes || 0);
 }
 
 function dedupeSleepSessionsForCanonical(sessions = []) {
   const byKey = new Map();
-  (sessions || []).forEach((session) => {
+  asArray(sessions).forEach((session) => {
     const minutes = Number(session?.minutes || 0);
     if (!Number.isFinite(minutes) || minutes <= 0) return;
     const key = sleepSessionFingerprint(session);
@@ -535,11 +539,12 @@ function sanitizeCanonicalHealthState(state = {}) {
     });
   }
 
+  const manualSleepEntries = dedupeManualSleepEntries(asArray(sleep.manualSleepEntries));
   const dedupedSleepSessions = normalizeSleepEntriesForDisplay([
-    ...dedupeManualSleepEntries(sleep.manualSleepEntries || []),
-    ...(sleep.sessions || []),
-    ...(sleep.naps || []),
-    ...(sleep.fragments || []),
+    ...manualSleepEntries,
+    ...asArray(sleep.sessions),
+    ...asArray(sleep.naps),
+    ...asArray(sleep.fragments),
   ]);
   const sleepTimeline = buildCanonicalSleepTimeline(dedupedSleepSessions);
   const todaySleepDay = sleepTimeline.days.find((day) => day.date === localDateKey()) || sleepTimeline.days.slice(-1)[0] || null;
@@ -547,7 +552,7 @@ function sanitizeCanonicalHealthState(state = {}) {
     && sleep.dataSource === "tracker"
     && !dedupedSleepSessions.length
     && !Number(sleep.aggregateMinutes || 0)
-    && !(sleep.samples || []).length;
+    && !asArray(sleep.samples).length;
   const canonicalSleepMinutes = legacyTrackerSleepWithoutEvidence ? 0 : round(todaySleepDay?.totalMinutes || canonicalSleepMinutesFromState({ ...sleep, sessions: dedupedSleepSessions }));
   Object.assign(sleep, {
     sessions: dedupedSleepSessions,
@@ -556,7 +561,7 @@ function sanitizeCanonicalHealthState(state = {}) {
     naps: sleepTimeline.naps,
     fragments: sleepTimeline.fragments,
     shortFragmentsUnder2h: dedupedSleepSessions.filter((session) => Number(session.minutes || 0) < 120),
-    manualSleepEntries: dedupeManualSleepEntries(sleep.manualSleepEntries || []),
+    manualSleepEntries,
     nightMinutes: round(todaySleepDay?.nightMinutes || 0),
     napMinutes: round(todaySleepDay?.napMinutes || 0),
     fragmentMinutes: round(todaySleepDay?.fragmentMinutes || 0),
@@ -581,13 +586,13 @@ function sanitizeCanonicalHealthState(state = {}) {
 }
 
 function sleepWeekMinutes(sleep = {}) {
-  if ((sleep.weekRaw || []).length) return positiveNumbers(sleep.weekRaw);
-  if ((sleep.week || []).length) return positiveNumbers((sleep.week || []).map((item) => item?.minutes));
+  if (asArray(sleep.weekRaw).length) return positiveNumbers(sleep.weekRaw);
+  if (asArray(sleep.week).length) return positiveNumbers(asArray(sleep.week).map((item) => item?.minutes));
   return [];
 }
 
 function heartHistoryValues(heart = {}, key = "avg") {
-  return positiveNumbers((heart.history7d || []).map((item) => item?.[key]));
+  return positiveNumbers(asArray(heart.history7d).map((item) => item?.[key]));
 }
 
 function makeEmptyHealth(saved = {}) {
@@ -655,12 +660,12 @@ function calculateRecoveryReadiness(data = {}) {
   const napsTodayMinutes = round(today.napMinutes || 0);
   const heartAvg24h = Number(heart.avg24h || 0) || null;
   const heartAvg7d = Number(heart.avg7d || 0)
-    || averagePositive((heart.history7d || []).map((item) => item?.avg || item?.latestBpm || 0))
+    || averagePositive(asArray(heart.history7d).map((item) => item?.avg || item?.latestBpm || 0))
     || null;
   const heartRange24h = heart.range24h || heart.dayRange || [heart.min24h || null, heart.max24h || null];
   const heartRange7d = heart.range7d || [null, null];
   const stepsToday = Number(data.steps?.today || 0) || 0;
-  const stepsAverage7d = averagePositive((data.steps?.weekRaw || []).length ? data.steps.weekRaw : data.steps?.week);
+  const stepsAverage7d = averagePositive(asArray(data.steps?.weekRaw).length ? data.steps.weekRaw : data.steps?.week);
   const hasData = Boolean(timeline.entries.length || sleep.dataSource || heart.dataSource || data.steps?.dataSource || data.workouts?.dataSource);
 
   if (!hasData) {
@@ -850,10 +855,10 @@ export function calculateReadiness(data) {
   const averagePenalty = Math.max(0, pulseAverage - 95) * 0.8;
   const pulseScore = heart.dataSource ? clamp(100 - restingPenalty - rangePenalty - averagePenalty, 20, 100) : 55;
   const stepsToday = data.steps?.today || 0;
-  const stepsAverage7d = averagePositive((data.steps?.weekRaw || []).length ? data.steps.weekRaw : data.steps?.week);
+  const stepsAverage7d = averagePositive(asArray(data.steps?.weekRaw).length ? data.steps.weekRaw : data.steps?.week);
   const steps = stepsAverage7d || stepsToday;
   const caloriesToday = data.calories?.today || 0;
-  const caloriesAverage7d = averagePositive((data.calories?.weekRaw || []).length ? data.calories.weekRaw : data.calories?.week);
+  const caloriesAverage7d = averagePositive(asArray(data.calories?.weekRaw).length ? data.calories.weekRaw : data.calories?.week);
   const calories = caloriesAverage7d || caloriesToday;
   const activityScore = data.steps?.dataSource ? clamp(100 - Math.abs(steps - 8500) / 95, 25, 100) : 55;
   const caloriesScore = data.calories?.dataSource ? clamp(100 - Math.abs(calories - 430) / 6, 20, 100) : 55;
@@ -934,10 +939,10 @@ function metricHasHistoryCache(metric = {}, kind = "metric") {
   }
   if (kind === "heart") {
     return hasPositiveSeries(metric.weekRaw || [])
-      || hasPositiveSeries((metric.history7d || []).map((item) => item?.avg || item?.latestBpm || 0));
+      || hasPositiveSeries(asArray(metric.history7d).map((item) => item?.avg || item?.latestBpm || 0));
   }
   if (kind === "sleep") {
-    return hasPositiveSeries(metric.weekRaw || []) || (metric.week || []).some((item) => Number(item?.minutes || 0) > 0);
+    return hasPositiveSeries(metric.weekRaw) || asArray(metric.week).some((item) => Number(item?.minutes || 0) > 0);
   }
   if (kind === "workouts") return Number(metric.recentWorkouts || metric.recentLoad || 0) > 0;
   return metricHasCache(metric, kind);
@@ -960,7 +965,7 @@ function isRateLimitedResult(result) {
 }
 
 function hasRateLimitedResult(results = []) {
-  return results.some(isRateLimitedResult);
+  return asArray(results).some(isRateLimitedResult);
 }
 
 function metricHasCache(metric = {}, kind = "metric") {
@@ -975,10 +980,10 @@ function metricHasCache(metric = {}, kind = "metric") {
     return Number(metric.latestBpm || metric.avg24h || metric.min24h || metric.max24h || 0) > 0
       || hasPositiveSeries(metric.hourly || [])
       || hasPositiveSeries(metric.weekRaw || [])
-      || hasPositiveSeries((metric.history7d || []).map((item) => item?.avg || item?.latestBpm || 0));
+      || hasPositiveSeries(asArray(metric.history7d).map((item) => item?.avg || item?.latestBpm || 0));
   }
   if (kind === "sleep") {
-    return Number(metric.minutes || 0) > 0 || hasPositiveSeries(metric.weekRaw || []) || (metric.week || []).some((item) => Number(item?.minutes || 0) > 0);
+    return Number(metric.minutes || 0) > 0 || hasPositiveSeries(metric.weekRaw) || asArray(metric.week).some((item) => Number(item?.minutes || 0) > 0);
   }
   if (kind === "workouts") {
     return Number(metric.recentWorkouts || metric.recentLoad || 0) > 0;
@@ -1660,10 +1665,10 @@ function buildCanonicalSleepTimeline(sleepOrEntries = {}) {
   const entries = Array.isArray(sleepOrEntries)
     ? normalizeSleepEntriesForDisplay(sleepOrEntries)
     : normalizeSleepEntriesForDisplay([
-      ...(sleepOrEntries.manualSleepEntries || []),
-      ...(sleepOrEntries.sessions || []),
-      ...(sleepOrEntries.naps || []),
-      ...(sleepOrEntries.fragments || []),
+      ...asArray(sleepOrEntries.manualSleepEntries),
+      ...asArray(sleepOrEntries.sessions),
+      ...asArray(sleepOrEntries.naps),
+      ...asArray(sleepOrEntries.fragments),
     ]);
   const days = lastDays(7).map((day) => ({
     ...day,

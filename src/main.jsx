@@ -19,6 +19,31 @@ function saveBootError(entry = {}) {
   }
 }
 
+function clearHealthCacheStorage() {
+  if (typeof window === "undefined") return;
+  const exactKeys = new Set([
+    "fruitfit.health",
+    "fruitfit.health.history",
+    "fruitfit.health.preferredSourcePackage",
+  ]);
+  const prefixes = [
+    "fruitfit.health:",
+    "fruitfit.health.history:",
+  ];
+
+  try {
+    for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+      const key = localStorage.key(index);
+      if (!key) continue;
+      if (exactKeys.has(key) || prefixes.some((prefix) => key.startsWith(prefix))) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch (_) {
+    // Cache cleanup must never block the recovery button.
+  }
+}
+
 if (typeof window !== "undefined" && !window.__fruitfitBootDiagnosticsInstalled) {
   window.__fruitfitBootDiagnosticsInstalled = true;
   window.addEventListener("error", (event) => {
@@ -84,7 +109,7 @@ class BootErrorBoundary extends React.Component {
         <button
           type="button"
           onClick={() => {
-            localStorage.removeItem("fruitfit.health");
+            clearHealthCacheStorage();
             window.location.reload();
           }}
           style={{ marginTop: 18, height: 44, border: 0, borderRadius: 999, padding: "0 18px", background: "#BFF36B", color: "#101711", fontWeight: 900 }}
