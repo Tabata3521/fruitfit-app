@@ -20,6 +20,7 @@ const CAPACITOR_PLATFORM = Capacitor.getPlatform?.() || "web";
 const IS_IOS_PLATFORM = CAPACITOR_PLATFORM === "ios";
 const HEALTH_PROVIDER_NAME = IS_IOS_PLATFORM ? "Apple Health" : "Health Connect";
 const HEALTH_PROVIDER_DEVICE_COPY = IS_IOS_PLATFORM ? "iPhone" : "Android";
+const ACCESS_INFINITY_LABEL = "∞";
 
 const permissionItems = [
   { id: "watch", label: "Смарт-часы", permissionKey: null },
@@ -727,11 +728,24 @@ function isAdminAccess(access = {}, user = {}) {
   return Boolean(access?.isAdmin || user?.isAdmin || values.includes("admin"));
 }
 
-function accessCardInfo(access = {}, user = {}) {
+function subscriptionExpiryDate(subscription = null) {
+  return (
+    subscription?.paidUntil
+    || subscription?.paid_until
+    || subscription?.accessUntil
+    || subscription?.access_until
+    || subscription?.nextChargeAt
+    || subscription?.nextPaymentDate
+    || subscription?.next_payment_date
+    || null
+  );
+}
+
+function accessCardInfo(access = {}, user = {}, subscription = null) {
   const tier = accessTier(access);
   const status = String(access?.status || access?.plan || "").toLowerCase();
   const role = String(access?.role || "").toLowerCase();
-  const expiresAt = accessExpiryDate(access);
+  const expiresAt = subscriptionExpiryDate(subscription) || accessExpiryDate(access);
   const daysLeft = daysUntil(expiresAt);
 
   if (isAdminAccess(access, user)) {
@@ -740,7 +754,7 @@ function accessCardInfo(access = {}, user = {}) {
       title: "FruitFit Admin",
       subtitle: "Админ-доступ",
       meta: "Доступ активен",
-      ringLabel: "в€ћ",
+      ringLabel: ACCESS_INFINITY_LABEL,
       ringCaption: "",
       ringFull: true,
       ringProgress: 1,
@@ -754,7 +768,7 @@ function accessCardInfo(access = {}, user = {}) {
       title: "FruitFit VIP",
       subtitle: "Персональное сопровождение",
       meta: formatAccessDate(expiresAt),
-      ringLabel: daysLeft == null ? "в€ћ" : String(Math.min(daysLeft, 999)),
+      ringLabel: daysLeft == null ? ACCESS_INFINITY_LABEL : String(Math.min(daysLeft, 999)),
       ringCaption: daysLeft == null ? "" : "дней",
       ringFull: !hasFiniteAccess,
       ringProgress: hasFiniteAccess ? accessRingProgress(access, expiresAt, daysLeft) : 1,
@@ -769,7 +783,7 @@ function accessCardInfo(access = {}, user = {}) {
       title: "FruitFit Pro",
       subtitle: adminLike ? "Полный доступ" : "Полная программа",
       meta: adminLike && !expiresAt ? "Доступ активен" : formatAccessDate(expiresAt),
-      ringLabel: daysLeft == null ? "в€ћ" : String(Math.min(daysLeft, 999)),
+      ringLabel: daysLeft == null ? ACCESS_INFINITY_LABEL : String(Math.min(daysLeft, 999)),
       ringCaption: daysLeft == null ? "" : "дней",
       ringFull: !hasFiniteAccess,
       ringProgress: hasFiniteAccess ? accessRingProgress(access, expiresAt, daysLeft) : 1,
@@ -781,7 +795,7 @@ function accessCardInfo(access = {}, user = {}) {
     title: "FruitFit Free",
     subtitle: "Стартовый доступ",
     meta: "Preview программы",
-    ringLabel: "в€ћ",
+    ringLabel: ACCESS_INFINITY_LABEL,
     ringCaption: "",
     ringFull: true,
     ringProgress: 1,
@@ -802,7 +816,7 @@ function AccessMembershipCard({
   onOpenPayment,
   onCancelSubscription,
 }) {
-  const info = accessCardInfo(access, authUser);
+  const info = accessCardInfo(access, authUser, subscription);
   const isFreeAccess = info.kind === "free";
   const isPaidAccess = info.kind === "paid";
   const showSubscriptionBlock = Boolean(hasAuth && info.kind !== "free" && !IS_IOS_PLATFORM);
@@ -812,6 +826,7 @@ function AccessMembershipCard({
   const paymentButtonText = "Оформить персональную программу";
   const accessUntilText = formatSubscriptionDate(subscription?.paidUntil || subscription?.paid_until || accessExpiryDate(access));
   const ringDegrees = info.ringFull ? 360 : Math.round(Math.max(0, Math.min(1, info.ringProgress ?? 1)) * 360);
+  const ringLabelClass = info.ringCaption ? "text-[20px] tabular-nums tracking-normal" : "text-[26px]";
 
   return (
     <div className="mt-4 rounded-[24px] border border-appBorder bg-appBg p-3">
@@ -824,7 +839,7 @@ function AccessMembershipCard({
         </div>
         <div className={`access-days-ring ${info.ringFull ? "is-full" : ""} grid h-[74px] w-[74px] shrink-0 place-items-center rounded-full text-center`} style={{ "--access-ring-deg": `${ringDegrees}deg` }}>
           <span>
-            <span className="block text-[22px] font-black leading-none text-appText">{info.ringLabel}</span>
+            <span className={`block ${ringLabelClass} font-black leading-none text-appText`}>{info.ringLabel}</span>
             {info.ringCaption && <span className="mt-1 block text-[10px] font-black uppercase tracking-[0.08em] text-appMuted">{info.ringCaption}</span>}
           </span>
         </div>
