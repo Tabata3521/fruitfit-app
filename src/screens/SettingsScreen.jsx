@@ -804,6 +804,8 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
   const [localPhotoPreviews, setLocalPhotoPreviews] = useState(loadPhotoPreviewCache);
   const [brokenPhotoUrls, setBrokenPhotoUrls] = useState(() => new Set());
   const [reportStatus, setReportStatus] = useState({ loading: false, message: "" });
+  const [contactForm, setContactForm] = useState(() => profileContacts(loadProfile()));
+  const [contactStatus, setContactStatus] = useState({ loading: false, message: "" });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteStatus, setDeleteStatus] = useState({ loading: false, message: "" });
   const [telegramWidgetOpen, setTelegramWidgetOpen] = useState(false);
@@ -871,6 +873,14 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
   const latestReportMeasurements = reportMeasurementsFrom(latestReport?.measurements || []);
   const measurementPreview = latestReportMeasurements.length ? latestReportMeasurements : localReportMeasurements;
   const reportHealthPreview = useMemo(() => buildReportHealthSnapshot(health), [health]);
+
+  useEffect(() => {
+    function handleProfileUpdated(event) {
+      setContactForm(profileContacts(event?.detail || loadProfile()));
+    }
+    window.addEventListener("fruitfit:profile-updated", handleProfileUpdated);
+    return () => window.removeEventListener("fruitfit:profile-updated", handleProfileUpdated);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1068,6 +1078,37 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
       setAccountStatus({ loading: false, message: `${label} отвязан` });
     } catch (error) {
       setAccountStatus({ loading: false, message: error?.message || `Не удалось отвязать ${label}` });
+    }
+  }
+
+  function updateContactField(field, value) {
+    setContactStatus((current) => ({ ...current, message: "" }));
+    setContactForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function saveContacts() {
+    if (!hasAuth) {
+      setContactStatus({ loading: false, message: "Войдите в аккаунт, чтобы сохранить контакты." });
+      return;
+    }
+    setContactStatus({ loading: true, message: "" });
+    try {
+      const nextContacts = {
+        phone: String(contactForm.phone || "").trim(),
+        telegram: normalizeTelegramContact(contactForm.telegram),
+      };
+      const savedProfile = saveProfile({ ...loadProfile(), ...nextContacts });
+      setContactForm(profileContacts(savedProfile));
+      const serverProfile = await saveServerProfile(savedProfile);
+      if (serverProfile) {
+        const mergedProfile = saveProfile({ ...savedProfile, ...serverProfile });
+        setContactForm(profileContacts(mergedProfile));
+        setContactStatus({ loading: false, message: "Контакты сохранены" });
+        return;
+      }
+      setContactStatus({ loading: false, message: "Контакты сохранены на устройстве. Сервер не подтвердил обновление." });
+    } catch (error) {
+      setContactStatus({ loading: false, message: error?.message || "Не удалось сохранить контакты" });
     }
   }
 
