@@ -285,7 +285,7 @@ function PrivacySettingsSection() {
 
       <button
         type="button"
-        onClick={() => openSettingsExternalUrl("https://api.tagirfruit.ru/legal/fruitfit-privacy-policy.docx")}
+        onClick={() => openSettingsExternalUrl("https://tagirfruit.ru/privacy-policy")}
         className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full border border-appBorder bg-appBg text-[14px] font-black text-appText"
       >
         <Link2 size={17} />

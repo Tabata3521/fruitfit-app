@@ -5,8 +5,9 @@
 Scope: iOS/App Store registration compliance. No backend, payments, HealthKit, Firebase, or Android release logic changes were made.
 
 - Added a required privacy/personal data processing consent checkbox to the email registration form.
-- Linked the consent text to the existing public policy document: `https://api.tagirfruit.ru/legal/fruitfit-privacy-policy.docx`.
+- Linked the consent text to the public policy page: `https://tagirfruit.ru/privacy-policy`.
 - Blocked `/api/auth/email/register` submission until the user accepts the consent.
+- Switched the policy link to `https://tagirfruit.ru/privacy-policy` and added Capacitor Browser so it opens in-app instead of handing users to an external browser.
 
 ## 2026-06-29 - iOS release-candidate sync
 

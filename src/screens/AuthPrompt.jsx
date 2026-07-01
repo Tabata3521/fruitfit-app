@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Browser } from "@capacitor/browser";
 import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
 import {
   apiUrl,
@@ -12,7 +13,7 @@ import { registerFirebaseMessagingPush } from "../services/notifications/firebas
 import { postJson } from "../services/nativeHttp";
 
 const SKIP_AUTH_KEY = "fruitfit.authSkipped";
-const PRIVACY_POLICY_URL = "https://api.tagirfruit.ru/legal/fruitfit-privacy-policy.docx";
+const PRIVACY_POLICY_URL = "https://tagirfruit.ru/privacy-policy";
 
 function authActionFromUrl(rawUrl = window.location.href) {
   try {
@@ -44,6 +45,16 @@ function Field({ label, children }) {
       {children}
     </label>
   );
+}
+
+async function openPrivacyPolicy(event) {
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  try {
+    await Browser.open({ url: PRIVACY_POLICY_URL, presentationStyle: "fullscreen" });
+  } catch (_) {
+    window.open(PRIVACY_POLICY_URL, "_self");
+  }
 }
 
 export default function AuthPrompt({ onComplete, initialUrl = window.location.href }) {
@@ -322,15 +333,13 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
               />
               <span>
                 Я согласен с{" "}
-                <a
-                  href={PRIVACY_POLICY_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-black text-appText underline decoration-appGreen decoration-2 underline-offset-4"
-                  onClick={(event) => event.stopPropagation()}
+                <button
+                  type="button"
+                  className="border-0 bg-transparent p-0 text-left font-black text-appText underline decoration-appGreen decoration-2 underline-offset-4"
+                  onClick={openPrivacyPolicy}
                 >
                   политикой конфиденциальности и политикой обработки персональных данных
-                </a>
+                </button>
                 .
               </span>
             </label>
