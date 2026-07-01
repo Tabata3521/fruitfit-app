@@ -305,7 +305,7 @@ function ContactSettingsSection({ hasAuth, form, status, onChange, onSave }) {
         <div className="min-w-0">
           <h2 className="text-[16px] font-black text-appText">РљРѕРЅС‚Р°РєС‚С‹</h2>
           <p className="mt-1 text-[12px] leading-5 text-appMuted">
-            РўРµР»РµС„РѕРЅ Рё Telegram РЅСѓР¶РЅС‹ РґР»СЏ СЃРІСЏР·Рё СЃ РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј Рё РїРѕРґРґРµСЂР¶РєРё Р°РєРєР°СѓРЅС‚Р°.
+            Телефон и Telegram нужны только для связи с тренером.
           </p>
         </div>
       </div>

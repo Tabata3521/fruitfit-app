@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Browser } from "@capacitor/browser";
-import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Capacitor, CapacitorHttp } from "@capacitor/core";
+import { ArrowLeft, ArrowRight, ExternalLink, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import {
   apiUrl,
   fetchAccess,
@@ -11,9 +12,9 @@ import {
 import { getDeviceRegistrationPayloadAsync, registerDevice } from "../data/deviceStore";
 import { registerFirebaseMessagingPush } from "../services/notifications/firebaseMessagingPush";
 import { postJson } from "../services/nativeHttp";
+import { PRIVACY_POLICY_TEXT, PRIVACY_POLICY_URL } from "../data/privacyPolicyText";
 
 const SKIP_AUTH_KEY = "fruitfit.authSkipped";
-const PRIVACY_POLICY_URL = "https://tagirfruit.ru/privacy-policy";
 
 function authActionFromUrl(rawUrl = window.location.href) {
   try {
@@ -47,13 +48,162 @@ function Field({ label, children }) {
   );
 }
 
-async function openPrivacyPolicy(event) {
+function normalizePolicyText(value = "") {
+  return String(value || "")
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function policyTextFromHtml(html = "") {
+  if (typeof DOMParser === "undefined") return "";
+  const document = new DOMParser().parseFromString(String(html || ""), "text/html");
+  const content = document.querySelector("[field='text']") || document.querySelector(".t-text") || document.body;
+  return normalizePolicyText(content?.innerText || "");
+}
+
+async function fetchOfficialPrivacyPolicyText() {
+  if (Capacitor?.isNativePlatform?.()) {
+    const response = await CapacitorHttp.get({
+      url: PRIVACY_POLICY_URL,
+      responseType: "text",
+      headers: { Accept: "text/html,text/plain" },
+    });
+    if (response.status < 200 || response.status >= 300) throw new Error("privacy-policy-request-failed");
+    const text = policyTextFromHtml(response.data) || normalizePolicyText(response.data);
+    if (text.length < 400) throw new Error("privacy-policy-empty");
+    return text;
+  }
+
+  const response = await fetch(PRIVACY_POLICY_URL, {
+    cache: "no-store",
+    credentials: "omit",
+    mode: "cors",
+  });
+  if (!response.ok) throw new Error("privacy-policy-request-failed");
+  const html = await response.text();
+  const text = policyTextFromHtml(html) || normalizePolicyText(html);
+  if (text.length < 400) throw new Error("privacy-policy-empty");
+  return text;
+}
+
+function PolicyLine({ line }) {
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+  const isTitle = trimmed === "ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ";
+  const isSection = /^\d+\.\s/.test(trimmed) || trimmed === "Реквизиты Исполнителя / Оператора";
+  const isMeta = /^и обработки/.test(trimmed) || /^Редакция/.test(trimmed);
+  if (isTitle) {
+    return <h2 className="text-[22px] font-black leading-tight text-appText">{trimmed}</h2>;
+  }
+  if (isSection) {
+    return <h3 className="mt-5 text-[16px] font-black leading-snug text-appText">{trimmed}</h3>;
+  }
+  if (isMeta) {
+    return <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-appMuted">{trimmed}</p>;
+  }
+  return <p className="text-[13px] font-semibold leading-6 text-appMuted">{trimmed}</p>;
+}
+
+function PrivacyPolicyScreen({ onBack }) {
+  const [policyText, setPolicyText] = useState(PRIVACY_POLICY_TEXT);
+  const [loadedFromSite, setLoadedFromSite] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    fetchOfficialPrivacyPolicyText()
+      .then((text) => {
+        if (!alive) return;
+        setPolicyText(text);
+        setLoadedFromSite(true);
+      })
+      .catch(() => {
+        if (alive) setLoadedFromSite(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  async function openOfficialPolicy() {
+    try {
+      await Browser.open({ url: PRIVACY_POLICY_URL, presentationStyle: "popover" });
+    } catch (_) {
+      window.open(PRIVACY_POLICY_URL, "_blank", "noopener,noreferrer");
+    }
+  }
+
+  const lines = normalizePolicyText(policyText).split("\n").filter((line) => line.trim());
+
+  return (
+    <main className="phone-shell flex h-screen max-h-screen flex-col bg-appBg text-appText">
+      <header className="shrink-0 border-b border-appBorder bg-appBg/95 px-4 pb-3 pt-[var(--app-safe-top)] backdrop-blur">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-appBorder bg-appCard text-appText shadow-sm"
+            aria-label="Вернуться к регистрации"
+          >
+            <ArrowLeft size={22} />
+          </button>
+          <div className="min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#6FA62F]">FruitFit</p>
+            <h1 className="truncate text-[18px] font-black leading-tight text-appText">Политика конфиденциальности</h1>
+          </div>
+        </div>
+      </header>
+
+      <article className="allow-select min-h-0 flex-1 overflow-y-auto px-4 py-4">
+        <div className="rounded-[22px] border border-appBorder bg-appCard p-4 shadow-sm">
+          <div className="mb-4 flex items-start gap-3 rounded-[18px] border border-appBorder bg-appBg p-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-appGreen/15 text-appGreen">
+              <ShieldCheck size={18} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[13px] font-black text-appText">
+                {loadedFromSite ? "Загружено с официального сайта" : "Официальный текст доступен внутри приложения"}
+              </p>
+              <p className="mt-1 text-[12px] font-semibold leading-5 text-appMuted">
+                Можно вернуться к регистрации по стрелке сверху.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {lines.map((line, index) => (
+              <PolicyLine key={`${index}-${line.slice(0, 24)}`} line={line} />
+            ))}
+          </div>
+        </div>
+      </article>
+
+      <footer className="shrink-0 border-t border-appBorder bg-appBg/95 px-4 pb-[var(--app-safe-bottom)] pt-3 backdrop-blur">
+        <button
+          type="button"
+          onClick={openOfficialPolicy}
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-appBorder bg-appCard px-4 text-[13px] font-black text-appText shadow-sm"
+        >
+          Открыть на сайте
+          <ExternalLink size={16} />
+        </button>
+      </footer>
+    </main>
+  );
+}
+
+function stopPrivacyLinkClick(event) {
   event?.preventDefault?.();
   event?.stopPropagation?.();
+}
+
+async function openPrivacyPolicyExternal(event) {
+  stopPrivacyLinkClick(event);
   try {
-    await Browser.open({ url: PRIVACY_POLICY_URL, presentationStyle: "fullscreen" });
+    await Browser.open({ url: PRIVACY_POLICY_URL, presentationStyle: "popover" });
   } catch (_) {
-    window.open(PRIVACY_POLICY_URL, "_self");
+    window.open(PRIVACY_POLICY_URL, "_blank", "noopener,noreferrer");
   }
 }
 
@@ -67,6 +217,7 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
   const [verifyToken, setVerifyToken] = useState(initialAction.mode === "verify" ? initialAction.token : "");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [privacyPolicyOpen, setPrivacyPolicyOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -262,13 +413,17 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
     verifySent: "Проверьте почту",
   }[mode] || "Войти";
 
+  if (privacyPolicyOpen) {
+    return <PrivacyPolicyScreen onBack={() => setPrivacyPolicyOpen(false)} />;
+  }
+
   return (
     <main className="phone-shell flex min-h-screen flex-col justify-between bg-appBg px-4 pb-[var(--app-safe-bottom)] pt-[var(--app-safe-top)]">
       <section>
         <p className="text-[12px] font-black uppercase tracking-[0.16em] text-[#6FA62F]">fruitfit</p>
         <h1 className="mt-4 text-[30px] font-black leading-tight text-appText">{title}</h1>
         <p className="mt-3 text-[14px] leading-6 text-appMuted">
-          Основной вход FruitFit — email и пароль. Telegram остаётся для связи с тренером, уведомлений и бота.
+          Используйте email и пароль, чтобы войти или создать аккаунт FruitFit.
         </p>
 
         <form className="mt-6 grid gap-3" onSubmit={submit}>
@@ -336,7 +491,11 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
                 <button
                   type="button"
                   className="border-0 bg-transparent p-0 text-left font-black text-appText underline decoration-appGreen decoration-2 underline-offset-4"
-                  onClick={openPrivacyPolicy}
+                  onClick={(event) => {
+                    stopPrivacyLinkClick(event);
+                    setPrivacyPolicyOpen(true);
+                  }}
+                  onAuxClick={openPrivacyPolicyExternal}
                 >
                   политикой конфиденциальности и политикой обработки персональных данных
                 </button>
@@ -431,9 +590,6 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
         )}
       </section>
 
-      <p className="pb-1 text-center text-[11px] leading-5 text-appMuted">
-        Telegram можно подключить позже в профиле как сервис связи и уведомлений.
-      </p>
     </main>
   );
 }

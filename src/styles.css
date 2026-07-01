@@ -220,8 +220,6 @@ input {
   overflow-x: hidden;
   overflow-y: visible;
   position: relative;
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
 }
 
 .phone-shell.min-h-screen,

@@ -15,7 +15,7 @@ import { registerFirebaseMessagingPush } from "../services/notifications/firebas
 
 const MEASUREMENTS_KEY = "fruitfit.measurements";
 const AVATAR_STORAGE_KEY = "fruitfit.avatar";
- IOS_PUSH_TOKEN_KEY = "fruitfit.push.fcmToken.ios.v1";
+const IOS_PUSH_TOKEN_KEY = "fruitfit.push.fcmToken.ios.v1";
 const CAPACITOR_PLATFORM = Capacitor.getPlatform?.() || "web";
 const IS_IOS_PLATFORM = CAPACITOR_PLATFORM === "ios";
 const HEALTH_PROVIDER_NAME = IS_IOS_PLATFORM ? "Apple Health" : "Health Connect";
