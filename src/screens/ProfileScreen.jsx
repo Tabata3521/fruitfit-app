@@ -21,6 +21,7 @@ const IS_IOS_PLATFORM = CAPACITOR_PLATFORM === "ios";
 const HEALTH_PROVIDER_NAME = IS_IOS_PLATFORM ? "Apple Health" : "Health Connect";
 const HEALTH_PROVIDER_DEVICE_COPY = IS_IOS_PLATFORM ? "iPhone" : "Android";
 const ACCESS_INFINITY_LABEL = "∞";
+const PAYMENT_PAGE_URL = String(import.meta.env.VITE_FRUITFIT_PAYMENT_URL || "https://tagirfruit.ru/payment");
 
 const permissionItems = [
   { id: "watch", label: "Смарт-часы", permissionKey: null },
@@ -192,7 +193,33 @@ function buildPaymentProgramParams(profile = {}) {
   };
 }
 
-function paymentPageUrl(sessionId) {
+function firstPaymentSessionValue(session = {}, ...keys) {
+  for (const key of keys) {
+    const value = String(session?.[key] || "").trim();
+    if (value) return value;
+  }
+  return "";
+}
+
+function paymentPageUrl(session) {
+  const directUrl = firstPaymentSessionValue(
+    session,
+    "paymentUrl",
+    "payment_url",
+    "checkoutUrl",
+    "checkout_url",
+    "redirectUrl",
+    "redirect_url",
+    "confirmationUrl",
+    "confirmation_url",
+    "robokassaUrl",
+    "robokassa_url",
+    "url"
+  );
+  if (directUrl) return new URL(directUrl, window.location.origin).toString();
+
+  const sessionId = firstPaymentSessionValue(session, "id", "sessionId", "session_id", "paymentSessionId", "payment_session_id");
+  if (!sessionId) return "";
   const url = new URL(PAYMENT_PAGE_URL, window.location.origin);
   url.searchParams.set("ps", sessionId);
   return url.toString();
@@ -1158,8 +1185,9 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
         productCode: "program_subscription",
         recurringEnabled: true,
       });
-      if (!session?.id) throw new Error("Не удалось подготовить оплату. Попробуйте позже.");
-      window.location.href = paymentPageUrl(session.id);
+      const paymentUrl = paymentPageUrl(session);
+      if (!paymentUrl) throw new Error("Не удалось подготовить ссылку оплаты. Попробуйте позже.");
+      window.location.href = paymentUrl;
     } catch (error) {
       setPaymentStatus(error?.message || "Не удалось открыть оплату");
     } finally {
