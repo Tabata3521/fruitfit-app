@@ -1,5 +1,13 @@
 ﻿# WORKLOG - FruitFit Food Database & Nutrition Parser
 
+## 2026-07-01 - iOS registration privacy consent
+
+Scope: iOS/App Store registration compliance. No backend, payments, HealthKit, Firebase, or Android release logic changes were made.
+
+- Added a required privacy/personal data processing consent checkbox to the email registration form.
+- Linked the consent text to the existing public policy document: `https://api.tagirfruit.ru/legal/fruitfit-privacy-policy.docx`.
+- Blocked `/api/auth/email/register` submission until the user accepts the consent.
+
 ## 2026-06-29 - iOS release-candidate sync
 
 Scope: iOS/App Store release-candidate preparation. No backend, Robokassa, auth redirects, HealthKit connector logic, or Firebase config changes were made.

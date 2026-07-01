@@ -12,6 +12,7 @@ import { registerFirebaseMessagingPush } from "../services/notifications/firebas
 import { postJson } from "../services/nativeHttp";
 
 const SKIP_AUTH_KEY = "fruitfit.authSkipped";
+const PRIVACY_POLICY_URL = "https://api.tagirfruit.ru/legal/fruitfit-privacy-policy.docx";
 
 function authActionFromUrl(rawUrl = window.location.href) {
   try {
@@ -54,6 +55,7 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
   const [resetToken, setResetToken] = useState(initialAction.mode === "reset" ? initialAction.token : "");
   const [verifyToken, setVerifyToken] = useState(initialAction.mode === "verify" ? initialAction.token : "");
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -106,6 +108,10 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
     }
     if (password !== confirmPassword) {
       setMessage("Пароли не совпадают.");
+      return;
+    }
+    if (!privacyAccepted) {
+      setMessage("Для регистрации нужно согласиться с политикой конфиденциальности и обработкой персональных данных.");
       return;
     }
     setSubmitting(true);
@@ -305,6 +311,31 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
             </Field>
           )}
 
+          {mode === "register" && (
+            <label className="flex items-start gap-3 rounded-[18px] border border-appBorder bg-appCard p-3 text-[12px] leading-5 text-appMuted">
+              <input
+                type="checkbox"
+                checked={privacyAccepted}
+                onChange={(event) => setPrivacyAccepted(event.target.checked)}
+                className="mt-1 h-5 w-5 shrink-0 accent-appGreen"
+                required
+              />
+              <span>
+                Я согласен с{" "}
+                <a
+                  href={PRIVACY_POLICY_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-black text-appText underline decoration-appGreen decoration-2 underline-offset-4"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  политикой конфиденциальности и политикой обработки персональных данных
+                </a>
+                .
+              </span>
+            </label>
+          )}
+
           {mode === "reset" && !resetToken && (
             <Field label="Код из письма">
               <input
@@ -330,7 +361,7 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
           {!["verifySent", "verifySuccess"].includes(mode) && (
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || (mode === "register" && !privacyAccepted)}
               className="mt-1 flex h-[54px] items-center justify-center gap-2 rounded-full bg-appGreen px-5 text-[15px] font-black text-[#181F19] shadow-card disabled:opacity-70"
             >
               {submitting ? <Loader2 size={18} className="animate-spin" /> : null}
