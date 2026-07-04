@@ -487,12 +487,13 @@ meRouter.get("/trainer-reports", async (req, res) => {
 });
 
 meRouter.post("/trainer-reports", async (req, res) => {
-  if (!await hasVipFeatureAccess(req.user)) {
+  const reportPayload = req.body?.report && typeof req.body.report === "object" ? req.body.report : {};
+  if (!isWorkoutTrainerReport(reportPayload) && !await hasVipFeatureAccess(req.user)) {
     res.status(403).json({ error: "VIP_ACCESS_REQUIRED" });
     return;
   }
   const id = crypto.randomUUID();
-  const report = normalizeTrainerReport(req.body?.report || {});
+  const report = normalizeTrainerReport(reportPayload);
   const title = String(req.body?.title || report.title || "Отчёт клиента").slice(0, 160);
   const result = await query(
     `INSERT INTO vip_reports (id, user_id, status, title, report, created_at, updated_at)
@@ -3102,6 +3103,26 @@ function normalizeTrainerReport(input = {}) {
     sleepQuality: scores.sleepQuality,
     workoutFeeling: scores.workoutFeeling
   };
+}
+
+function isWorkoutTrainerReport(input = {}) {
+  const report = sanitizeObject(input || {});
+  const candidates = [
+    report.kind,
+    report.type,
+    report.reportKind,
+    report.report_kind,
+    report.reportType,
+    report.report_type,
+    report.checkinKind,
+    report.checkin_kind,
+    report.checkinType,
+    report.checkin_type
+  ];
+  return candidates.some((value) => {
+    const normalized = String(value || "").trim().toLowerCase().replace(/[-\s]+/g, "_");
+    return normalized === "workout_checkin";
+  });
 }
 
 function localDateKey(date = new Date()) {
