@@ -7,14 +7,17 @@ import { catalogRouter, rawDataRouter } from "./catalog.js";
 import { coachRouter } from "./coach.js";
 import { query } from "./db.js";
 import { runMigrations } from "./migrate.js";
+import { foodRouter } from "./food.js";
 import { nutritionRouter } from "./nutrition.js";
+import { trainerRequestsRouter } from "./trainerRequests.js";
 import { notificationRouter } from "./notifications.js";
-import { paymentsRouter, startPaymentAssignmentWorker } from "./payments.js";
+import { paymentsRouter, referralsRouter, startPaymentAssignmentWorker, startPaymentLinkEmailWorker } from "./payments.js";
 import { startRobokassaRecurringWorker } from "./robokassaRecurringWorker.js";
-import { referralsRouter } from "./referrals.js";
-import { adminPushRouter } from "./adminPush.js";
+import { startCycleReminderWorker } from "./cycleReminderWorker.js";
+import { adminPushRouter, startAdminPushWorker } from "./adminPush.js";
 import { adminAiRouter, openAiWebhookRouter } from "./aiUsage.js";
 import { pushRouter } from "./push.js";
+import { adminServicesRouter, startAdminServiceReminderWorker } from "./adminServices.js";
 import { adminLmsRouter, lmsRouter } from "./lms.js";
 import { adminRouter, meRouter } from "./userState.js";
 
@@ -29,6 +32,7 @@ export function createApp() {
 
   app.use("/api/webhooks/openai", express.raw({ type: "application/json", limit: "2mb" }), openAiWebhookRouter);
   app.use(express.json({ limit: "50mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "2mb" }));
   app.use(corsMiddleware);
   app.use((_req, res, next) => {
     res.setHeader("Cache-Control", "no-store");
@@ -49,7 +53,9 @@ export function createApp() {
   app.use("/api/auth", authRouter);
   app.use("/api/app", appVersionRouter);
   app.use("/api/device", deviceRouter);
+  app.use("/api/food", foodRouter);
   app.use("/api/nutrition", nutritionRouter);
+  app.use("/api/trainer-requests", trainerRequestsRouter);
   app.use("/api/catalog", catalogRouter);
   app.use("/api/data", rawDataRouter);
   app.use("/api/coach", coachRouter);
@@ -60,6 +66,7 @@ export function createApp() {
   app.use("/api/lms", lmsRouter);
   app.use("/api/me", meRouter);
   app.use("/api/admin/push", adminPushRouter);
+  app.use("/api/admin/services", adminServicesRouter);
   app.use("/api/admin/ai", adminAiRouter);
   app.use("/api/admin/lms", adminLmsRouter);
   app.use("/api/admin", adminRouter);
@@ -111,7 +118,11 @@ if (process.env.FRUITFIT_SKIP_LISTEN !== "1") {
         console.log(`FruitFit backend listening on http://${config.host}:${config.port}`);
       });
       startPaymentAssignmentWorker();
+      startPaymentLinkEmailWorker();
       startRobokassaRecurringWorker();
+      startCycleReminderWorker();
+      startAdminPushWorker();
+      startAdminServiceReminderWorker();
     })
     .catch((error) => {
       console.error("[fruitfit-backend] startup failed", error);

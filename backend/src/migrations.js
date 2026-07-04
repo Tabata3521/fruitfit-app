@@ -608,106 +608,470 @@ export const migrations = [
     `
   },
   {
-    id: "014_referral_system_mvp",
+    id: "014_ai_coach_daily_usage",
     sql: `
-      CREATE TABLE IF NOT EXISTS referral_codes (
-        id bigserial PRIMARY KEY,
-        code text NOT NULL UNIQUE,
-        owner_user_id text REFERENCES users(id) ON DELETE SET NULL,
-        kind text NOT NULL DEFAULT 'user_referral',
-        status text NOT NULL DEFAULT 'active',
-        discount_type text NOT NULL DEFAULT 'percent',
-        discount_value numeric(12,2) NOT NULL DEFAULT 0,
-        reward_type text,
-        reward_value numeric(12,2) NOT NULL DEFAULT 0,
-        applies_to_product_codes text[] NOT NULL DEFAULT ARRAY[]::text[],
-        max_uses integer,
-        uses_count integer NOT NULL DEFAULT 0,
-        expires_at timestamptz,
-        created_by text REFERENCES users(id) ON DELETE SET NULL,
-        meta jsonb NOT NULL DEFAULT '{}'::jsonb,
+      CREATE TABLE IF NOT EXISTS ai_coach_daily_usage (
+        user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        usage_date date NOT NULL,
+        message_count integer NOT NULL DEFAULT 0,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (user_id, usage_date)
+      );
+
+      CREATE INDEX IF NOT EXISTS ai_coach_daily_usage_date_idx
+        ON ai_coach_daily_usage (usage_date DESC);
+    `
+  },
+  {
+    id: "015_ai_memory_and_referral_discount",
+    sql: `
+      CREATE TABLE IF NOT EXISTS ai_user_memory (
+        user_id text PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        summary_text text NOT NULL DEFAULT '',
+        goals_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+        injuries_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+        preferences_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+        constraints_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+        memory_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+        message_count integer NOT NULL DEFAULT 0,
         created_at timestamptz NOT NULL DEFAULT now(),
         updated_at timestamptz NOT NULL DEFAULT now()
       );
 
-      CREATE UNIQUE INDEX IF NOT EXISTS referral_codes_user_referral_owner_unique
-        ON referral_codes (owner_user_id)
-        WHERE kind = 'user_referral' AND owner_user_id IS NOT NULL;
+      CREATE TABLE IF NOT EXISTS referral_codes (
+        id bigserial PRIMARY KEY,
+        user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        code text NOT NULL UNIQUE,
+        status text NOT NULL DEFAULT 'active',
+        discount_type text NOT NULL DEFAULT 'percent',
+        discount_value numeric(12,2) NOT NULL DEFAULT 10,
+        max_uses integer,
+        meta jsonb NOT NULL DEFAULT '{}'::jsonb,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        UNIQUE (user_id)
+      );
 
-      CREATE INDEX IF NOT EXISTS referral_codes_owner_idx
-        ON referral_codes (owner_user_id);
+      CREATE INDEX IF NOT EXISTS referral_codes_user_idx
+        ON referral_codes (user_id);
 
       CREATE INDEX IF NOT EXISTS referral_codes_status_idx
         ON referral_codes (status);
 
       CREATE TABLE IF NOT EXISTS referral_uses (
         id bigserial PRIMARY KEY,
-        referral_code_id bigint NOT NULL REFERENCES referral_codes(id) ON DELETE RESTRICT,
+        referral_code_id bigint REFERENCES referral_codes(id) ON DELETE SET NULL,
         code text NOT NULL,
         referrer_user_id text REFERENCES users(id) ON DELETE SET NULL,
         referred_user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         payment_session_id text REFERENCES payment_sessions(id) ON DELETE SET NULL,
         payment_id text REFERENCES payments(id) ON DELETE SET NULL,
-        product_code text,
-        order_amount numeric(12,2) NOT NULL DEFAULT 0,
-        discount_type text NOT NULL DEFAULT 'percent',
-        discount_value numeric(12,2) NOT NULL DEFAULT 0,
+        status text NOT NULL DEFAULT 'applied',
+        base_amount numeric(12,2) NOT NULL DEFAULT 0,
         discount_amount numeric(12,2) NOT NULL DEFAULT 0,
-        status text NOT NULL DEFAULT 'pending_payment',
-        applied_at timestamptz NOT NULL DEFAULT now(),
+        final_amount numeric(12,2) NOT NULL DEFAULT 0,
         qualified_at timestamptz,
-        refunded_at timestamptz,
-        canceled_at timestamptz,
+        cancelled_at timestamptz,
+        meta jsonb NOT NULL DEFAULT '{}'::jsonb,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        UNIQUE (referred_user_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS referral_uses_code_idx
+        ON referral_uses (code);
+
+      CREATE INDEX IF NOT EXISTS referral_uses_referrer_status_idx
+        ON referral_uses (referrer_user_id, status);
+
+      CREATE INDEX IF NOT EXISTS referral_uses_session_idx
+        ON referral_uses (payment_session_id)
+        WHERE payment_session_id IS NOT NULL;
+
+      CREATE UNIQUE INDEX IF NOT EXISTS referral_uses_payment_unique
+        ON referral_uses (payment_id)
+        WHERE payment_id IS NOT NULL;
+
+      ALTER TABLE payment_sessions
+        ADD COLUMN IF NOT EXISTS base_amount numeric(12,2),
+        ADD COLUMN IF NOT EXISTS discount_amount numeric(12,2) NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS final_amount numeric(12,2),
+        ADD COLUMN IF NOT EXISTS referral_use_id bigint REFERENCES referral_uses(id) ON DELETE SET NULL;
+
+      UPDATE payment_sessions
+      SET base_amount = COALESCE(base_amount, amount),
+          final_amount = COALESCE(final_amount, amount),
+          discount_amount = COALESCE(discount_amount, 0)
+      WHERE base_amount IS NULL
+         OR final_amount IS NULL
+         OR discount_amount IS NULL;
+
+      ALTER TABLE payment_sessions
+        ALTER COLUMN base_amount SET DEFAULT 0,
+        ALTER COLUMN base_amount SET NOT NULL,
+        ALTER COLUMN final_amount SET DEFAULT 0,
+        ALTER COLUMN final_amount SET NOT NULL;
+
+      ALTER TABLE payments
+        ADD COLUMN IF NOT EXISTS base_amount numeric(12,2),
+        ADD COLUMN IF NOT EXISTS discount_amount numeric(12,2) NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS final_amount numeric(12,2),
+        ADD COLUMN IF NOT EXISTS referral_use_id bigint REFERENCES referral_uses(id) ON DELETE SET NULL;
+
+      UPDATE payments
+      SET base_amount = COALESCE(base_amount, amount),
+          final_amount = COALESCE(final_amount, amount),
+          discount_amount = COALESCE(discount_amount, 0)
+      WHERE base_amount IS NULL
+         OR final_amount IS NULL
+         OR discount_amount IS NULL;
+
+      ALTER TABLE payments
+        ALTER COLUMN base_amount SET DEFAULT 0,
+        ALTER COLUMN base_amount SET NOT NULL,
+        ALTER COLUMN final_amount SET DEFAULT 0,
+        ALTER COLUMN final_amount SET NOT NULL;
+    `
+  },
+  {
+    id: "023_referral_fixed_discount_1000",
+    sql: `
+      UPDATE referral_codes
+      SET discount_type = 'fixed',
+          discount_value = 1000,
+          updated_at = now()
+      WHERE discount_type IS DISTINCT FROM 'fixed'
+         OR discount_value IS DISTINCT FROM 1000;
+    `
+  },
+  {
+    id: "024_user_account_deletion",
+    sql: `
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS deleted_at timestamptz,
+        ADD COLUMN IF NOT EXISTS deletion_meta jsonb NOT NULL DEFAULT '{}'::jsonb;
+
+      CREATE INDEX IF NOT EXISTS users_deleted_at_idx
+        ON users (deleted_at)
+        WHERE deleted_at IS NOT NULL;
+    `
+  },
+  {
+    id: "025_subscription_program_cycles",
+    sql: `
+      CREATE TABLE IF NOT EXISTS subscriptions (
+        id bigserial PRIMARY KEY,
+        user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        payment_session_id text REFERENCES payment_sessions(id) ON DELETE SET NULL,
+        product_code text NOT NULL,
+        status text NOT NULL DEFAULT 'pending',
+        amount numeric(12,2) NOT NULL DEFAULT 0,
+        currency text NOT NULL DEFAULT 'RUB',
+        period_days integer NOT NULL DEFAULT 30,
+        robokassa_subscription_id text,
+        robokassa_parent_inv_id bigint,
+        robokassa_last_inv_id bigint,
+        next_payment_date timestamptz,
+        paid_until timestamptz,
+        cancelled_at timestamptz,
+        cancel_reason text,
+        raw_payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+        meta jsonb NOT NULL DEFAULT '{}'::jsonb,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT subscriptions_status_check
+          CHECK (status IN ('pending', 'active', 'cancel_requested', 'cancelled', 'past_due', 'failed', 'expired'))
+      );
+
+      CREATE INDEX IF NOT EXISTS subscriptions_user_status_idx
+        ON subscriptions (user_id, status);
+
+      CREATE INDEX IF NOT EXISTS subscriptions_next_payment_idx
+        ON subscriptions (next_payment_date)
+        WHERE next_payment_date IS NOT NULL;
+
+      CREATE INDEX IF NOT EXISTS subscriptions_paid_until_idx
+        ON subscriptions (paid_until)
+        WHERE paid_until IS NOT NULL;
+
+      CREATE UNIQUE INDEX IF NOT EXISTS subscriptions_robokassa_subscription_unique
+        ON subscriptions (robokassa_subscription_id)
+        WHERE robokassa_subscription_id IS NOT NULL;
+
+      CREATE INDEX IF NOT EXISTS subscriptions_parent_inv_idx
+        ON subscriptions (robokassa_parent_inv_id)
+        WHERE robokassa_parent_inv_id IS NOT NULL;
+
+      CREATE TABLE IF NOT EXISTS subscription_program_cycles (
+        id bigserial PRIMARY KEY,
+        subscription_id bigint NOT NULL REFERENCES subscriptions(id) ON DELETE CASCADE,
+        user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        cycle_number integer NOT NULL,
+        payment_id text REFERENCES payments(id) ON DELETE SET NULL,
+        payment_session_id text REFERENCES payment_sessions(id) ON DELETE SET NULL,
+        questionnaire_snapshot jsonb NOT NULL DEFAULT '{}'::jsonb,
+        program_id text,
+        program_title text,
+        base_program_key text,
+        restriction_key text,
+        delivery_mode text NOT NULL,
+        access_from timestamptz,
+        access_until timestamptz,
+        meta jsonb NOT NULL DEFAULT '{}'::jsonb,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT subscription_program_cycles_delivery_mode_check
+          CHECK (delivery_mode IN ('first_half', 'second_half', 'fresh_program', 'replacement_cycle', 'manual_review')),
+        UNIQUE (subscription_id, cycle_number)
+      );
+
+      CREATE INDEX IF NOT EXISTS subscription_program_cycles_user_idx
+        ON subscription_program_cycles (user_id, created_at DESC);
+
+      CREATE INDEX IF NOT EXISTS subscription_program_cycles_subscription_idx
+        ON subscription_program_cycles (subscription_id, cycle_number DESC);
+
+      CREATE INDEX IF NOT EXISTS subscription_program_cycles_program_idx
+        ON subscription_program_cycles (program_id)
+        WHERE program_id IS NOT NULL;
+    `
+  },
+  {
+    id: "026_ai_usage_access_tier",
+    sql: `
+      ALTER TABLE ai_usage_logs
+        ADD COLUMN IF NOT EXISTS access_tier text,
+        ADD COLUMN IF NOT EXISTS daily_message_count integer;
+
+      CREATE INDEX IF NOT EXISTS ai_usage_logs_access_tier_created_idx
+        ON ai_usage_logs (access_tier, created_at DESC)
+        WHERE access_tier IS NOT NULL;
+    `
+  },
+  {
+    id: "027_food_database_layer",
+    sql: `
+      CREATE TABLE IF NOT EXISTS foods (
+        id bigserial PRIMARY KEY,
+        name text NOT NULL UNIQUE,
+        kcal_100g numeric(10,2) NOT NULL DEFAULT 0,
+        protein numeric(10,2) NOT NULL DEFAULT 0,
+        fat numeric(10,2) NOT NULL DEFAULT 0,
+        carbs numeric(10,2) NOT NULL DEFAULT 0,
+        aliases text[] NOT NULL DEFAULT '{}'::text[],
+        source text NOT NULL DEFAULT 'internal_ru_reference',
         meta jsonb NOT NULL DEFAULT '{}'::jsonb,
         created_at timestamptz NOT NULL DEFAULT now(),
         updated_at timestamptz NOT NULL DEFAULT now()
       );
 
-      CREATE UNIQUE INDEX IF NOT EXISTS referral_uses_referred_user_unique
-        ON referral_uses (referred_user_id);
+      CREATE INDEX IF NOT EXISTS foods_name_lower_idx
+        ON foods (lower(name));
 
-      CREATE UNIQUE INDEX IF NOT EXISTS referral_uses_payment_session_unique
-        ON referral_uses (payment_session_id)
-        WHERE payment_session_id IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS foods_aliases_gin_idx
+        ON foods USING gin (aliases);
 
-      CREATE UNIQUE INDEX IF NOT EXISTS referral_uses_payment_id_unique
-        ON referral_uses (payment_id)
-        WHERE payment_id IS NOT NULL;
+      INSERT INTO foods (name, kcal_100g, protein, fat, carbs, aliases, source, meta, created_at, updated_at)
+      SELECT
+        p.name,
+        p.kcal_per_100,
+        p.protein_per_100,
+        p.fat_per_100,
+        p.carbs_per_100,
+        COALESCE(
+          ARRAY(
+            SELECT DISTINCT btrim(pa.alias)
+            FROM product_aliases pa
+            WHERE pa.product_id = p.id
+              AND pa.alias IS NOT NULL
+              AND btrim(pa.alias) <> ''
+          ),
+          '{}'::text[]
+        ) AS aliases,
+        COALESCE(NULLIF(p.source, ''), 'internal_ru_reference') AS source,
+        jsonb_build_object(
+          'sourceProductId', p.id,
+          'brand', p.brand,
+          'category', p.category,
+          'country', p.country,
+          'isVerified', p.is_verified,
+          'defaultServingGrams', p.default_serving_grams,
+          'servingExamples', p.serving_examples
+        ) AS meta,
+        now(),
+        now()
+      FROM products p
+      WHERE p.name IS NOT NULL
+        AND btrim(p.name) <> ''
+      ON CONFLICT (name) DO UPDATE
+        SET kcal_100g = EXCLUDED.kcal_100g,
+            protein = EXCLUDED.protein,
+            fat = EXCLUDED.fat,
+            carbs = EXCLUDED.carbs,
+            aliases = EXCLUDED.aliases,
+            source = EXCLUDED.source,
+            meta = foods.meta || EXCLUDED.meta,
+            updated_at = now();
 
-      CREATE INDEX IF NOT EXISTS referral_uses_referrer_idx
-        ON referral_uses (referrer_user_id, status);
-
-      CREATE INDEX IF NOT EXISTS referral_uses_code_idx
-        ON referral_uses (code);
-
-      CREATE INDEX IF NOT EXISTS referral_uses_status_idx
-        ON referral_uses (status);
+      INSERT INTO foods (name, kcal_100g, protein, fat, carbs, aliases, source, meta, created_at, updated_at)
+      VALUES
+        ('Гречка', 343, 13.0, 3.4, 72.0, ARRAY['гречневая крупа','гречка сухая','крупа гречневая']::text[], 'ru_reference_base', '{"category":"крупы"}'::jsonb, now(), now()),
+        ('Гречка вареная', 110, 3.6, 1.1, 20.0, ARRAY['гречка готовая','гречневая каша','каша гречневая']::text[], 'ru_reference_base', '{"category":"крупы"}'::jsonb, now(), now()),
+        ('Рис белый', 344, 6.7, 0.7, 78.9, ARRAY['рис','рис сухой','крупа рисовая']::text[], 'ru_reference_base', '{"category":"крупы"}'::jsonb, now(), now()),
+        ('Рис вареный', 116, 2.2, 0.5, 24.9, ARRAY['рис готовый','рис отварной']::text[], 'ru_reference_base', '{"category":"крупы"}'::jsonb, now(), now()),
+        ('Куриная грудка', 113, 23.6, 1.9, 0.4, ARRAY['куриная грудка сырая','грудка куриная','филе курицы']::text[], 'ru_reference_base', '{"category":"мясо и птица"}'::jsonb, now(), now()),
+        ('Яйцо куриное', 157, 12.7, 10.9, 0.7, ARRAY['яйцо','куриное яйцо','яйца']::text[], 'ru_reference_base', '{"category":"яйца"}'::jsonb, now(), now()),
+        ('Молоко 2.5%', 52, 2.8, 2.5, 4.7, ARRAY['молоко','молоко 2,5','молоко 2.5']::text[], 'ru_reference_base', '{"category":"молочные продукты"}'::jsonb, now(), now()),
+        ('Творог 5%', 121, 17.0, 5.0, 1.8, ARRAY['творог','творог 5','творог 5 процентов']::text[], 'ru_reference_base', '{"category":"молочные продукты"}'::jsonb, now(), now())
+      ON CONFLICT (name) DO UPDATE
+        SET aliases = (
+              SELECT ARRAY(
+                SELECT DISTINCT alias
+                FROM unnest(foods.aliases || EXCLUDED.aliases) AS alias
+                WHERE alias IS NOT NULL AND btrim(alias) <> ''
+              )
+            ),
+            source = CASE
+              WHEN foods.source LIKE '%' || EXCLUDED.source || '%' THEN foods.source
+              ELSE foods.source || '+' || EXCLUDED.source
+            END,
+            meta = foods.meta || EXCLUDED.meta,
+            updated_at = now();
     `
   },
   {
-    id: "015_payment_amount_breakdown",
+    id: "028_recurring_payment_attempt_guard",
     sql: `
-      ALTER TABLE payment_sessions
-        ADD COLUMN IF NOT EXISTS base_amount numeric(12,2) NOT NULL DEFAULT 0,
-        ADD COLUMN IF NOT EXISTS discount_amount numeric(12,2) NOT NULL DEFAULT 0,
-        ADD COLUMN IF NOT EXISTS final_amount numeric(12,2) NOT NULL DEFAULT 0;
+      CREATE UNIQUE INDEX IF NOT EXISTS payments_recurring_attempt_period_guard_idx
+        ON payments (
+          (meta->>'subscriptionDbId'),
+          (meta->>'billingCycleNumber'),
+          (meta->>'billingDate')
+        )
+        WHERE recurring_child = true
+          AND COALESCE(status, '') <> 'failed'
+          AND meta ? 'subscriptionDbId'
+          AND meta ? 'billingCycleNumber'
+          AND meta ? 'billingDate';
 
-      UPDATE payment_sessions
-      SET base_amount = CASE WHEN base_amount = 0 THEN COALESCE(amount, 0) ELSE base_amount END,
-          discount_amount = COALESCE(discount_amount, 0),
-          final_amount = CASE WHEN final_amount = 0 THEN COALESCE(amount, 0) ELSE final_amount END,
-          amount = CASE WHEN final_amount = 0 THEN COALESCE(amount, 0) ELSE final_amount END;
+      CREATE INDEX IF NOT EXISTS payments_recurring_attempt_status_idx
+        ON payments (
+          (meta->>'subscriptionDbId'),
+          status,
+          updated_at DESC
+        )
+        WHERE recurring_child = true
+          AND meta ? 'subscriptionDbId';
+    `
+  },
+  {
+    id: "029_referral_bonus_idempotency",
+    sql: `
+      ALTER TABLE referral_uses
+        ADD COLUMN IF NOT EXISTS discount_applied boolean NOT NULL DEFAULT false,
+        ADD COLUMN IF NOT EXISTS discount_applied_at timestamptz,
+        ADD COLUMN IF NOT EXISTS bonus_granted boolean NOT NULL DEFAULT false,
+        ADD COLUMN IF NOT EXISTS bonus_granted_at timestamptz,
+        ADD COLUMN IF NOT EXISTS bonus_days integer NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS bonus_access_until timestamptz;
 
-      ALTER TABLE payments
-        ADD COLUMN IF NOT EXISTS base_amount numeric(12,2) NOT NULL DEFAULT 0,
-        ADD COLUMN IF NOT EXISTS discount_amount numeric(12,2) NOT NULL DEFAULT 0,
-        ADD COLUMN IF NOT EXISTS final_amount numeric(12,2) NOT NULL DEFAULT 0;
+      UPDATE referral_uses
+      SET discount_applied = true,
+          discount_applied_at = COALESCE(discount_applied_at, qualified_at, updated_at)
+      WHERE status IN ('qualified', 'applied')
+        AND discount_applied = false;
 
-      UPDATE payments
-      SET base_amount = CASE WHEN base_amount = 0 THEN COALESCE(amount, 0) ELSE base_amount END,
-          discount_amount = COALESCE(discount_amount, 0),
-          final_amount = CASE WHEN final_amount = 0 THEN COALESCE(amount, 0) ELSE final_amount END,
-          amount = CASE WHEN final_amount = 0 THEN COALESCE(amount, 0) ELSE final_amount END;
+      CREATE UNIQUE INDEX IF NOT EXISTS referral_uses_referrer_referred_unique
+        ON referral_uses (referrer_user_id, referred_user_id)
+        WHERE referrer_user_id IS NOT NULL;
+
+      CREATE INDEX IF NOT EXISTS referral_uses_bonus_granted_idx
+        ON referral_uses (bonus_granted, status)
+        WHERE status IN ('qualified', 'applied');
+    `
+  },
+  {
+    id: "030_admin_totp",
+    sql: `
+      CREATE TABLE IF NOT EXISTS admin_totp (
+        user_id text PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        secret text,
+        pending_secret text,
+        enabled boolean NOT NULL DEFAULT false,
+        recovery_code_hashes jsonb NOT NULL DEFAULT '[]'::jsonb,
+        last_verified_at timestamptz,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
+
+      CREATE INDEX IF NOT EXISTS admin_totp_enabled_idx
+        ON admin_totp (enabled)
+        WHERE enabled = true;
+    `
+  },
+  {
+    id: "031_admin_push_schedule_repeat",
+    sql: `
+      ALTER TABLE push_campaigns
+        ADD COLUMN IF NOT EXISTS dry_run boolean NOT NULL DEFAULT false,
+        ADD COLUMN IF NOT EXISTS repeat_interval text NOT NULL DEFAULT 'none',
+        ADD COLUMN IF NOT EXISTS repeat_until timestamptz,
+        ADD COLUMN IF NOT EXISTS repeat_count integer,
+        ADD COLUMN IF NOT EXISTS parent_campaign_id text REFERENCES push_campaigns(id) ON DELETE SET NULL;
+
+      CREATE INDEX IF NOT EXISTS push_campaigns_repeat_parent_idx
+        ON push_campaigns (parent_campaign_id, scheduled_at DESC)
+        WHERE parent_campaign_id IS NOT NULL;
+
+      CREATE INDEX IF NOT EXISTS push_campaigns_repeat_due_idx
+        ON push_campaigns (repeat_interval, status, scheduled_at)
+        WHERE repeat_interval <> 'none';
+    `
+  },
+  {
+    id: "032_trainer_requests",
+    sql: `
+      CREATE TABLE IF NOT EXISTS trainer_requests (
+        id uuid PRIMARY KEY,
+        request_id text NOT NULL UNIQUE,
+        user_id text REFERENCES users(id) ON DELETE SET NULL,
+        email text,
+        name text,
+        phone text,
+        status text NOT NULL DEFAULT 'created',
+        source text,
+        profile_snapshot jsonb NOT NULL DEFAULT '{}'::jsonb,
+        program_params jsonb NOT NULL DEFAULT '{}'::jsonb,
+        payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+        user_agent text,
+        ip text,
+        confirmation_message text,
+        submitted_at timestamptz,
+        email_sent_at timestamptz,
+        email_status text,
+        email_message_id text,
+        email_error text,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
+
+      CREATE INDEX IF NOT EXISTS trainer_requests_user_created_idx
+        ON trainer_requests (user_id, created_at DESC)
+        WHERE user_id IS NOT NULL;
+
+      CREATE INDEX IF NOT EXISTS trainer_requests_status_created_idx
+        ON trainer_requests (status, created_at DESC);
+
+      CREATE INDEX IF NOT EXISTS trainer_requests_email_created_idx
+        ON trainer_requests (lower(email), created_at DESC)
+        WHERE email IS NOT NULL;
+    `
+  },
+  {
+    id: "033_trainer_requests_submitted_at",
+    sql: `
+      ALTER TABLE trainer_requests
+        ADD COLUMN IF NOT EXISTS submitted_at timestamptz;
     `
   }
 ];
