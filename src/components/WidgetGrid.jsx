@@ -28,19 +28,14 @@ import { canOpenLecture, fetchLectureAccessPolicy, loadLectureAccessPolicy, visi
 import { lectureTextFor } from "../data/lectureTexts";
 import { dietTypeToRation } from "../data/profileStore";
 import { getMealPlan, useNutritionData } from "../data/useNutritionData";
-import { createPaymentSession, getAuthToken } from "../data/authStore";
 import { accessTier } from "../data/accessRules";
+import { getAuthToken } from "../data/authStore";
+import { openLectureProgramAction } from "#fruitfit/programAction";
+import { APP_STORE_REVIEW } from "../config/appStoreReview";
 
 const widgetStorageKey = "fruitfit.widgets";
-const PAYMENT_PAGE_URL = String(import.meta.env.VITE_FRUITFIT_PAYMENT_URL || "https://tagirfruit.ru/payment");
 
 const lecture = lectures[0];
-
-function paymentPageUrl(sessionId) {
-  const url = new URL(PAYMENT_PAGE_URL, window.location.origin);
-  if (sessionId) url.searchParams.set("ps", sessionId);
-  return url.toString();
-}
 
 function normalizeLectureProgress(value) {
   const completedIds = Array.isArray(value?.completedIds) ? value.completedIds.filter(Boolean) : [];
@@ -195,6 +190,23 @@ function openExternalVideo(url) {
     return;
   }
   window.location.assign(url);
+}
+
+async function openExternalUrl(url) {
+  const target = String(url || "").trim();
+  if (!target) return false;
+  try {
+    const browser = window.Capacitor?.Plugins?.Browser;
+    if (browser?.open) {
+      await browser.open({ url: target });
+      return true;
+    }
+  } catch (_) {
+    // Fall through to window open.
+  }
+  const opened = window.open(target, "_blank", "noopener,noreferrer");
+  if (!opened) window.location.href = target;
+  return true;
 }
 
 const defaultWidgets = [
@@ -577,7 +589,14 @@ function HeartWidget({ health, onOpen, onConnect, onRefresh }) {
   const rangeInfo = heartRangeInfo(heart);
   const latestLabel = heartLatestLabel(heart);
   const sourceLabel = healthSourceDisplayName(heart.latestSourcePackage || heart.sourcePackage, heart.latestSourceName || heart.sourceName);
-  const dashboardValue = rangeInfo.hasRange ? rangeInfo.rangeLabel : (rangeInfo.avg > 0 ? `${rangeInfo.avg} уд/мин` : rangeInfo.rangeLabel);
+  const latestBpm = Number(heart.latestBpm || heart.current || 0);
+  const singleValueRange = rangeInfo.hasRange && rangeInfo.min === rangeInfo.max;
+  const dashboardValue = latestBpm > 0 && (!rangeInfo.hasRange || singleValueRange)
+    ? `${Math.round(latestBpm)} уд/мин`
+    : (rangeInfo.hasRange ? rangeInfo.rangeLabel : (rangeInfo.avg > 0 ? `${rangeInfo.avg} уд/мин` : rangeInfo.rangeLabel));
+  const dashboardMeta = rangeInfo.hasRange && !singleValueRange
+    ? `средний ${rangeInfo.avg > 0 ? rangeInfo.avg : "—"} · диапазон ${rangeInfo.min}-${rangeInfo.max}`
+    : latestLabel;
   if (!hasHeartData) {
     const copy = friendlyEmptyCopy("heart", heart.status);
     return (
@@ -602,7 +621,7 @@ function HeartWidget({ health, onOpen, onConnect, onRefresh }) {
         <DashboardRefreshButton onRefresh={onRefresh} />
       </div>
       <p className="mt-3 text-[24px] font-black leading-tight text-appText">{dashboardValue}</p>
-      <p className="mt-2 text-[11px] font-bold text-appMuted">средний {rangeInfo.avg > 0 ? rangeInfo.avg : "—"} · диапазон {rangeInfo.hasRange ? `${rangeInfo.min}-${rangeInfo.max}` : "—"}</p>
+      <p className="mt-2 text-[11px] font-bold text-appMuted">{dashboardMeta}</p>
       <div className="hidden">
         {rangeInfo.hasRange && <span>{rangeInfo.minLabel}: {rangeInfo.min} уд/мин</span>}
         {rangeInfo.hasRange && rangeInfo.avg > 0 && <span>{rangeInfo.avgLabel}: {rangeInfo.avg} уд/мин</span>}
@@ -1071,7 +1090,7 @@ function healthSourceDisplayName(packageName, fallback) {
   if (raw.includes("com.sec.android.app.shealth") || raw.includes("samsung")) return "Samsung Health";
   if (packageName && !rawPackage.includes("aggregate") && rawPackage !== "android") return fallback && !rawFallback.includes("aggregate") ? fallback : packageName;
   if (fallback && !rawFallback.includes("aggregate")) return fallback;
-  return "Apple Health aggregate";
+  return "Apple Health";
 }
 
 function heartRangeInfo(heart = {}) {
@@ -1722,8 +1741,8 @@ export function LectureDetailScreen({ onBack, access }) {
   const [index, setIndex] = useState(safeProgress.currentIndex || 0);
   const [textOpen, setTextOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
-  const [paymentLoading, setPaymentLoading] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState("");
+  const [courseActionLoading, setCourseActionLoading] = useState(false);
+  const [courseActionStatus, setCourseActionStatus] = useState("");
   const [accessPolicy, setAccessPolicy] = useState(loadLectureAccessPolicy);
   const visibleLectures = visibleLecturesForAccess(lectures, access, accessPolicy);
   const safeIndex = Math.max(0, Math.min(index, Math.max(visibleLectures.length - 1, 0)));
@@ -1731,36 +1750,35 @@ export function LectureDetailScreen({ onBack, access }) {
   const activeLectureText = lectureTextFor(activeLecture?.id);
   const [meta, setMeta] = useState({ title: activeLecture.title, thumbnailUrl: activeLecture.thumbnailUrl, error: "" });
   const hasHostedVideo = Boolean(activeLecture?.selectelUrl);
-  const lectureLocked = !canOpenLecture(activeLecture, safeIndex, access, accessPolicy);
+  const lectureLocked = APP_STORE_REVIEW ? false : !canOpenLecture(activeLecture, safeIndex, access, accessPolicy);
   const completed = safeProgress.completedIds.includes(activeLecture.id);
   const totalPercent = progressForLectureState(safeProgress, visibleLectures);
-  const isFreeAccess = accessTier(access) === "free";
-  const showLecturePaymentCta = !lectureLocked && isFreeAccess && safeIndex === 5;
+  const isFreeAccess = !APP_STORE_REVIEW && accessTier(access) === "free";
+  const showLectureCourseCta = !lectureLocked && safeIndex === 5 && (APP_STORE_REVIEW || isFreeAccess);
 
   function openFullVideo() {
     if (lectureLocked) return;
     openExternalVideo(lecturePlaybackUrl(activeLecture));
   }
 
-  async function openLecturePayment() {
-    if (paymentLoading) return;
+  async function openLectureCourseAction() {
+    if (courseActionLoading) return;
     if (!getAuthToken()) {
-      setPaymentStatus("Войдите в аккаунт, чтобы открыть полный курс.");
+      setCourseActionStatus("Войдите в аккаунт, чтобы отправить заявку тренеру.");
       return;
     }
-    setPaymentLoading(true);
-    setPaymentStatus("");
+    setCourseActionLoading(true);
+    setCourseActionStatus("");
     try {
-      const session = await createPaymentSession({
-        productCode: "individual_program",
-        recurringEnabled: false,
+      const result = await openLectureProgramAction({
+        source: APP_STORE_REVIEW ? "ios-lecture-6" : "lecture-6",
+        openExternalUrl,
       });
-      if (!session?.id) throw new Error("Сервер не вернул платёжную сессию.");
-      window.location.href = paymentPageUrl(session.id);
+      if (result?.message) setCourseActionStatus(result.message);
     } catch (error) {
-      setPaymentStatus(error?.message || "Не удалось открыть оплату.");
+      setCourseActionStatus(error?.message || "Не удалось открыть страницу.");
     } finally {
-      setPaymentLoading(false);
+      setCourseActionLoading(false);
     }
   }
 
@@ -1869,14 +1887,14 @@ export function LectureDetailScreen({ onBack, access }) {
 
       <section className="overflow-hidden rounded-[28px] border border-appBorder bg-appCard/95 shadow-sm">
         <div className="bg-appDark">
-          {lectureLocked ? (
+          {lectureLocked && !APP_STORE_REVIEW ? (
             <div className="flex aspect-video flex-col items-center justify-center gap-3 bg-black px-6 text-center">
               <div className="grid h-14 w-14 place-items-center rounded-full bg-appCard text-appGreen">
                 <Lock size={24} />
               </div>
               <div>
-                <p className="text-[15px] font-black text-appText">Лекция доступна после оплаты</p>
-                <p className="mt-1 text-[12px] font-semibold leading-5 text-appMuted">Paid и VIP открывают все мини-лекции.</p>
+                <p className="text-[15px] font-black text-appText">Материал пока недоступен</p>
+                <p className="mt-1 text-[12px] font-semibold leading-5 text-appMuted">Тренер подскажет дальнейший маршрут после заявки.</p>
               </div>
             </div>
           ) : (
@@ -1890,22 +1908,22 @@ export function LectureDetailScreen({ onBack, access }) {
           </div>
           <h2 className="mt-4 text-[22px] font-black leading-tight text-appText">{activeLecture.title}</h2>
           <p className="mt-2 text-[13px] font-semibold leading-5 text-appMuted">{activeLecture.subtitle}</p>
-          {lectureLocked ? (
+          {lectureLocked && !APP_STORE_REVIEW ? (
             <p className="mt-3 rounded-2xl bg-appBg px-3 py-3 text-[12px] leading-5 text-appMuted">
-              Эта лекция закрыта для бесплатного доступа. Paid и VIP видят все лекции.
+              Материал пока недоступен. Тренер подскажет дальнейший маршрут после заявки.
             </p>
-          ) : showLecturePaymentCta ? (
+          ) : showLectureCourseCta ? (
             <div className="mt-3 rounded-2xl bg-appBg px-3 py-3">
               <p className="text-[14px] font-black leading-5 text-appText">У тебя всё получится! 💪</p>
               <button
                 type="button"
-                onClick={openLecturePayment}
-                disabled={paymentLoading}
+                onClick={openLectureCourseAction}
+                disabled={courseActionLoading}
                 className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-appGreen px-4 text-[14px] font-black text-[#181F19] disabled:opacity-70"
               >
-                {paymentLoading ? "Готовим оформление..." : "Оформить персональную программу"}
+                {courseActionLoading ? "Отправляем заявку..." : "Оставить заявку тренеру"}
               </button>
-              {paymentStatus && <p className="mt-2 text-[12px] font-semibold leading-5 text-appMuted">{paymentStatus}</p>}
+              {courseActionStatus && <p className="mt-2 text-[12px] font-semibold leading-5 text-appMuted">{courseActionStatus}</p>}
             </div>
           ) : null}
           <div className="mt-4 grid grid-cols-2 gap-2">

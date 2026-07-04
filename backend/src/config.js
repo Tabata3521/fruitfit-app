@@ -76,7 +76,7 @@ export const config = {
   smtpUser: process.env.SMTP_USER || "",
   smtpPass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD || "",
   smtpFrom: process.env.SMTP_FROM || process.env.EMAIL_FROM || "",
-  trainerRequestEmail: process.env.TRAINER_REQUEST_EMAIL || "",
+  trainerRequestEmail: process.env.TRAINER_REQUEST_EMAIL || process.env.ADMIN_EMAIL || "",
   emailVerificationTtlMinutes: Number(process.env.EMAIL_VERIFICATION_TTL_MINUTES || 60),
   passwordResetTtlMinutes: Number(process.env.PASSWORD_RESET_TTL_MINUTES || 30),
   appVersionManifestPath: process.env.APP_VERSION_MANIFEST_PATH || path.resolve(process.cwd(), "app-version.json"),

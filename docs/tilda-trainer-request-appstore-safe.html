@@ -1,0 +1,542 @@
+<section class="ff-request" data-api-base="https://api.tagirfruit.ru">
+  <style>
+    html,
+    body,
+    #allrecords,
+    .t-body,
+    .t-records,
+    .t-rec,
+    .t123,
+    .t123__centeredContainer,
+    .t-container,
+    .t-col {
+      background: #07110a !important;
+    }
+
+    html,
+    body {
+      margin: 0 !important;
+      padding: 0 !important;
+      overscroll-behavior: none;
+    }
+
+    .t-rec,
+    .t123,
+    .t123__centeredContainer,
+    .t-container,
+    .t-col {
+      margin-top: 0 !important;
+      padding-top: 0 !important;
+    }
+
+    #allrecords {
+      overflow: hidden;
+    }
+
+    .ff-request {
+      --bg: #07110a;
+      --text: #f3f8ec;
+      --muted: #a7b0a2;
+      --green: #bff36b;
+      --line: rgba(255, 255, 255, .12);
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 15% 0%, rgba(191, 243, 107, .13), transparent 28%),
+        linear-gradient(180deg, #07110a 0%, #101711 100%);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 0 16px 42px;
+    }
+
+    .ff-request * {
+      box-sizing: border-box;
+    }
+
+    .ff-request__shell {
+      max-width: 920px;
+      margin: 0 auto;
+      padding-top: 34px;
+    }
+
+    .ff-request__top {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 26px;
+    }
+
+    .ff-request__brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      font-size: 22px;
+      font-weight: 1000;
+    }
+
+    .ff-request__mark {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: #050805;
+      border: 1px solid rgba(191, 243, 107, .18);
+      color: var(--green);
+      font-size: 24px;
+    }
+
+    .ff-request__badge {
+      border: 1px solid rgba(191, 243, 107, .32);
+      color: var(--green);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .ff-request h1 {
+      max-width: 760px;
+      margin: 0;
+      font-size: clamp(34px, 6vw, 62px);
+      line-height: .98;
+    }
+
+    .ff-request__lead {
+      max-width: 760px;
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.55;
+    }
+
+    .ff-request__panel {
+      margin-top: 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .03));
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .22);
+      padding: 20px;
+    }
+
+    .ff-request__panel h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .ff-request__hint,
+    .ff-request__status {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .ff-request__hint {
+      margin: 8px 0 0;
+    }
+
+    .ff-request__summary {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .ff-request__row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, .08);
+    }
+
+    .ff-request__label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .ff-request__value {
+      text-align: right;
+      font-weight: 900;
+      overflow-wrap: anywhere;
+    }
+
+    .ff-request__cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .ff-request__card {
+      min-height: 118px;
+      border: 1px solid rgba(191, 243, 107, .18);
+      border-radius: 8px;
+      background: rgba(191, 243, 107, .08);
+      padding: 14px;
+      display: grid;
+      align-content: space-between;
+      gap: 10px;
+    }
+
+    .ff-request__card-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .ff-request__card-value {
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 1000;
+      line-height: 1.18;
+    }
+
+    .ff-request__card-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .ff-request__actions {
+      margin-top: 20px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .ff-request__btn {
+      border: 0;
+      border-radius: 8px;
+      min-height: 54px;
+      padding: 0 18px;
+      background: var(--green);
+      color: #101711;
+      font: inherit;
+      font-weight: 1000;
+      cursor: pointer;
+      transition: transform .16s ease, opacity .16s ease;
+    }
+
+    .ff-request__btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .ff-request__btn:disabled {
+      cursor: not-allowed;
+      opacity: .48;
+      transform: none;
+    }
+
+    .ff-request__status {
+      min-height: 24px;
+    }
+
+    .ff-request__status.is-success {
+      color: var(--green);
+      font-weight: 900;
+    }
+
+    .ff-request__status.is-error {
+      color: #ff8a7a;
+      font-weight: 800;
+    }
+
+    @media (max-width: 720px) {
+      .ff-request__top {
+        display: grid;
+      }
+
+      .ff-request__badge {
+        width: fit-content;
+      }
+
+      .ff-request__row {
+        display: grid;
+      }
+
+      .ff-request__value {
+        text-align: left;
+      }
+
+      .ff-request__cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+  <div class="ff-request__shell">
+    <div class="ff-request__top">
+      <div class="ff-request__brand">
+        <span class="ff-request__mark">🍊</span>
+        <span>FruitFit</span>
+      </div>
+      <div class="ff-request__badge">Заявка тренеру</div>
+    </div>
+
+    <h1>Проверьте анкету</h1>
+    <p class="ff-request__lead">
+      Эти данные тренер использует, чтобы изучить вашу ситуацию и подготовить дальнейшие рекомендации.
+      Если что-то указано неверно, вернитесь в приложение, обновите анкету и откройте эту страницу снова.
+    </p>
+
+    <section class="ff-request__panel">
+      <h2>Анкета пользователя</h2>
+      <p class="ff-request__hint" id="ff-request-hint">Загружаем данные анкеты...</p>
+
+      <div class="ff-request__summary" id="ff-request-summary"></div>
+
+      <div class="ff-request__cards">
+        <div class="ff-request__card">
+          <div class="ff-request__card-label">Тренировочный ритм</div>
+          <div class="ff-request__card-value" id="ff-training-card">Не указано</div>
+          <div class="ff-request__card-note">График из анкеты FruitFit</div>
+        </div>
+
+        <div class="ff-request__card">
+          <div class="ff-request__card-label">Питание</div>
+          <div class="ff-request__card-value" id="ff-diet-card">Не указано</div>
+          <div class="ff-request__card-note">Предпочтительный тип питания</div>
+        </div>
+
+        <div class="ff-request__card">
+          <div class="ff-request__card-label">Калорийность</div>
+          <div class="ff-request__card-value" id="ff-calories-card">Не указано</div>
+          <div class="ff-request__card-note">Ориентир из анкеты FruitFit</div>
+        </div>
+      </div>
+
+      <div class="ff-request__actions">
+        <button class="ff-request__btn" id="ff-request-submit" type="button" disabled>
+          Отправить заявку
+        </button>
+        <div class="ff-request__status" id="ff-request-status"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      const root = document.currentScript.closest(".ff-request");
+      const apiBase = root.dataset.apiBase.replace(/\/$/, "");
+      const params = new URLSearchParams(window.location.search || "");
+      const requestId = String(params.get("requestId") || params.get("request_id") || "").trim();
+
+      const summaryEl = root.querySelector("#ff-request-summary");
+      const hintEl = root.querySelector("#ff-request-hint");
+      const statusEl = root.querySelector("#ff-request-status");
+      const submitButton = root.querySelector("#ff-request-submit");
+      const trainingCard = root.querySelector("#ff-training-card");
+      const dietCard = root.querySelector("#ff-diet-card");
+      const caloriesCard = root.querySelector("#ff-calories-card");
+
+      let loadedRequest = null;
+
+      function firstPresent() {
+        for (const value of arguments) {
+          if (value !== null && value !== undefined && String(value).trim() !== "") return value;
+        }
+        return "";
+      }
+
+      function formatValue(value) {
+        if (value === null || value === undefined || String(value).trim() === "") return "Не указано";
+        if (Array.isArray(value)) return value.filter(Boolean).join(", ") || "Не указано";
+        if (typeof value === "object") return JSON.stringify(value);
+        return String(value);
+      }
+
+      function genderLabel(value) {
+        const text = String(value || "").toLowerCase();
+        if (text === "male" || text.includes("муж")) return "Мужчина";
+        if (text === "female" || text.includes("жен")) return "Женщина";
+        return value || "";
+      }
+
+      function metric(value, unit) {
+        const text = String(value || "").trim();
+        if (!text) return "";
+        if (/[a-zа-я]/i.test(text)) return text;
+        return `${text} ${unit}`;
+      }
+
+      function normalizedData(request) {
+        const profile = request.profile || {};
+        return {
+          email: firstPresent(request.email, profile.email, profile.userEmail, profile.user_email),
+          firstName: firstPresent(profile.firstName, profile.first_name),
+          lastName: firstPresent(profile.lastName, profile.last_name, profile.surname),
+          gender: genderLabel(firstPresent(profile.gender, profile.sex)),
+          age: firstPresent(profile.age),
+          height: metric(firstPresent(profile.height, profile.heightCm, profile.height_cm), "см"),
+          weight: metric(firstPresent(profile.weight, profile.weightKg, profile.weight_kg), "кг"),
+          goal: firstPresent(profile.goal),
+          workouts: firstPresent(profile.trainingFrequency, profile.training_frequency, profile.daysPerWeek, profile.days_per_week),
+          dietType: firstPresent(profile.dietType, profile.diet_type, profile.nutritionType, profile.nutrition_type),
+          calories: firstPresent(profile.recommendedCaloriesTarget, profile.recommended_calories_target, profile.calculatedCalories, profile.calculated_calories)
+        };
+      }
+
+      function trainingText(value) {
+        const raw = String(value || "").trim();
+        const normalized = raw.toLowerCase();
+        if (!raw) return "";
+        if (normalized.includes("3") || normalized.includes("три") || normalized.includes("трех") || normalized.includes("трёх")) {
+          return "Готов заниматься 3 раза в неделю";
+        }
+        if (normalized.includes("2") || normalized.includes("два") || normalized.includes("две") || normalized.includes("двух")) {
+          return "Готов заниматься 2 раза в неделю";
+        }
+        const number = raw.match(/\d+/)?.[0];
+        if (number) return `Готов заниматься ${number} раз(а) в неделю`;
+        return raw;
+      }
+
+      function caloriesText(value) {
+        const raw = String(value || "").trim();
+        const number = raw.match(/\d+/)?.[0];
+        if (!number) return raw || "";
+        return `${Number(number).toLocaleString("ru-RU")} ккал`;
+      }
+
+      function dietText(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+        return `Предпочтительный тип питания: ${raw}`;
+      }
+
+      function renderRows(request) {
+        const data = normalizedData(request);
+        const rows = [
+          ["Почта", data.email],
+          ["Имя", data.firstName],
+          ["Фамилия", data.lastName],
+          ["Пол", data.gender],
+          ["Возраст", data.age],
+          ["Рост", data.height],
+          ["Вес", data.weight],
+          ["Цель", data.goal]
+        ];
+
+        summaryEl.replaceChildren();
+        rows.forEach(([label, value]) => {
+          const row = document.createElement("div");
+          const labelEl = document.createElement("div");
+          const valueEl = document.createElement("div");
+
+          row.className = "ff-request__row";
+          labelEl.className = "ff-request__label";
+          valueEl.className = "ff-request__value";
+
+          labelEl.textContent = label;
+          valueEl.textContent = formatValue(value);
+
+          row.append(labelEl, valueEl);
+          summaryEl.appendChild(row);
+        });
+
+        trainingCard.textContent = trainingText(data.workouts) || "Не указано";
+        dietCard.textContent = dietText(data.dietType) || "Не указано";
+        caloriesCard.textContent = caloriesText(data.calories) || "Не указано";
+      }
+
+      function setStatus(message, type) {
+        statusEl.textContent = message || "";
+        statusEl.classList.toggle("is-success", type === "success");
+        statusEl.classList.toggle("is-error", type === "error");
+      }
+
+      async function loadRequest() {
+        if (!requestId) {
+          hintEl.textContent = "Заявка не найдена. Вернитесь в приложение и отправьте заявку ещё раз.";
+          setStatus("Не удалось найти данные анкеты.", "error");
+          return;
+        }
+
+        try {
+          setStatus("", "");
+          hintEl.textContent = "Загружаем данные анкеты...";
+          const response = await fetch(`${apiBase}/api/trainer-requests/${encodeURIComponent(requestId)}`, {
+            cache: "no-store"
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.message || payload.error || "Не удалось загрузить анкету.");
+
+          loadedRequest = payload.request || payload;
+          renderRows(loadedRequest);
+          hintEl.textContent = "Данные загружены из FruitFit.";
+
+          if (loadedRequest.status === "submitted" || loadedRequest.submittedAt) {
+            submitButton.disabled = true;
+            setStatus("Заявка уже отправлена. Тренер изучит вашу анкету и свяжется с вами по почте.", "success");
+            return;
+          }
+
+          submitButton.disabled = false;
+        } catch (error) {
+          hintEl.textContent = "Не удалось загрузить данные анкеты.";
+          setStatus(error.message || "Ошибка загрузки анкеты.", "error");
+        }
+      }
+
+      async function submitRequest() {
+        if (!loadedRequest) {
+          setStatus("Сначала нужно загрузить анкету.", "error");
+          return;
+        }
+        submitButton.disabled = true;
+        setStatus("Отправляем заявку...", "");
+        try {
+          const response = await fetch(`${apiBase}/api/trainer-requests/${encodeURIComponent(requestId)}/submit`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ source: "trainer-request-page" })
+          });
+          let payload = await response.json().catch(() => ({}));
+          if (!response.ok && response.status === 404) {
+            payload = await submitRequestFallback();
+          } else if (!response.ok) {
+            throw new Error(payload.message || payload.error || "Не удалось отправить заявку.");
+          }
+          loadedRequest = payload.request || loadedRequest;
+          setStatus("Заявка отправлена. Тренер изучит вашу анкету и свяжется с вами по почте.", "success");
+        } catch (error) {
+          submitButton.disabled = false;
+          setStatus(error.message || "Ошибка отправки заявки.", "error");
+        }
+      }
+
+      async function submitRequestFallback() {
+        const data = normalizedData(loadedRequest || {});
+        const profile = Object.assign({}, loadedRequest.profile || {}, data.email ? { email: data.email } : {});
+        const form = new URLSearchParams();
+        form.set("source", "trainer-request-page");
+        form.set("requestId", requestId);
+        form.set("request_id", requestId);
+        form.set("profile", JSON.stringify(profile));
+        form.set("email", data.email || "");
+        form.set("name", [data.firstName, data.lastName].filter(Boolean).join(" "));
+        form.set("gender", data.gender || "");
+        form.set("age", data.age || "");
+        form.set("height", data.height || "");
+        form.set("weight", data.weight || "");
+        form.set("goal", data.goal || "");
+        form.set("trainingFrequency", data.workouts || "");
+        form.set("dietType", data.dietType || "");
+        form.set("calories", data.calories || "");
+
+        const response = await fetch(`${apiBase}/api/trainer-requests`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+          body: form.toString()
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.message || payload.error || "Не удалось отправить заявку.");
+        return payload;
+      }
+
+      submitButton.addEventListener("click", submitRequest);
+      loadRequest();
+    })();
+  </script>
+</section>

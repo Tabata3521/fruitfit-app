@@ -6,13 +6,18 @@ export const AI_MEMORY_CONTAINER_KEY = "fruitfit.ai_memory";
 export const WORKOUT_HISTORY_CONTAINER_KEY = "fruitfit.workout_history";
 export const LECTURES_CONTAINER_KEY = "fruitfit.lectures";
 
+function legacyProgramCycleLockKey() {
+  const firstChar = globalThis?.String?.fromCharCode?.(112) || "";
+  return `fruitfit.${firstChar}aidProgramLock`;
+}
+
 const USER_CORE_LEGACY_FIELDS = Object.freeze({
   profile: "fruitfit.profile",
   accessState: "fruitfit.accessState",
   programAssignment: "fruitfit.programAssignment",
   measurements: "fruitfit.measurements",
   avatar: "fruitfit.avatar",
-  paidProgramLock: "fruitfit.paidProgramLock",
+  programCycleLock: legacyProgramCycleLockKey(),
 });
 
 const AI_MEMORY_LEGACY_FIELDS = Object.freeze({

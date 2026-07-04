@@ -8,7 +8,11 @@ import IconButton from "../components/IconButton";
 import MuscleWorkBlock from "../components/MuscleWorkBlock";
 import { buildClientReportScores, ClientReportSliders, normalizeClientReportScores } from "../components/ClientReportSliders";
 import { isWorkoutUnlocked, LOCKED_WORKOUT_MESSAGE, originalWorkoutIndex, visibleWorkoutsForAccess } from "../data/accessRules";
-import { readWorkoutHistoryField, writeWorkoutHistoryField } from "../data/dataContainers";
+import { APP_STORE_REVIEW } from "../config/appStoreReview";
+import { getAuthToken, submitTrainerReport } from "../data/authStore";
+import { readHealthContainer, readWorkoutHistoryField, writeWorkoutHistoryField } from "../data/dataContainers";
+import { useHealth } from "../data/healthStore";
+import { currentUserId } from "../data/userScopedCache";
 import { getExerciseAlternatives } from "../data/exerciseAlternatives";
 import { assignMuscleTemplate } from "../data/muscleTemplates";
 import { getExerciseWeight, saveExerciseWeight } from "../utils/exerciseWeights";
@@ -132,6 +136,62 @@ function saveWorkoutReport(workoutId, report) {
   const map = readWorkoutHistoryMap(WORKOUT_REPORTS_FIELD);
   writeWorkoutHistoryField(WORKOUT_REPORTS_FIELD, { ...map, [key]: report || null });
   return report || null;
+}
+
+function initialReportScores(savedReport) {
+  return normalizeClientReportScores(savedReport?.scores || savedReport || {
+    selfFeeling: 7,
+    strength: 7,
+    sleepQuality: 7,
+    workoutFeeling: 7,
+  }, 7);
+}
+
+function trainerReportAuthExpired(error) {
+  return Number(error?.status || 0) === 401
+    || /unauthorized|invalid token|сессия/i.test(String(error?.message || ""));
+}
+
+function reportNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? Math.round(number) : null;
+}
+
+function workoutHealthSnapshot(health = {}) {
+  const heart = health?.heart_rate || health?.heartRate || health?.heart || {};
+  const steps = health?.steps || {};
+  const calories = health?.calories || {};
+  const sleep = health?.sleep || {};
+  const latestBpm = reportNumber(heart.latestBpm ?? heart.current);
+  return {
+    summary: {
+      latestBpm,
+      stepsToday: reportNumber(steps.today),
+      activeCaloriesToday: reportNumber(calories.activeToday ?? calories.today),
+      sleepMinutes: reportNumber(sleep.minutes),
+      providerSource: health.providerSource || "Apple Health",
+      lastSyncAt: health.healthRefresh?.lastNativeReadFinishedAt || health.lastSuccessfulNativeReadAt || health.generatedAt || null,
+    },
+    heartRate: {
+      latestBpm,
+      latestTimestamp: heart.latestTimestamp || null,
+      avg24h: reportNumber(heart.avg24h),
+      min24h: reportNumber(heart.min24h ?? heart.range24h?.[0]),
+      max24h: reportNumber(heart.max24h ?? heart.range24h?.[1]),
+      sourceName: heart.latestSourceName || heart.sourceName || null,
+      freshness: heart.freshness || null,
+      status: heart.status || null,
+    },
+  };
+}
+
+function readFreshWorkoutHealth(health) {
+  return readHealthContainer(currentUserId(), null) || health || {};
+}
+
+function pulseStatus(snapshot = {}) {
+  const bpm = snapshot?.summary?.latestBpm;
+  return bpm ? `${bpm} уд/мин` : "нет данных";
 }
 
 function SetTimer({ seconds, active, onStart, onComplete }) {
@@ -296,22 +356,23 @@ function RestWheelPicker({ value, onChange }) {
 }
 
 function WorkoutReport({ workoutId, workoutTitle }) {
+  const { health, syncNativeHealth } = useHealth();
   const savedReport = readWorkoutReport(workoutId);
-  const [report, setReport] = useState(() => savedReport || {
-    selfFeeling: 7,
-    strength: 7,
-    sleepQuality: 7,
-    workoutFeeling: 7,
-  });
+  const [report, setReport] = useState(() => initialReportScores(savedReport));
   const [saved, setSaved] = useState(Boolean(savedReport));
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
+  const [serverStatus, setServerStatus] = useState(() => savedReport?.serverStatus || (savedReport?.serverReportId ? "sent" : ""));
   const normalizedScores = normalizeClientReportScores(report, 0);
   const hasScores = Object.values(normalizedScores).some((value) => Number(value || 0) > 0);
+  const liveHealthSnapshot = workoutHealthSnapshot(health);
+  const canSendToTrainer = Boolean(getAuthToken());
+  const waitingForSend = serverStatus === "pending";
 
   function update(key, value) {
     setSaved(false);
     setStatus("");
+    setServerStatus("");
     setReport((current) => ({ ...current, [key]: value }));
   }
 
@@ -330,15 +391,62 @@ function WorkoutReport({ workoutId, workoutTitle }) {
     };
     setSaving(true);
     try {
-      const localPayload = { ...payload, saved_at: new Date().toISOString() };
-      saveWorkoutReport(workoutId, localPayload);
+      let reportHealth = health;
+      if (canSendToTrainer && syncNativeHealth) {
+        setStatus("Готовим отчёт...");
+        try {
+          await syncNativeHealth({ force: true, reason: "post-workout-report-submit", queryMode: "history", bypassCooldown: true });
+          await new Promise((resolve) => window.setTimeout(resolve, 60));
+          reportHealth = readFreshWorkoutHealth(health);
+        } catch (_) {
+          reportHealth = readFreshWorkoutHealth(health);
+        }
+      }
+      const healthSnapshot = workoutHealthSnapshot(reportHealth);
+      const serverPayload = {
+        ...payload,
+        health: healthSnapshot,
+        healthSummary: healthSnapshot.summary,
+      };
+      const localPayload = { ...serverPayload, saved_at: new Date().toISOString() };
+      saveWorkoutReport(workoutId, { ...localPayload, serverStatus: canSendToTrainer ? "pending" : "local" });
       setReport(scores);
       setSaved(true);
-      setStatus("Отчёт сохранён на устройстве");
+      setServerStatus(canSendToTrainer ? "pending" : "local");
+      if (!canSendToTrainer) {
+        setStatus("Отчёт сохранён. Войдите в аккаунт, чтобы отправить его тренеру.");
+        return;
+      }
+      try {
+        const item = await submitTrainerReport(serverPayload);
+        saveWorkoutReport(workoutId, {
+          ...localPayload,
+          serverStatus: "sent",
+          serverReportId: item?.id || null,
+          sent_at: new Date().toISOString(),
+        });
+        setServerStatus("sent");
+        setStatus("Отчёт отправлен тренеру.");
+      } catch (sendError) {
+        console.warn("[FruitFit Workout] trainer report submit failed", sendError);
+        const authExpired = trainerReportAuthExpired(sendError);
+        const nextServerStatus = authExpired ? "auth_required" : "pending";
+        saveWorkoutReport(workoutId, {
+          ...localPayload,
+          serverStatus: nextServerStatus,
+          serverError: sendError?.message || "send_failed",
+          serverErrorStatus: sendError?.status || null,
+        });
+        setServerStatus(nextServerStatus);
+        setStatus(authExpired
+          ? "Сессия истекла. Войдите заново, затем отправьте отчёт."
+          : "Отчёт сохранён. Нажмите «Отправить ещё раз», когда связь восстановится.");
+      }
     } catch (error) {
+      console.warn("[FruitFit Workout] report save failed", error);
       saveWorkoutReport(workoutId, { ...payload, saved_at: new Date().toISOString() });
       setSaved(true);
-      setStatus(error?.message || "Отчёт сохранён на устройстве");
+      setStatus("Отчёт сохранён.");
     } finally {
       setSaving(false);
     }
@@ -351,15 +459,20 @@ function WorkoutReport({ workoutId, workoutTitle }) {
           <p className="text-[13px] font-black text-appText">Отчёт после тренировки</p>
           <p className="text-[10px] font-bold text-appMuted">необязательно</p>
         </div>
-        {saved && <span className="rounded-full bg-appGreen/35 px-2 py-1 text-[10px] font-black text-[#476B18]">Отчёт сохранён</span>}
+        {saved && <span className="rounded-full bg-appGreen/35 px-2 py-1 text-[10px] font-black text-[#476B18]">{serverStatus === "sent" ? "Отправлен" : waitingForSend ? "Ожидает" : "Сохранён"}</span>}
       </div>
 
       <div className="mt-2">
         <ClientReportSliders values={report} onChange={update} compact disabled={saving} />
       </div>
+      <p className="mt-2 rounded-2xl bg-appBg px-3 py-2 text-[11px] font-bold leading-4 text-appMuted">
+        {liveHealthSnapshot.summary.latestBpm
+          ? `Пульс учтён: ${pulseStatus(liveHealthSnapshot)}`
+          : "Данные активности добавятся к отчёту, когда будут доступны."}
+      </p>
 
       <button type="button" onClick={submit} disabled={!hasScores || saving} className="mt-2 h-10 w-full rounded-full bg-appGreen text-[12px] font-black text-[#181F19] disabled:bg-appBorder disabled:text-appMuted">
-        {saving ? "Сохраняем..." : "Сохранить отчёт"}
+        {saving ? "Отправляем..." : canSendToTrainer ? (waitingForSend ? "Отправить ещё раз" : "Отправить отчёт") : "Сохранить отчёт"}
       </button>
       {status && <p className="mt-2 rounded-2xl bg-appBg px-3 py-2 text-[11px] font-bold leading-4 text-appMuted">{status}</p>}
     </section>
@@ -989,7 +1102,7 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
     const nextWorkout = visibleWorkouts[nextVisibleIndex];
     const nextIndex = originalWorkoutIndex(program?.workouts || [], nextWorkout);
     const safeIndex = nextIndex >= 0 ? nextIndex : nextVisibleIndex;
-    if (!isWorkoutUnlocked(safeIndex, program?.workouts || total, access)) {
+    if (!APP_STORE_REVIEW && !isWorkoutUnlocked(safeIndex, program?.workouts || total, access)) {
       window.alert(LOCKED_WORKOUT_MESSAGE);
       return;
     }
@@ -1072,7 +1185,7 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
             {visibleWorkouts.map((item, index) => {
               const sourceIndex = originalWorkoutIndex(program?.workouts || [], item);
               const safeSourceIndex = sourceIndex >= 0 ? sourceIndex : index;
-              const locked = !isWorkoutUnlocked(safeSourceIndex, program?.workouts || total, access);
+              const locked = !APP_STORE_REVIEW && !isWorkoutUnlocked(safeSourceIndex, program?.workouts || total, access);
               return (
                 <button key={item.workout_id} type="button" onClick={() => selectDay(index)} className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-[12px] font-bold ${locked ? "bg-appCard/70 text-appMuted opacity-70" : index === visibleSelectedIndex ? "bg-appDark text-appGreen" : "bg-appCard text-appMuted"}`}>
                   {locked && <Lock size={12} />}

@@ -13,6 +13,7 @@ import { getDeviceRegistrationPayloadAsync, registerDevice } from "../data/devic
 import { registerFirebaseMessagingPush } from "../services/notifications/firebaseMessagingPush";
 import { postJson } from "../services/nativeHttp";
 import { PRIVACY_POLICY_TEXT, PRIVACY_POLICY_URL } from "../data/privacyPolicyText";
+import { APP_STORE_REVIEW } from "../config/appStoreReview";
 
 const SKIP_AUTH_KEY = "fruitfit.authSkipped";
 
@@ -64,6 +65,7 @@ function policyTextFromHtml(html = "") {
 }
 
 async function fetchOfficialPrivacyPolicyText() {
+  if (APP_STORE_REVIEW) return PRIVACY_POLICY_TEXT;
   if (Capacitor?.isNativePlatform?.()) {
     const response = await CapacitorHttp.get({
       url: PRIVACY_POLICY_URL,
@@ -111,6 +113,7 @@ function PrivacyPolicyScreen({ onBack }) {
   const [loadedFromSite, setLoadedFromSite] = useState(false);
 
   useEffect(() => {
+    if (APP_STORE_REVIEW) return undefined;
     let alive = true;
     fetchOfficialPrivacyPolicyText()
       .then((text) => {
@@ -180,14 +183,16 @@ function PrivacyPolicyScreen({ onBack }) {
       </article>
 
       <footer className="shrink-0 border-t border-appBorder bg-appBg/95 px-4 pb-[var(--app-safe-bottom)] pt-3 backdrop-blur">
-        <button
-          type="button"
-          onClick={openOfficialPolicy}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-appBorder bg-appCard px-4 text-[13px] font-black text-appText shadow-sm"
-        >
-          Открыть на сайте
-          <ExternalLink size={16} />
-        </button>
+        {!APP_STORE_REVIEW && (
+          <button
+            type="button"
+            onClick={openOfficialPolicy}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-appBorder bg-appCard px-4 text-[13px] font-black text-appText shadow-sm"
+          >
+            Открыть на сайте
+            <ExternalLink size={16} />
+          </button>
+        )}
       </footer>
     </main>
   );
@@ -200,6 +205,7 @@ function stopPrivacyLinkClick(event) {
 
 async function openPrivacyPolicyExternal(event) {
   stopPrivacyLinkClick(event);
+  if (APP_STORE_REVIEW) return;
   try {
     await Browser.open({ url: PRIVACY_POLICY_URL, presentationStyle: "popover" });
   } catch (_) {

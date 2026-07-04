@@ -1073,5 +1073,26 @@ export const migrations = [
       ALTER TABLE trainer_requests
         ADD COLUMN IF NOT EXISTS submitted_at timestamptz;
     `
+  },
+  {
+    id: "016_trainer_requests",
+    sql: `
+      CREATE TABLE IF NOT EXISTS trainer_requests (
+        id text PRIMARY KEY,
+        user_id text REFERENCES users(id) ON DELETE SET NULL,
+        status text NOT NULL DEFAULT 'created',
+        profile jsonb NOT NULL DEFAULT '{}'::jsonb,
+        meta jsonb NOT NULL DEFAULT '{}'::jsonb,
+        submitted_at timestamptz,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
+
+      CREATE INDEX IF NOT EXISTS trainer_requests_user_id_idx
+        ON trainer_requests (user_id, created_at DESC);
+
+      CREATE INDEX IF NOT EXISTS trainer_requests_status_idx
+        ON trainer_requests (status, created_at DESC);
+    `
   }
 ];

@@ -207,6 +207,11 @@ async function iosReadSourceSamples(dataType, range) {
 function mapIosAuthorization(status = {}) {
   const readAuthorized = Array.isArray(status.readAuthorized) ? status.readAuthorized : [];
   const readDenied = Array.isArray(status.readDenied) ? status.readDenied : [];
+  const permissionStatus = IOS_HEALTH_READ_TYPES.reduce((acc, type) => {
+    if (readAuthorized.includes(type)) acc[type] = true;
+    if (readDenied.includes(type)) acc[type] = false;
+    return acc;
+  }, {});
   if (readAuthorized.length === 0 && readDenied.length === 0) {
     return {
       state: healthProviderStates.PERMISSIONS_REQUIRED,
@@ -214,6 +219,7 @@ function mapIosAuthorization(status = {}) {
       message: "Allow Apple Health access to show activity, sleep, heart rate, and recovery data.",
       readAuthorized,
       readDenied,
+      permissionStatus,
     };
   }
   return {
@@ -224,6 +230,7 @@ function mapIosAuthorization(status = {}) {
       : "Apple Health is connected.",
     readAuthorized,
     readDenied,
+    permissionStatus,
   };
 }
 

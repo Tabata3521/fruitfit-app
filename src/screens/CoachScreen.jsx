@@ -18,6 +18,7 @@ const starters = [
 ];
 
 const AI_CONSENT_VERSION = "2026-06-openai-context";
+const CHAT_INPUT_MAX_HEIGHT = 116;
 
 function aiConsentKey(userId = "") {
   const scope = String(userId || "anonymous").trim() || "anonymous";
@@ -85,7 +86,7 @@ function AiConsentModal({ onAccept, onCancel }) {
               Чтобы ответить точнее, FruitFit может передавать в OpenAI ваш вопрос, последние сообщения чата, профиль и анкету, текущую программу, выбранную тренировку, цель питания и краткую сводку активности, если трекер подключён.
             </p>
             <p className="mt-2 text-[12px] leading-5 text-appMuted">
-              Платёжные данные, токены входа и секреты не отправляются. Без согласия запрос к AI Coach не будет выполнен.
+              Данные входа и приватные ключи не отправляются. Без согласия запрос к AI Coach не будет выполнен.
             </p>
           </div>
         </div>
@@ -266,6 +267,7 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
   const [pendingConsentText, setPendingConsentText] = useState("");
   const listRef = useRef(null);
   const bottomRef = useRef(null);
+  const inputRef = useRef(null);
   const displayMessages = messages.length ? messages : [welcomeMessage];
   const aiConsentAccepted = Boolean(aiConsentState.accepted);
   const lastMessageKey = displayMessages.length
@@ -308,6 +310,13 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
   useEffect(() => {
     scrollChatToBottom(messages.length ? "smooth" : "auto");
   }, [lastMessageKey, displayMessages.length, loading, messages.length, scrollChatToBottom]);
+
+  useLayoutEffect(() => {
+    const node = inputRef.current;
+    if (!node) return;
+    node.style.height = "0px";
+    node.style.height = `${Math.min(node.scrollHeight, CHAT_INPUT_MAX_HEIGHT)}px`;
+  }, [input]);
 
   function acceptAiConsent() {
     const userId = currentUserId();
@@ -458,7 +467,7 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
         </section>
       </div>
 
-      <section ref={listRef} className="mt-2 min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-[calc(104px+env(safe-area-inset-bottom))]">
+      <section ref={listRef} className="mt-2 min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-[calc(138px+env(safe-area-inset-bottom))]">
         {displayMessages.map((message, index) => (
           <div key={message.id || index} className={`max-w-[86%] rounded-[20px] px-4 py-3 text-[13px] leading-5 shadow-sm ${message.role === "user" ? "ml-auto bg-appGreen text-[#181F19]" : "bg-appCard text-appText"}`}>
             {message.content}
@@ -469,9 +478,23 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
       </section>
 
       <div className="fixed-shell fixed bottom-[calc(72px+env(safe-area-inset-bottom))] left-1/2 z-30 -translate-x-1/2 px-4">
-        <form onSubmit={(event) => { event.preventDefault(); send(); }} className="flex gap-2 rounded-full border border-appBorder bg-appCard p-2 shadow-card">
-          <input value={input} onFocus={() => scrollChatToBottom("smooth")} onChange={(event) => setInput(event.target.value)} placeholder="Спроси AI Coach..." className="min-w-0 flex-1 bg-transparent px-3 text-[14px] text-appText outline-none" />
-          <button type="submit" disabled={loading} className="grid h-10 w-10 place-items-center rounded-full bg-appDark text-appGreen disabled:opacity-55">
+        <form onSubmit={(event) => { event.preventDefault(); send(); }} className="flex items-end gap-2 rounded-[26px] border border-appBorder bg-appCard p-2 shadow-card">
+          <textarea
+            ref={inputRef}
+            value={input}
+            rows={1}
+            onFocus={() => scrollChatToBottom("smooth")}
+            onChange={(event) => setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent?.isComposing) {
+                event.preventDefault();
+                send();
+              }
+            }}
+            placeholder="Спроси AI Coach..."
+            className="max-h-[116px] min-h-10 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-3 py-2.5 text-[14px] leading-5 text-appText outline-none placeholder:text-appMuted/70"
+          />
+          <button type="submit" disabled={loading || !input.trim()} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-appDark text-appGreen disabled:opacity-55">
             <Send size={17} />
           </button>
         </form>

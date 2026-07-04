@@ -94,8 +94,8 @@ class BootErrorBoundary extends React.Component {
     return (
       <main style={{ minHeight: "100vh", padding: 24, background: "#07110A", color: "#F7F7EF", fontFamily: "system-ui, sans-serif" }}>
         <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900 }}>FruitFit</h1>
-        <p style={{ marginTop: 12, lineHeight: 1.5, color: "#DDF7B4" }}>Не удалось запустить экран приложения.</p>
-        <p style={{ marginTop: 8, lineHeight: 1.5, color: "#A8B0A8" }}>{String(this.state.error?.message || this.state.error || "Runtime error")}</p>
+        <p style={{ marginTop: 12, lineHeight: 1.5, color: "#DDF7B4" }}>Не удалось открыть этот экран.</p>
+        <p style={{ marginTop: 8, lineHeight: 1.5, color: "#A8B0A8" }}>Перезапустите приложение. Если ошибка повторится, отправьте отчёт тренеру.</p>
         <button
           type="button"
           onClick={() => {
@@ -104,7 +104,7 @@ class BootErrorBoundary extends React.Component {
           }}
           style={{ marginTop: 18, height: 44, border: "1px solid rgba(191,243,107,0.35)", borderRadius: 999, padding: "0 18px", background: "transparent", color: "#DDF7B4", fontWeight: 900 }}
         >
-          Copy error report
+          Скопировать отчёт
         </button>
         <button
           type="button"
@@ -114,7 +114,7 @@ class BootErrorBoundary extends React.Component {
           }}
           style={{ marginTop: 18, height: 44, border: 0, borderRadius: 999, padding: "0 18px", background: "#BFF36B", color: "#101711", fontWeight: 900 }}
         >
-          Очистить health cache и перезапустить
+          Перезапустить приложение
         </button>
       </main>
     );

@@ -1,8 +1,10 @@
-import { Capacitor } from "@capacitor/core";
-import { FirebaseMessaging } from "@capacitor-firebase/messaging";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { apiUrl, getAuthToken } from "../../data/authStore";
 import { getDeviceId, getDeviceRegistrationPayloadAsync } from "../../data/deviceStore";
 import { postJson } from "../nativeHttp";
+import { FirebaseMessaging } from "#fruitfit/firebaseMessagingNative";
+
+const FruitFitSystemSettings = registerPlugin("FruitFitSystemSettings");
 
 function tokenKey(platform) {
   return `fruitfit.push.fcmToken.${platform}.v1`;
@@ -15,7 +17,29 @@ function registeredAtKey(platform) {
 let listenersReady = false;
 let registrationPromise = null;
 
-export async function registerFirebaseMessagingPush({ force = false } = {}) {
+export async function getFirebaseMessagingPermissionStatus() {
+  const platform = Capacitor.getPlatform?.() || "web";
+  if (!Capacitor.isNativePlatform?.() || !["android", "ios"].includes(platform)) {
+    return { ok: false, status: "native_push_unavailable", platform };
+  }
+  const permissions = await FirebaseMessaging.checkPermissions();
+  return {
+    ok: permissions.receive === "granted",
+    status: permissions.receive || "unknown",
+    permissions,
+    platform,
+  };
+}
+
+export async function openFirebaseMessagingSettings() {
+  const platform = Capacitor.getPlatform?.() || "web";
+  if (!Capacitor.isNativePlatform?.() || platform !== "ios") {
+    return { ok: false, status: "settings_unavailable", platform };
+  }
+  return FruitFitSystemSettings.openAppSettings();
+}
+
+export async function registerFirebaseMessagingPush({ force = false, prompt = false } = {}) {
   const platform = Capacitor.getPlatform?.() || "web";
   if (!Capacitor.isNativePlatform?.() || !["android", "ios"].includes(platform)) {
     return { ok: false, status: "native_push_unavailable", platform };
@@ -25,7 +49,7 @@ export async function registerFirebaseMessagingPush({ force = false } = {}) {
   }
   if (registrationPromise && !force) return registrationPromise;
 
-  registrationPromise = runRegistration();
+  registrationPromise = runRegistration({ prompt });
   try {
     return await registrationPromise;
   } finally {
@@ -33,17 +57,25 @@ export async function registerFirebaseMessagingPush({ force = false } = {}) {
   }
 }
 
-async function runRegistration() {
+async function runRegistration({ prompt = false } = {}) {
   const platform = Capacitor.getPlatform?.() || "web";
   await ensureListeners();
   await ensureAndroidChannels(platform);
 
   let permissions = await FirebaseMessaging.checkPermissions();
   if (permissions.receive !== "granted") {
+    if (!prompt) {
+      return { ok: false, status: "permission_not_requested", permissions, platform };
+    }
     permissions = await FirebaseMessaging.requestPermissions();
   }
   if (permissions.receive !== "granted") {
-    return { ok: false, status: "permission_missing", permissions };
+    return {
+      ok: false,
+      status: permissions.receive === "denied" ? "permission_denied" : "permission_missing",
+      permissions,
+      canOpenSettings: platform === "ios",
+    };
   }
 
   const result = await FirebaseMessaging.getToken();

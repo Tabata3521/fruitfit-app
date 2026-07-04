@@ -53,6 +53,8 @@ import { useHealth } from "../data/healthStore";
 import { readHealthContainer, readUserCoreField } from "../data/dataContainers";
 import { loadProfile, saveProfile } from "../data/profileStore";
 import { currentUserId } from "../data/userScopedCache";
+import { APP_STORE_REVIEW } from "../config/appStoreReview";
+import { PRIVACY_POLICY_TEXT, PRIVACY_POLICY_URL } from "../data/privacyPolicyText";
 
 const PROVIDER_META = {
   telegram: { label: "Telegram", color: "text-[#229ED9]", dot: "bg-[#229ED9]" },
@@ -262,6 +264,9 @@ function FeedbackSettingsSection() {
 }
 
 function PrivacySettingsSection() {
+  const [policyOpen, setPolicyOpen] = useState(false);
+  const policyLines = useMemo(() => PRIVACY_POLICY_TEXT.split("\n").map((line) => line.trim()).filter(Boolean), []);
+
   return (
     <section className="rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">
       <div className="flex items-start gap-3">
@@ -279,18 +284,26 @@ function PrivacySettingsSection() {
       <div className="mt-3 space-y-2 rounded-[18px] border border-appBorder bg-appBg p-3 text-[12px] font-semibold leading-5 text-appMuted">
         <p>AI Coach работает с использованием OpenAI. Перед первым запросом приложение отдельно попросит согласие.</p>
         <p>В AI могут передаваться вопрос, последние сообщения, профиль, текущая программа, выбранная тренировка, цель питания и краткая сводка активности, если трекер подключён.</p>
-        <p>Платёжные данные, токены входа и секреты не передаются в AI. Оплата проходит через защищённый backend и платёжную страницу.</p>
+        <p>Данные входа и приватные ключи не передаются в AI. Используется только информация, нужная для работы приложения и рекомендаций.</p>
         <p>Аккаунт можно удалить в настройках: профиль, замеры, прогресс и health-данные будут удалены по запросу.</p>
       </div>
 
       <button
         type="button"
-        onClick={() => openSettingsExternalUrl("https://tagirfruit.ru/privacy-policy")}
+        onClick={() => (APP_STORE_REVIEW ? setPolicyOpen((value) => !value) : openSettingsExternalUrl(PRIVACY_POLICY_URL))}
         className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full border border-appBorder bg-appBg text-[14px] font-black text-appText"
       >
         <Link2 size={17} />
-        Открыть политику
+        {APP_STORE_REVIEW ? (policyOpen ? "Скрыть политику" : "Показать политику") : "Открыть политику"}
       </button>
+
+      {APP_STORE_REVIEW && policyOpen && (
+        <div className="mt-3 max-h-[52vh] space-y-2 overflow-y-auto rounded-[18px] border border-appBorder bg-appBg p-3 text-[12px] font-semibold leading-5 text-appMuted">
+          {policyLines.map((line, index) => (
+            <p key={`${index}-${line.slice(0, 20)}`}>{line}</p>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -492,6 +505,11 @@ function providerDisplay(provider) {
 }
 
 function canUseProgressPhotos(user, access) {
+  if (APP_STORE_REVIEW) {
+    const role = String(access?.role || user?.role || "").toLowerCase();
+    return Boolean(access?.isAdmin || role === "admin");
+  }
+
   const status = String(access?.status || access?.plan || "").toLowerCase();
   const role = String(access?.role || user?.role || "").toLowerCase();
   return Boolean(
@@ -789,6 +807,13 @@ function formatReportSleep(minutes) {
   return `${hours} ч ${rest} мин`;
 }
 
+function formatReportHealthSource(source) {
+  const value = String(source || "").trim();
+  if (!value) return "сохранённые данные";
+  if (value.toLowerCase().includes("apple")) return "Apple Health";
+  return value;
+}
+
 export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBack }) {
   const { health, syncNativeHealth } = useHealth();
   const [updateState, setUpdateState] = useState({ status: "idle", result: null, error: "" });
@@ -1002,7 +1027,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
       return;
     }
     if (provider === "apple") {
-      setAccountStatus({ loading: false, message: "Apple ID будет доступен после настройки на сервере для non-RU региона." });
+      setAccountStatus({ loading: false, message: "Этот способ входа сейчас недоступен." });
       return;
     }
     sessionStorage.setItem("fruitfit.pendingProviderLink", provider);
@@ -1295,10 +1320,10 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
             <section className="rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.14em] text-appGreen">VIP</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.14em] text-appGreen">Связь с тренером</p>
                   <h2 className="text-[16px] font-black text-appText">Отчёт тренеру</h2>
                   <p className="mt-1 text-[12px] leading-5 text-appMuted">
-                    Фото, самочувствие и последние замеры уйдут в админку.
+                    Фото, самочувствие и последние замеры будут отправлены тренеру.
                   </p>
                 </div>
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-appGreen/15 text-appGreen">
@@ -1385,7 +1410,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-[12px] font-black text-appText">Health в отчёте</p>
                   <span className="rounded-full bg-appCard px-2 py-1 text-[10px] font-black text-appMuted">
-                    {reportHealthPreview.summary.providerSource || "cache"}
+                    {formatReportHealthSource(reportHealthPreview.summary.providerSource)}
                   </span>
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2">

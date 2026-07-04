@@ -249,6 +249,75 @@ function coachApiPlugin() {
   };
 }
 
+const REVIEW_PUBLIC_DATA_FILES = ["courses.json", "training-programs.json"];
+const REVIEW_PRIVATE_DATA_KEYS = new Set([
+  "pay_url",
+  "payment_url",
+  "checkout_url",
+  "course_url",
+  "source_url",
+  "product_id",
+  "productId",
+  "product_code",
+  "productCode",
+]);
+
+function sanitizeReviewPublicData(value) {
+  if (Array.isArray(value)) return value.map(sanitizeReviewPublicData);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key, entryValue]) => {
+        if (REVIEW_PRIVATE_DATA_KEYS.has(key)) return false;
+        if (typeof entryValue === "string" && /tagirfruit\.inskill\.ru\/(?:ru\/pay|admin\/courses)/i.test(entryValue)) return false;
+        return true;
+      })
+      .map(([key, entryValue]) => [key, sanitizeReviewPublicData(entryValue)])
+  );
+}
+
+function appStoreReviewAssetSanitizer() {
+  return {
+    name: "fruitfit-app-store-review-asset-sanitizer",
+    apply: "build",
+    closeBundle() {
+      if (process.env.VITE_APP_STORE_REVIEW !== "true") return;
+      const dataDir = path.resolve(process.cwd(), "dist/data");
+      for (const fileName of REVIEW_PUBLIC_DATA_FILES) {
+        const filePath = path.join(dataDir, fileName);
+        if (!fs.existsSync(filePath)) continue;
+        const json = JSON.parse(fs.readFileSync(filePath, "utf8"));
+        fs.writeFileSync(filePath, `${JSON.stringify(sanitizeReviewPublicData(json), null, 2)}\n`);
+      }
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), coachApiPlugin()],
+  define: {
+    __APP_STORE_REVIEW__: JSON.stringify(process.env.VITE_APP_STORE_REVIEW === "true"),
+  },
+  resolve: {
+    alias: {
+      "#fruitfit/programAction": path.resolve(
+        process.cwd(),
+        process.env.VITE_APP_STORE_REVIEW === "true"
+          ? "src/services/programAction.review.js"
+          : "src/services/programAction.standard.js"
+      ),
+      "#fruitfit/programRenewal": path.resolve(
+        process.cwd(),
+        process.env.VITE_APP_STORE_REVIEW === "true"
+          ? "src/services/programRenewal.review.js"
+          : "src/services/programRenewal.standard.js"
+      ),
+      "#fruitfit/firebaseMessagingNative": path.resolve(
+        process.cwd(),
+        process.env.VITE_APP_STORE_REVIEW === "true"
+          ? "src/services/notifications/firebaseMessagingNative.review.js"
+          : "src/services/notifications/firebaseMessagingNative.standard.js"
+      ),
+    },
+  },
+  plugins: [react(), coachApiPlugin(), appStoreReviewAssetSanitizer()],
 });

@@ -6,7 +6,7 @@ const API_BASE_URL = normalizeApiUrl(import.meta.env.VITE_FRUITFIT_API_URL || ap
 const AI_COACH_ENDPOINT = `${API_BASE_URL}/api/coach`;
 const AI_UNAVAILABLE_MESSAGE = "AI-помощник временно недоступен. Попробуйте позже.";
 const AI_LOGIN_REQUIRED_MESSAGE = "Войдите в аккаунт, чтобы пользоваться AI Coach.";
-const AI_LIMIT_REACHED_MESSAGE = "Лимит сообщений исчерпан. Для продолжения общения с тренером нужна полная программа.";
+const AI_LIMIT_REACHED_MESSAGE = "Лимит сообщений на сегодня исчерпан. Попробуйте продолжить завтра.";
 
 export async function askFruitFitCoach(message, options = {}) {
   const content = String(message || "").trim();

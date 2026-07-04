@@ -6,6 +6,7 @@ import WidgetGrid from "../components/WidgetGrid";
 import { loadNotificationCenter } from "../data/notificationCenterStore";
 import { profileGreetingName } from "../data/profileStore";
 import { ensureMotivationLockScreenNotifications } from "../services/notifications/localMotivationNotifications";
+import { APP_STORE_REVIEW } from "../config/appStoreReview";
 
 const fallbackCoachTip = {
   id: "home-coach-fallback",
@@ -17,7 +18,7 @@ const fallbackCoachTip = {
 export default function HomeScreen({ program, workout, profile, access, onStartWorkout, onNavigate }) {
   const [notificationItems, setNotificationItems] = useState(() => loadNotificationCenter());
   const greetingName = profileGreetingName(profile);
-  const accessBadge = accessLabel(access);
+  const accessBadge = APP_STORE_REVIEW ? "" : accessLabel(access);
   const coachTip = notificationItems[0] || fallbackCoachTip;
 
   useEffect(() => {

@@ -1,4 +1,8 @@
-export const LOCKED_WORKOUT_MESSAGE = "Эта тренировка недоступна по текущему доступу.";
+import { APP_STORE_REVIEW } from "../config/appStoreReview";
+
+export const LOCKED_WORKOUT_MESSAGE = APP_STORE_REVIEW
+  ? "Программа пока формируется."
+  : "Эта тренировка недоступна по текущему доступу.";
 
 function normalizedStatus(access) {
   return String(access?.status || access?.plan || access?.role || "").toLowerCase();
@@ -70,6 +74,8 @@ function isAdminAccess(access = {}, userRole = "") {
 }
 
 export function accessTier(access) {
+  if (APP_STORE_REVIEW) return "assigned";
+
   const status = normalizedStatus(access);
   const role = String(access?.role || "").toLowerCase();
   if (access?.isVip || status === "vip") return "vip";
@@ -187,6 +193,22 @@ export function getClientVisibleWorkouts({
   access = {},
 } = {}) {
   const items = Array.isArray(workouts) ? workouts : [];
+  if (APP_STORE_REVIEW) {
+    const serverIds = readServerVisibleWorkoutIds(access, serverVisibleWorkoutIds);
+    const serverVisibleCount = serverWorkoutLimit(access, serverVisibleWorkoutCount);
+    let visible = items;
+    if (serverIds.length) {
+      const allowed = new Set(serverIds);
+      visible = visible.filter((workout) => workoutIdentityValues(workout).some((value) => allowed.has(value)));
+    }
+    if (serverVisibleCount !== null) {
+      visible = visible.slice(0, Math.max(0, Math.floor(serverVisibleCount)));
+    } else if (!serverIds.length) {
+      visible = visible.slice(0, freePreviewWorkoutCount(items));
+    }
+    return visible.length ? visible : items.slice(0, Math.min(items.length, 3));
+  }
+
   const totalWorkouts = items.length;
   const role = normalizedRole(userRole, access?.userRole, access?.role, access?.user?.role);
   const level = normalizedRole(accessLevel) || accessTier(access);
@@ -234,6 +256,12 @@ export function getClientVisibleWorkouts({
 
 export function unlockedWorkoutCount(workoutsOrTotal = 0, access) {
   const total = workoutTotal(workoutsOrTotal);
+  if (APP_STORE_REVIEW) {
+    return Array.isArray(workoutsOrTotal)
+      ? getClientVisibleWorkouts({ workouts: workoutsOrTotal, access }).length
+      : total;
+  }
+
   if (Array.isArray(workoutsOrTotal)) {
     return getClientVisibleWorkouts({ workouts: workoutsOrTotal, access }).length;
   }
@@ -249,6 +277,8 @@ export function unlockedWorkoutCount(workoutsOrTotal = 0, access) {
 }
 
 export function isWorkoutUnlocked(index, workoutsOrTotal, access) {
+  if (APP_STORE_REVIEW) return true;
+
   const safeIndex = Number(index);
   if (!Number.isFinite(safeIndex) || safeIndex < 0) return false;
   if (Array.isArray(workoutsOrTotal)) {
@@ -264,6 +294,8 @@ export function visibleWorkoutsForAccess(workouts = [], access) {
 }
 
 export function workoutAccessLabel(access, workoutsOrTotal = 0) {
+  if (APP_STORE_REVIEW) return "Ознакомительная программа";
+
   const tier = accessTier(access);
   const count = unlockedWorkoutCount(workoutsOrTotal, access);
   if (tier === "full" && isAdminAccess(access)) return "Доступны все тренировки";

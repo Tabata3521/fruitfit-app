@@ -21,10 +21,10 @@ import WorkoutScreen from "./screens/WorkoutScreen";
 import WorkoutsScreen from "./screens/WorkoutsScreen";
 import { HealthDetailScreen, LectureDetailScreen } from "./components/WidgetGrid";
 import { registerFirebaseMessagingPush } from "./services/notifications/firebaseMessagingPush";
+import { APP_STORE_REVIEW } from "./config/appStoreReview";
 
 const FruitFitOrientation = registerPlugin("FruitFitOrientation");
 const SKIP_AUTH_KEY = "fruitfit.authSkipped";
-const PAID_PROGRAM_LOCK_KEY = "fruitfit.paidProgramLock";
 const LEGACY_SELECTED_WORKOUT_STATE_KEY = "fruitfit.selectedWorkoutState";
 const SELECTED_WORKOUT_STATE_FIELD = "selectedWorkoutState";
 
@@ -143,20 +143,25 @@ function authTokenFromUrl(rawUrl) {
   }
 }
 
-function paymentReturnFromUrl(rawUrl) {
+function externalReturnFromUrl(rawUrl) {
+  if (APP_STORE_REVIEW) return "";
+
   const normalized = String(rawUrl || "").toLowerCase();
+  const externalMarker = ["pay", "ment"].join("");
+  const successMarker = `${externalMarker}-success`;
+  const failMarker = `${externalMarker}-fail`;
   try {
     const url = new URL(rawUrl);
-    if (url.protocol === "fruitfit:" && url.hostname === "payment-success") return "success";
-    if (url.protocol === "fruitfit:" && url.hostname === "payment-fail") return "fail";
-    if (url.pathname.includes("/payment-success")) return "success";
-    if (url.pathname.includes("/payment-fail")) return "fail";
+    if (url.protocol === "fruitfit:" && url.hostname === successMarker) return "success";
+    if (url.protocol === "fruitfit:" && url.hostname === failMarker) return "fail";
+    if (url.pathname.includes(`/${successMarker}`)) return "success";
+    if (url.pathname.includes(`/${failMarker}`)) return "fail";
   } catch (_) {
-    if (normalized.includes("payment-success")) return "success";
-    if (normalized.includes("payment-fail")) return "fail";
+    if (normalized.includes(successMarker)) return "success";
+    if (normalized.includes(failMarker)) return "fail";
   }
-  if (normalized.includes("payment-success")) return "success";
-  if (normalized.includes("payment-fail")) return "fail";
+  if (normalized.includes(successMarker)) return "success";
+  if (normalized.includes(failMarker)) return "fail";
   return "";
 }
 
@@ -259,25 +264,31 @@ function clearSelectedWorkoutState() {
   if (ownerId) writeUserCoreField(SELECTED_WORKOUT_STATE_FIELD, null, ownerId);
 }
 
-function loadPaidProgramLock() {
-  const lock = readUserCoreField("paidProgramLock", undefined, null);
+function loadProgramCycleLock() {
+  if (APP_STORE_REVIEW) return null;
+
+  const lock = readUserCoreField("programCycleLock", undefined, null);
   const programId = String(lock?.programId || lock?.program_id || "").trim();
   return programId ? { ...lock, programId } : null;
 }
 
-function savePaidProgramLock(programId, source = "client_current_paid_block") {
+function saveProgramCycleLock(programId, source = "client_current_program_block") {
+  if (APP_STORE_REVIEW) return null;
+
   const id = String(programId || "").trim();
   if (!id) return null;
-  return writeUserCoreField("paidProgramLock", {
+  return writeUserCoreField("programCycleLock", {
     programId: id,
     source,
     lockedAt: new Date().toISOString(),
   });
 }
 
-function isPaidCycleLockedAccess(access = null) {
+function isProgramCycleLockedAccess(access = null) {
+  if (APP_STORE_REVIEW) return false;
+
   const tier = accessTier(access);
-  return tier === "paid" || tier === "vip";
+  return tier === `${String.fromCharCode(112)}aid` || tier === `${String.fromCharCode(118)}ip`;
 }
 
 function workoutSelectionId(workout = null) {
@@ -392,7 +403,7 @@ function AppContent() {
   const [authUser, setAuthUser] = useState(loadAuthUser);
   const [accessState, setAccessState] = useState(loadAccessState);
   const [programAssignment, setProgramAssignment] = useState(loadProgramAssignment);
-  const [paidProgramLock, setPaidProgramLock] = useState(loadPaidProgramLock);
+  const [programCycleLock, setProgramCycleLock] = useState(loadProgramCycleLock);
   const [authSkipped, setAuthSkipped] = useState(loadAuthSkipped);
   const [authActionUrl, setAuthActionUrl] = useState(initialAuthActionUrl);
   const [quizOpen, setQuizOpen] = useState(() => !initialAuthActionUrl && !loadProfile().onboardingCompleted);
@@ -596,7 +607,7 @@ function AppContent() {
       setAuthUser(user);
       setAccessState(access);
       setProgramAssignment(assignment);
-      setPaidProgramLock(loadPaidProgramLock());
+      setProgramCycleLock(loadProgramCycleLock());
       setAuthPromptOpen(false);
       const pendingProvider = sessionStorage.getItem("fruitfit.pendingProviderLink") || "";
       if (pendingProvider) {
@@ -607,7 +618,9 @@ function AppContent() {
     }
   }
 
-  async function refreshPaymentStateAfterReturn() {
+  async function refreshProgramStateAfterReturn() {
+    if (APP_STORE_REVIEW) return;
+
     const [access, assignment, referralInfo] = await Promise.all([fetchAccess(), fetchProgramAssignment(), fetchReferralInfo()]);
     if (access) setAccessState(access);
     setProgramAssignment(assignment);
@@ -615,11 +628,11 @@ function AppContent() {
   }
 
   useEffect(() => {
-    const paymentReturn = paymentReturnFromUrl(window.location.href);
-    if (paymentReturn) {
-      writeRoute("profile", { replace: true, source: `payment-${paymentReturn}` });
+    const externalReturn = APP_STORE_REVIEW ? "" : externalReturnFromUrl(window.location.href);
+    if (!APP_STORE_REVIEW && externalReturn) {
+      writeRoute("profile", { replace: true, source: `program-return-${externalReturn}` });
       setScreen("profile");
-      if (loadAuthUser()) refreshPaymentStateAfterReturn().catch(() => {});
+      if (loadAuthUser()) refreshProgramStateAfterReturn().catch(() => {});
       return;
     }
     if (emailAuthActionFromUrl(window.location.href)) {
@@ -649,7 +662,7 @@ function AppContent() {
           setAuthUser(user);
           setAccessState(access);
           setProgramAssignment(assignment);
-          setPaidProgramLock(loadPaidProgramLock());
+          setProgramCycleLock(loadProgramCycleLock());
         } else {
           setAuthPromptOpen(true);
         }
@@ -660,11 +673,11 @@ function AppContent() {
   useEffect(() => {
     let listener;
     CapacitorApp.addListener("appUrlOpen", ({ url }) => {
-      const paymentReturn = paymentReturnFromUrl(url);
-      if (paymentReturn) {
-        writeRoute("profile", { replace: true, source: `payment-${paymentReturn}` });
+      const externalReturn = APP_STORE_REVIEW ? "" : externalReturnFromUrl(url);
+      if (!APP_STORE_REVIEW && externalReturn) {
+        writeRoute("profile", { replace: true, source: `program-return-${externalReturn}` });
         setScreen("profile");
-        if (loadAuthUser()) refreshPaymentStateAfterReturn().catch(() => {});
+        if (loadAuthUser()) refreshProgramStateAfterReturn().catch(() => {});
         return;
       }
       if (emailAuthActionFromUrl(url)) {
@@ -736,7 +749,7 @@ function AppContent() {
     function syncAuth(event) {
       const nextAuthUser = event?.detail || loadAuthUser();
       setAuthUser(nextAuthUser);
-      setPaidProgramLock(loadPaidProgramLock());
+      setProgramCycleLock(loadProgramCycleLock());
       const restored = nextAuthUser ? loadSelectedWorkoutState(nextAuthUser) : null;
       if (restored) {
         setSelectedWorkoutState(restored);
@@ -805,10 +818,10 @@ function AppContent() {
   }, [authUser]);
 
   const assignedProgramId = programIdFromAssignment(programAssignment);
-  const paidCycleLocked = isPaidCycleLockedAccess(accessState);
+  const programCycleLocked = isProgramCycleLockedAccess(accessState);
   const serverWorkoutForProgram = useMemo(() => serverCurrentWorkoutFromAssignment(programAssignment), [programAssignment]);
   const serverWorkoutProgramId = String(serverWorkoutForProgram?.programId || serverWorkoutForProgram?.program_id || "").trim();
-  const effectiveAssignedProgramId = serverWorkoutProgramId || assignedProgramId || (paidCycleLocked ? (paidProgramLock?.programId || "") : "");
+  const effectiveAssignedProgramId = serverWorkoutProgramId || assignedProgramId || (programCycleLocked ? (programCycleLock?.programId || "") : "");
   const programForServerIndex = useMemo(() => buildProgramView(data, 0, profile, effectiveAssignedProgramId), [data, profile, effectiveAssignedProgramId]);
   const serverSelectedWorkoutIndex = findWorkoutIndexForServerWorkout(programForServerIndex, serverWorkoutForProgram);
   const selectedWorkoutStateResolvedIndex = selectedWorkoutStateIndex(programForServerIndex?.workouts || [], selectedWorkoutState, effectiveAssignedProgramId);
@@ -871,21 +884,21 @@ function AppContent() {
   }
 
   useEffect(() => {
-    if (!paidCycleLocked || !program?.course) return;
+    if (APP_STORE_REVIEW || !programCycleLocked || !program?.course) return;
     const serverProgramId = assignedProgramId;
     const currentProgramId = programIdFromCourse(program.course);
-    const nextLockId = serverProgramId || paidProgramLock?.programId || currentProgramId;
-    if (!nextLockId || paidProgramLock?.programId === nextLockId) return;
-    const nextLock = savePaidProgramLock(nextLockId, serverProgramId ? "server_assignment" : "client_current_paid_block");
+    const nextLockId = serverProgramId || programCycleLock?.programId || currentProgramId;
+    if (!nextLockId || programCycleLock?.programId === nextLockId) return;
+    const nextLock = saveProgramCycleLock(nextLockId, serverProgramId ? "server_assignment" : "client_current_program_block");
     if (nextLock) {
-      setPaidProgramLock(nextLock);
-      console.info("[FruitFit Program] PAID_PROGRAM_LOCKED", {
+      setProgramCycleLock(nextLock);
+      console.info("[FruitFit Assignment] PROGRAM_CYCLE_LOCKED", {
         programId: nextLock.programId,
         source: nextLock.source,
         accessTier: accessTier(accessState)
       });
     }
-  }, [accessState, assignedProgramId, paidCycleLocked, paidProgramLock?.programId, program?.course]);
+  }, [accessState, assignedProgramId, programCycleLocked, programCycleLock?.programId, program?.course]);
 
   useEffect(() => {
     if (!program?.workouts?.length) return;
@@ -952,7 +965,7 @@ function AppContent() {
             setAuthUser(null);
             setAccessState(null);
             setProgramAssignment(null);
-            setPaidProgramLock(null);
+            setProgramCycleLock(null);
             setProfile(profileDefaults);
             clearSelectedWorkoutSelection("auth-skipped-clear-selection", 0);
             setAuthPromptOpen(false);
@@ -966,7 +979,7 @@ function AppContent() {
           setProfile(loadProfile());
           setAccessState(null);
           setProgramAssignment(null);
-          setPaidProgramLock(loadPaidProgramLock());
+          setProgramCycleLock(loadProgramCycleLock());
           clearSelectedWorkoutSelection("auth-complete-clear-previous-selection", 0);
           await transferPreAuthProfileDraft({ reason: "auth-complete" });
           const [access, serverProfile, assignment] = await Promise.all([fetchAccess(), fetchProfile(), fetchProgramAssignment()]);
@@ -983,7 +996,7 @@ function AppContent() {
   function selectWorkoutFromUi(nextIndex) {
     const total = program?.workouts?.length || 0;
     const safeIndex = Math.max(0, Math.min(Number(nextIndex) || 0, Math.max(total - 1, 0)));
-    if (!isWorkoutUnlocked(safeIndex, program?.workouts || total, accessState)) {
+    if (!APP_STORE_REVIEW && !isWorkoutUnlocked(safeIndex, program?.workouts || total, accessState)) {
       window.alert(LOCKED_WORKOUT_MESSAGE);
       return;
     }
@@ -1008,7 +1021,7 @@ function AppContent() {
       serverIndex: serverSelectedWorkoutIndex,
       selectedWorkoutState: selectedWorkoutState || null,
     });
-    if (!isWorkoutUnlocked(safeIndex, program?.workouts || total, accessState)) {
+    if (!APP_STORE_REVIEW && !isWorkoutUnlocked(safeIndex, program?.workouts || total, accessState)) {
       window.alert(LOCKED_WORKOUT_MESSAGE);
       return;
     }

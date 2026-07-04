@@ -15,9 +15,10 @@
     "export:youtube-exercises": "node scripts/export-youtube-exercises.js",
     "match:youtube-inskill": "node scripts/match-youtube-inskill-exercises.js",
     "build": "vite build --configLoader runner",
+    "build:ios-review": "VITE_APP_STORE_REVIEW=true vite build --configLoader runner",
     "preview": "vite preview --host 0.0.0.0",
     "android:sync": "powershell -ExecutionPolicy Bypass -File scripts/sync-android.ps1",
-    "ios:sync": "npm run build && npx cap sync ios",
+    "ios:sync": "npm run build:ios-review && npx cap sync ios",
     "android:debug": "powershell -ExecutionPolicy Bypass -File scripts/build-android-debug.ps1",
     "android:huawei": "powershell -ExecutionPolicy Bypass -File scripts/build-huawei-debug.ps1"
   },

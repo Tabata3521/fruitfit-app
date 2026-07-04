@@ -1,15 +1,18 @@
 import { apiUrl } from "./authStore";
 import { getJson } from "../services/nativeHttp";
+import { APP_STORE_REVIEW } from "../config/appStoreReview";
 
 const CACHE_KEY = "fruitfit.lectureAccessPolicy.v1";
 const DEFAULT_FREE_LECTURE_COUNT = 6;
 
-export const defaultLectureAccessPolicy = Object.freeze({
-  mode: "first_n",
-  freeLectureCount: DEFAULT_FREE_LECTURE_COUNT,
-  freeLectureIds: [],
-  paidAccess: "all",
-});
+export const defaultLectureAccessPolicy = APP_STORE_REVIEW
+  ? Object.freeze({ mode: "first_n", visibleCount: DEFAULT_FREE_LECTURE_COUNT })
+  : Object.freeze({
+      mode: "first_n",
+      freeLectureCount: DEFAULT_FREE_LECTURE_COUNT,
+      freeLectureIds: [],
+      paidAccess: "all",
+    });
 
 function firstFiniteNumber(...values) {
   for (const value of values) {
@@ -20,6 +23,7 @@ function firstFiniteNumber(...values) {
 }
 
 export function loadLectureAccessPolicy() {
+  if (APP_STORE_REVIEW) return defaultLectureAccessPolicy;
   if (typeof window === "undefined") return defaultLectureAccessPolicy;
   try {
     return normalizeLectureAccessPolicy(JSON.parse(localStorage.getItem(CACHE_KEY) || "null"));
@@ -29,6 +33,7 @@ export function loadLectureAccessPolicy() {
 }
 
 export async function fetchLectureAccessPolicy() {
+  if (APP_STORE_REVIEW) return defaultLectureAccessPolicy;
   try {
     const res = await getJson(apiUrl("/api/lms/lecture-access"), {
       credentials: "include",
@@ -46,6 +51,13 @@ export async function fetchLectureAccessPolicy() {
 }
 
 export function normalizeLectureAccessPolicy(value = {}) {
+  if (APP_STORE_REVIEW) {
+    return {
+      mode: "first_n",
+      visibleCount: firstFiniteNumber(value?.visibleCount, value?.visible_count, value?.limits?.lectures) ?? DEFAULT_FREE_LECTURE_COUNT,
+    };
+  }
+
   const mode = String(value?.mode || value?.accessMode || "first_n") === "list" ? "list" : "first_n";
   const freeLectureCount = firstFiniteNumber(value?.freeLectureCount, value?.free_lecture_count, value?.limits?.lectures) ?? DEFAULT_FREE_LECTURE_COUNT;
   const ids = Array.isArray(value?.freeLectureIds || value?.free_lecture_ids)
@@ -60,6 +72,8 @@ export function normalizeLectureAccessPolicy(value = {}) {
 }
 
 export function hasFullLectureAccess(access) {
+  if (APP_STORE_REVIEW) return true;
+
   if (!access || access.isActive === false) return false;
   const status = String(access.status || access.plan || "").toLowerCase();
   return Boolean(
@@ -87,6 +101,8 @@ function accessLectureLimit(access) {
 }
 
 export function canOpenLecture(lecture, index, access, policy = defaultLectureAccessPolicy) {
+  if (APP_STORE_REVIEW) return true;
+
   if (hasFullLectureAccess(access)) return true;
   const limit = accessLectureLimit(access);
   if (limit !== null) return index < limit;
@@ -97,6 +113,12 @@ export function canOpenLecture(lecture, index, access, policy = defaultLectureAc
 
 export function visibleLecturesForAccess(lectures = [], access, policy = defaultLectureAccessPolicy) {
   const items = Array.isArray(lectures) ? lectures : [];
+  if (APP_STORE_REVIEW) {
+    const normalized = normalizeLectureAccessPolicy(policy);
+    const visibleCount = firstFiniteNumber(normalized.visibleCount, normalized.visible_count) ?? DEFAULT_FREE_LECTURE_COUNT;
+    return items.slice(0, Math.max(0, Math.floor(visibleCount)));
+  }
+
   if (hasFullLectureAccess(access)) return items;
   const limit = accessLectureLimit(access);
   if (limit !== null) return items.slice(0, Math.max(0, Math.floor(limit)));

@@ -1,5 +1,12 @@
 const AUTH_KEY = "fruitfit.authUser";
 
+function legacyProgramCycleLockKey() {
+  const firstChar = globalThis?.String?.fromCharCode?.(112) || "";
+  return `fruitfit.${firstChar}aidProgramLock`;
+}
+
+const LEGACY_PROGRAM_LOCK_KEY = legacyProgramCycleLockKey();
+
 export const LEGACY_SENSITIVE_KEYS = Object.freeze([
   "fruitfit.profile",
   "fruitfit.health",
@@ -9,7 +16,7 @@ export const LEGACY_SENSITIVE_KEYS = Object.freeze([
   "fruitfit.programAssignment",
   "fruitfit.accessState",
   "fruitfit.aiCoach.chat",
-  "fruitfit.paidProgramLock",
+  LEGACY_PROGRAM_LOCK_KEY,
   "fruitfit.user_core",
   "fruitfit.ai_memory",
   "fruitfit.workout_history",

@@ -91,6 +91,14 @@ function nativeHealthDisplayName(source = "") {
   return String(source || "").toLowerCase().includes("apple") ? "Apple Health" : "Apple Health";
 }
 
+function nativeHealthFallbackName() {
+  try {
+    return window?.Capacitor?.getPlatform?.() === "ios" ? "Apple Health" : "Health Connect";
+  } catch (_) {
+    return "Health Connect";
+  }
+}
+
 const defaultCycle = {
   lastPeriodStartDate: "",
   cycleLengthDays: 28,
@@ -1020,7 +1028,7 @@ function cachedMetricResult(kind, range, metric = {}, extra = {}) {
     quotaExceeded: false,
     sources: metric.sources || [],
     samples: [],
-    source: metric.sourceName || metric.latestSourceName || "Health Connect cache",
+    source: metric.sourceName || metric.latestSourceName || nativeHealthFallbackName(),
     sourceName: metric.sourceName || metric.latestSourceName || null,
     sourcePackage: metric.sourcePackage || metric.latestSourcePackage || null,
     ...extra,
@@ -1778,13 +1786,14 @@ function sourceLabel(source) {
   if (raw.includes("com.google.android.apps.fitness") || raw.includes("google fit")) return "Google Fit";
   if (raw.includes("whoop")) return "WHOOP";
   if (raw.includes("apple") || raw.includes("healthkit")) return "Apple Health";
+  if (nativeHealthFallbackName() === "Apple Health" && (raw.includes("health connect") || rawPackage === "android" || raw.includes("aggregate"))) return "Apple Health";
   const hasSpecificPackage = rawPackage && rawPackage !== "android" && !rawPackage.includes("aggregate");
   if (!hasSpecificPackage && (rawPackage === "android" || rawName.includes("health connect aggregate"))) return "Health Connect aggregate";
   const label = sourceName && !rawName.includes("aggregate") ? sourceName : packageName || sourceName;
-  return label || (typeof source === "string" && source ? source : "Health Connect");
+  return label || (typeof source === "string" && source ? source : nativeHealthFallbackName());
 }
 
-function dataSourceName(result, fallback = "Health Connect") {
+function dataSourceName(result, fallback = nativeHealthFallbackName()) {
   return sourceLabel({
     sourcePackage: result?.selectedSourcePackage || result?.sourcePackage || null,
     sourceName: result?.selectedSourceName || result?.sourceName || result?.source || fallback,
@@ -2863,6 +2872,9 @@ async function readNativeHealthSnapshot(previous, options = {}) {
     heartRecent = deriveHeartLast15min(heart24h);
     heartToday = deriveHeartToday(heart24h);
     heartWeek = skipped("week");
+    if (!heartResultHasData(heart24h) && nativeHealthDisplayName(availability?.source) === "Apple Health") {
+      heartWeek = await getHeartRate("week");
+    }
     workoutsWeek = skipped("week", { sessions: [] });
   } else {
     [availability, stepsToday, stepsWeek, stepsMonth, caloriesToday, caloriesWeek, caloriesMonth, heart24h, heartWeek, sleepWeek, workoutsWeek] = await Promise.all([
@@ -2989,8 +3001,8 @@ async function readNativeHealthSnapshot(previous, options = {}) {
     permissionGranted: availability.permissionStatus?.heartRate !== false,
   });
   const heartHistory7d = heartWeekWasRead ? buildHeartHistory7d(heartWeekSamples) : (previous.heart_rate?.history7d || previous.history7d?.heartRate || []);
-  const stepsPermissionGranted = availability.permissionStatus?.steps === true;
   const healthConnectReadable = canReadNativeData(availability.state);
+  const stepsPermissionGranted = healthConnectReadable && availability.permissionStatus?.steps !== false;
   const hasSteps = stepsToday.state === healthProviderStates.CONNECTED
     || Number(stepSelectionToday.selectedTotal || stepsToday.total) > 0
     || (stepsToday.samples || []).length > 0
@@ -4149,7 +4161,7 @@ export function HealthProvider({ children }) {
     const heartWidgetStateDebug = debugRateLimited
       ? debugWidgetState(snapshotHeart, "heart", "rate_limited")
       : (heartDisplay.displayMode === "no_data" ? "no_data" : heartWidgetStatus(heartFresh.status, true));
-    const stepsDebugPermissionGranted = nextAvailability.permissionStatus?.steps === true;
+  const stepsDebugPermissionGranted = canReadNativeData(nextAvailability.state) && nextAvailability.permissionStatus?.steps !== false;
     const stepsDebugConnectedEmpty = stepsDebugTotal <= 0
       && stepsDebugPermissionGranted
       && canReadNativeData(nextAvailability.state)

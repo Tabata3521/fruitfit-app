@@ -3,6 +3,7 @@ import BottomNavigation from "../components/BottomNavigation";
 import femaleProgramImage from "../assets/program-female.png";
 import maleProgramImage from "../assets/program-male.png";
 import { isWorkoutUnlocked, originalWorkoutIndex, visibleWorkoutsForAccess, workoutAccessLabel } from "../data/accessRules";
+import { APP_STORE_REVIEW } from "../config/appStoreReview";
 
 function programImage(course) {
   const text = `${course?.gender || ""} ${course?.display_name || ""} ${course?.technical_name || ""}`.toLowerCase();
@@ -55,11 +56,17 @@ export default function WorkoutsScreen({ program, selectedWorkoutIndex, onOpenWo
         </header>
 
         <section className="mt-5 space-y-2">
+          {!visibleWorkouts.length && (
+            <div className="rounded-[22px] border border-appBorder bg-appCard p-4 text-center">
+              <p className="text-[15px] font-black text-appText">Программа пока формируется.</p>
+              <p className="mt-1 text-[12px] leading-5 text-appMuted">После заявки тренер свяжется с вами по электронной почте.</p>
+            </div>
+          )}
           {visibleWorkouts.map((workout, index) => {
             const sourceIndex = originalWorkoutIndex(program.workouts, workout);
             const safeSourceIndex = sourceIndex >= 0 ? sourceIndex : index;
             const active = safeSourceIndex === selectedWorkoutIndex;
-            const locked = !isWorkoutUnlocked(safeSourceIndex, program.workouts, access);
+            const locked = !APP_STORE_REVIEW && !isWorkoutUnlocked(safeSourceIndex, program.workouts, access);
             const completed = safeSourceIndex <= completedUntil;
             const status = locked ? "закрыта" : completed ? "завершена" : active ? "в процессе" : "не начата";
             return (

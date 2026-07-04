@@ -17,6 +17,7 @@
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		7A1C00012F10000000000001 /* FruitFitAppIconPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C00002F10000000000001 /* FruitFitAppIconPlugin.swift */; };
 		7A1C00032F10000000000001 /* FruitFitBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C00022F10000000000001 /* FruitFitBridgeViewController.swift */; };
+		7A1C00162F10000000000001 /* FruitFitSystemSettingsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C00172F10000000000001 /* FruitFitSystemSettingsPlugin.swift */; };
 		7A1C00052F10000000000001 /* FruitFitIconOrange@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C00042F10000000000001 /* FruitFitIconOrange@2x.png */; };
 		7A1C00072F10000000000001 /* FruitFitIconOrange@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C00062F10000000000001 /* FruitFitIconOrange@3x.png */; };
 		7A1C00092F10000000000001 /* FruitFitIconPear@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C00082F10000000000001 /* FruitFitIconPear@2x.png */; };
@@ -40,6 +41,7 @@
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		7A1C00002F10000000000001 /* FruitFitAppIconPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FruitFitAppIconPlugin.swift; sourceTree = "<group>"; };
 		7A1C00022F10000000000001 /* FruitFitBridgeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FruitFitBridgeViewController.swift; sourceTree = "<group>"; };
+		7A1C00172F10000000000001 /* FruitFitSystemSettingsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FruitFitSystemSettingsPlugin.swift; sourceTree = "<group>"; };
 		7A1C00042F10000000000001 /* FruitFitIconOrange@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "FruitFitIconOrange@2x.png"; sourceTree = "<group>"; };
 		7A1C00062F10000000000001 /* FruitFitIconOrange@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "FruitFitIconOrange@3x.png"; sourceTree = "<group>"; };
 		7A1C00082F10000000000001 /* FruitFitIconPear@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "FruitFitIconPear@2x.png"; sourceTree = "<group>"; };
@@ -88,6 +90,7 @@
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				7A1C00022F10000000000001 /* FruitFitBridgeViewController.swift */,
 				7A1C00002F10000000000001 /* FruitFitAppIconPlugin.swift */,
+				7A1C00172F10000000000001 /* FruitFitSystemSettingsPlugin.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -207,11 +210,12 @@
 		504EC3001FED79650016851F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = (
-				7A1C00032F10000000000001 /* FruitFitBridgeViewController.swift in Sources */,
-				7A1C00012F10000000000001 /* FruitFitAppIconPlugin.swift in Sources */,
-				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
-			);
+				files = (
+					7A1C00032F10000000000001 /* FruitFitBridgeViewController.swift in Sources */,
+					7A1C00012F10000000000001 /* FruitFitAppIconPlugin.swift in Sources */,
+					7A1C00162F10000000000001 /* FruitFitSystemSettingsPlugin.swift in Sources */,
+					504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
+				);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
@@ -266,7 +270,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
+					CODE_SIGN_IDENTITY = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -323,8 +327,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				COPY_PHASE_STRIP = NO;
+					COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -353,7 +356,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = GUBXHZ7W28;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -373,13 +376,13 @@
 		};
 		504EC3181FED79650016851F /* Release */ = {
 			isa = XCBuildConfiguration;
-			buildSettings = {
-				APS_ENVIRONMENT = production;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
-				DEVELOPMENT_TEAM = GUBXHZ7W28;
+				buildSettings = {
+					APS_ENVIRONMENT = production;
+					ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+					CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
+					CODE_SIGN_STYLE = Automatic;
+					CURRENT_PROJECT_VERSION = 6;
+					DEVELOPMENT_TEAM = GUBXHZ7W28;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (

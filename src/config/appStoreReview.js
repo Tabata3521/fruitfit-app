@@ -1,0 +1,1 @@
+export const APP_STORE_REVIEW = __APP_STORE_REVIEW__;

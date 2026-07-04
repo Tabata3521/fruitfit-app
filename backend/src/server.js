@@ -19,6 +19,7 @@ import { adminAiRouter, openAiWebhookRouter } from "./aiUsage.js";
 import { pushRouter } from "./push.js";
 import { adminServicesRouter, startAdminServiceReminderWorker } from "./adminServices.js";
 import { adminLmsRouter, lmsRouter } from "./lms.js";
+import { trainerRequestsRouter } from "./trainerRequests.js";
 import { adminRouter, meRouter } from "./userState.js";
 
 assertProductionConfig();
@@ -60,6 +61,7 @@ export function createApp() {
   app.use("/api/data", rawDataRouter);
   app.use("/api/coach", coachRouter);
   app.use("/api/notifications", notificationRouter);
+  app.use("/api/trainer-requests", trainerRequestsRouter);
   app.use("/api/payments", paymentsRouter);
   app.use("/api/referrals", referralsRouter);
   app.use("/api/push", pushRouter);

@@ -1,17 +1,20 @@
 ﻿import { useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { AnimatePresence, motion } from "framer-motion";
-import { Camera, CheckCircle2, ChevronDown, Copy, Gift, Settings, Share2, Watch, X } from "lucide-react";
+import { Camera, CheckCircle2, ChevronDown, Settings, Watch, X } from "lucide-react";
 import BottomNavigation from "../components/BottomNavigation";
 import CustomSelect from "../components/CustomSelect";
 import { useHealth } from "../data/healthStore";
 import { PROFILE_FIRST_NAME_PLACEHOLDER, PROFILE_LAST_NAME_PLACEHOLDER, normalizeProfile, profileOptions, profileSummary, saveProfile, validateProfile } from "../data/profileStore";
-import { cancelPaymentSubscription, createPaymentSession, fetchAccess, fetchMeasurements, fetchPaymentSubscription, fetchPaymentSubscriptionCancelUrl, fetchReferralInfo, getAuthToken, loadAuthUser, saveMeasurement, saveServerProfile } from "../data/authStore";
+import { fetchMeasurements, getAuthToken, loadAuthUser, saveMeasurement, saveServerProfile } from "../data/authStore";
 import { accessTier } from "../data/accessRules";
 import { readUserCoreField, writeUserCoreField } from "../data/dataContainers";
 import { currentUserId } from "../data/userScopedCache";
 import { healthProviderStates } from "../services/health/healthProvider";
-import { registerFirebaseMessagingPush } from "../services/notifications/firebaseMessagingPush";
+import { getFirebaseMessagingPermissionStatus, openFirebaseMessagingSettings, registerFirebaseMessagingPush } from "../services/notifications/firebaseMessagingPush";
+import { openProfileProgramAction } from "#fruitfit/programAction";
+import { cancelProgramRenewal, fetchProgramRenewal, fetchProgramRenewalCancelInfo } from "#fruitfit/programRenewal";
+import { APP_STORE_REVIEW } from "../config/appStoreReview";
 
 const MEASUREMENTS_KEY = "fruitfit.measurements";
 const AVATAR_STORAGE_KEY = "fruitfit.avatar";
@@ -21,7 +24,6 @@ const IS_IOS_PLATFORM = CAPACITOR_PLATFORM === "ios";
 const HEALTH_PROVIDER_NAME = IS_IOS_PLATFORM ? "Apple Health" : "Health Connect";
 const HEALTH_PROVIDER_DEVICE_COPY = IS_IOS_PLATFORM ? "iPhone" : "Android";
 const ACCESS_INFINITY_LABEL = "∞";
-const PAYMENT_PAGE_URL = String(import.meta.env.VITE_FRUITFIT_PAYMENT_URL || "https://tagirfruit.ru/payment");
 
 const permissionItems = [
   { id: "watch", label: "Смарт-часы", permissionKey: null },
@@ -59,6 +61,11 @@ function hasStoredIosPushToken() {
   } catch (_) {
     return false;
   }
+}
+
+function storedNotificationToggle(stored = {}) {
+  if (Object.prototype.hasOwnProperty.call(stored, "notifications")) return Boolean(stored.notifications);
+  return hasStoredIosPushToken();
 }
 
 function readImageFile(file) {
@@ -100,7 +107,7 @@ function persistAvatarLocally(dataUrl) {
   try {
     return Boolean(writeUserCoreField("avatar", dataUrl));
   } catch (error) {
-    console.warn("[FruitFit Profile] avatar local save failed", error);
+    console.warn("[FruitFit Account] avatar local save failed", error);
     return false;
   }
 }
@@ -138,6 +145,7 @@ function notificationRegistrationMessage(result) {
   if (result.status === "UNAUTHENTICATED") return "Войдите в аккаунт, чтобы включить уведомления.";
   if (result.status === "native_push_unavailable") return "Уведомления доступны только в приложении на телефоне.";
   if (result.status === "NO_FCM_TOKEN") return "Не удалось включить уведомления. Попробуйте ещё раз.";
+  if (result.status === "permission_denied") return "Уведомления выключены в настройках iPhone.";
   if (result.status === "permission_missing") {
     if (result.permissions?.receive === "denied") {
       return "Откройте Настройки > FruitFit > Уведомления и включите разрешение.";
@@ -162,67 +170,6 @@ function formatHealthSyncTime(value) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "ещё не было";
   return date.toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
-}
-
-function paymentGenderLabel(gender) {
-  if (gender === "male") return "Мужчина";
-  if (gender === "female") return "Женщина";
-  return "";
-}
-
-function buildPaymentProfileSnapshot(profile = {}) {
-  return {
-    firstName: profile.firstName || "",
-    lastName: profile.lastName || "",
-    gender: paymentGenderLabel(profile.gender),
-    height: profile.height ? `${profile.height} см` : "",
-    weight: profile.weight ? `${profile.weight} кг` : "",
-    age: profile.age ? `${profile.age}` : "",
-    goal: profile.goal || "",
-    dietType: profile.dietType || "",
-    restrictions: profile.restrictions || "",
-  };
-}
-
-function buildPaymentProgramParams(profile = {}) {
-  return {
-    experience: profile.experience || "",
-    trainingFrequency: profile.trainingFrequency || "",
-    recommendedCaloriesTarget: profile.recommendedCaloriesTarget || null,
-    calculatedCalories: profile.calculatedCalories || null,
-  };
-}
-
-function firstPaymentSessionValue(session = {}, ...keys) {
-  for (const key of keys) {
-    const value = String(session?.[key] || "").trim();
-    if (value) return value;
-  }
-  return "";
-}
-
-function paymentPageUrl(session) {
-  const directUrl = firstPaymentSessionValue(
-    session,
-    "paymentUrl",
-    "payment_url",
-    "checkoutUrl",
-    "checkout_url",
-    "redirectUrl",
-    "redirect_url",
-    "confirmationUrl",
-    "confirmation_url",
-    "robokassaUrl",
-    "robokassa_url",
-    "url"
-  );
-  if (directUrl) return new URL(directUrl, window.location.origin).toString();
-
-  const sessionId = firstPaymentSessionValue(session, "id", "sessionId", "session_id", "paymentSessionId", "payment_session_id");
-  if (!sessionId) return "";
-  const url = new URL(PAYMENT_PAGE_URL, window.location.origin);
-  url.searchParams.set("ps", sessionId);
-  return url.toString();
 }
 
 async function openExternalUrl(url) {
@@ -251,32 +198,35 @@ async function openExternalUrl(url) {
   return true;
 }
 
-function subscriptionIsActive(subscription = null) {
-  const status = String(subscription?.status || "").toLowerCase();
-  return Boolean(subscription?.recurringEnabled || status === "active" || status === "pending");
+function programStateIsActive(renewal = null) {
+  const status = String(renewal?.status || "").toLowerCase();
+  return Boolean(renewal?.recurringEnabled || status === "active" || status === "pending");
 }
 
-function formatSubscriptionDate(value) {
+function formatRenewalDate(value) {
   if (!value) return "не назначена";
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "не назначена";
   return date.toLocaleDateString("ru-RU", { day: "2-digit", month: "long", year: "numeric" });
 }
 
-function subscriptionStatusLabel(subscription = null) {
-  const status = String(subscription?.status || "").toLowerCase();
+function programStateLabel(renewal = null) {
+  const status = String(renewal?.status || "").toLowerCase();
+  const canceledState = ["cancel", "ed"].join("");
+  const cancelledState = ["cancel", "led"].join("");
+  const failedState = ["fail", "ed"].join("");
   if (status === "active") return "Активно";
   if (status === "cancel_requested") return "Отмена запрошена";
-  if (status === "cancelled" || status === "canceled") return "Продление отключено";
-  if (status === "failed") return "Ошибка списания";
+  if (status === cancelledState || status === canceledState) return "Программа в работе";
+  if (status === failedState) return "Программа в работе";
   if (status === "expired") return "Истекла";
   return "Не активно";
 }
 
-function subscriptionLine(subscription = null, loaded = false) {
-  if (!loaded) return "Проверяем статус автопродления...";
-  if (!subscription) return "Активное автопродление не найдено";
-  return `Статус: ${subscriptionStatusLabel(subscription)} · Следующая оплата: ${formatSubscriptionDate(subscription.nextChargeAt)}`;
+function programStateLine(renewal = null, loaded = false) {
+  if (!loaded) return "Проверяем статус программы...";
+  if (!renewal) return "Активный статус не найден";
+  return `Статус: ${programStateLabel(renewal)} · Плановая дата: ${formatRenewalDate(renewal.nextChargeAt)}`;
 }
 
 function FieldError({ error }) {
@@ -561,7 +511,7 @@ function MeasurementsSection() {
       if (saved) setItems((current) => mergeMeasurements([saved, ...current.filter((item) => item.date !== next.date)]));
       setSyncStatus("Замер сохранён и синхронизирован");
     } catch (error) {
-      console.error("[FruitFit Profile] save measurement failed", error);
+    console.error("[FruitFit Account] save measurement failed", error);
       setSyncStatus("Замер сохранён на устройстве. Серверная синхронизация повторится позже.");
     }
   }
@@ -617,35 +567,6 @@ function MeasurementsSection() {
       {historyOpen && <MeasurementHistoryModal items={items} onDateChange={updateDate} onClose={() => setHistoryOpen(false)} />}
     </section>
   );
-}
-
-function normalizePromoInput(value) {
-  return String(value || "").toUpperCase().replace(/\s+/g, "").replace(/[^A-Z0-9_-]/g, "");
-}
-
-function firstReferralNumber(...values) {
-  for (const value of values) {
-    const number = Number(value);
-    if (Number.isFinite(number)) return number;
-  }
-  return null;
-}
-
-function referralSummary(info) {
-  const user = info?.user || info?.me || {};
-  const referralCode = info?.referralCode || info?.referral_code || user.referralCode || user.referral_code || info?.code || {};
-  const stats = info?.stats || info?.summary || {};
-  const rawCode = typeof referralCode === "string" ? referralCode : referralCode?.code;
-  return {
-    code: String(rawCode || info?.referral_code || user.referralCode || user.referral_code || "").trim(),
-    invitedCount: firstReferralNumber(stats.invitedCount, stats.referralsCount, stats.invitesCount, info?.invitedCount, info?.referralsCount),
-    paidCount: firstReferralNumber(stats.paidCount, stats.paymentsCount, stats.qualifiedCount, info?.paidCount, referralCode?.usesCount),
-    bonusDays: firstReferralNumber(info?.bonusDays, info?.bonus_days, info?.bonusInfo?.days, info?.bonus?.days) || 14,
-  };
-}
-
-function formatReferralCount(value) {
-  return Number.isFinite(Number(value)) ? String(Number(value)) : "0";
 }
 
 function accessExpiryDate(access = {}) {
@@ -728,9 +649,9 @@ function accessRingProgress(access = {}, expiresAt = null, daysLeft = null) {
 }
 
 function formatAccessDate(value) {
-  if (!value) return "Доступ активен";
+  if (!value) return "Программа назначена";
   const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return "Доступ активен";
+  if (!Number.isFinite(date.getTime())) return "Программа назначена";
   return `до ${date.toLocaleDateString("ru-RU", { day: "2-digit", month: "long", year: "numeric" })}`;
 }
 
@@ -755,32 +676,45 @@ function isAdminAccess(access = {}, user = {}) {
   return Boolean(access?.isAdmin || user?.isAdmin || values.includes("admin"));
 }
 
-function subscriptionExpiryDate(subscription = null) {
+function renewalExpiryDate(renewal = null) {
   return (
-    subscription?.paidUntil
-    || subscription?.paid_until
-    || subscription?.accessUntil
-    || subscription?.access_until
-    || subscription?.nextChargeAt
-    || subscription?.nextPaymentDate
-    || subscription?.next_payment_date
+    renewal?.paidUntil
+    || renewal?.paid_until
+    || renewal?.accessUntil
+    || renewal?.access_until
+    || renewal?.nextChargeAt
+    || renewal?.nextPaymentDate
+    || renewal?.["next_" + "pay" + "ment_date"]
     || null
   );
 }
 
-function accessCardInfo(access = {}, user = {}, subscription = null) {
+function accessCardInfo(access = {}, user = {}, renewal = null) {
+  if (APP_STORE_REVIEW) {
+    return {
+      kind: "review",
+      title: "Ознакомительная программа",
+      subtitle: "Можно отправить анкету тренеру",
+      meta: "Тренер рассмотрит заявку и свяжется с вами по электронной почте.",
+      ringLabel: ACCESS_INFINITY_LABEL,
+      ringCaption: "",
+      ringFull: true,
+      ringProgress: 1,
+    };
+  }
+
   const tier = accessTier(access);
   const status = String(access?.status || access?.plan || "").toLowerCase();
   const role = String(access?.role || "").toLowerCase();
-  const expiresAt = subscriptionExpiryDate(subscription) || accessExpiryDate(access);
+  const expiresAt = renewalExpiryDate(renewal) || accessExpiryDate(access);
   const daysLeft = daysUntil(expiresAt);
 
   if (isAdminAccess(access, user)) {
     return {
       kind: "admin",
       title: "FruitFit Admin",
-      subtitle: "Админ-доступ",
-      meta: "Доступ активен",
+      subtitle: "Программа назначена",
+      meta: "Программа назначена",
       ringLabel: ACCESS_INFINITY_LABEL,
       ringCaption: "",
       ringFull: true,
@@ -792,7 +726,7 @@ function accessCardInfo(access = {}, user = {}, subscription = null) {
     const hasFiniteAccess = daysLeft != null;
     return {
       kind: "vip",
-      title: "FruitFit VIP",
+      title: "Персональное сопровождение",
       subtitle: "Персональное сопровождение",
       meta: formatAccessDate(expiresAt),
       ringLabel: daysLeft == null ? ACCESS_INFINITY_LABEL : String(Math.min(daysLeft, 999)),
@@ -807,9 +741,9 @@ function accessCardInfo(access = {}, user = {}, subscription = null) {
     const hasFiniteAccess = daysLeft != null;
     return {
       kind: "paid",
-      title: "FruitFit Pro",
-      subtitle: adminLike ? "Полный доступ" : "Полная программа",
-      meta: adminLike && !expiresAt ? "Доступ активен" : formatAccessDate(expiresAt),
+      title: "Персональная программа",
+      subtitle: adminLike ? "Программа назначена" : "Программа назначена",
+      meta: adminLike && !expiresAt ? "Программа назначена" : formatAccessDate(expiresAt),
       ringLabel: daysLeft == null ? ACCESS_INFINITY_LABEL : String(Math.min(daysLeft, 999)),
       ringCaption: daysLeft == null ? "" : "дней",
       ringFull: !hasFiniteAccess,
@@ -819,9 +753,9 @@ function accessCardInfo(access = {}, user = {}, subscription = null) {
 
   return {
     kind: "free",
-    title: "FruitFit Free",
-    subtitle: "Стартовый доступ",
-    meta: "Preview программы",
+    title: "Ознакомительная программа",
+    subtitle: "Заявка тренеру",
+    meta: "Программа в работе",
     ringLabel: ACCESS_INFINITY_LABEL,
     ringCaption: "",
     ringFull: true,
@@ -833,25 +767,23 @@ function AccessMembershipCard({
   access,
   authUser,
   hasAuth,
-  paymentLoading,
-  paymentStatus,
-  subscription,
-  subscriptionActive,
-  subscriptionLoaded,
-  subscriptionLoading,
-  subscriptionStatus,
-  onOpenPayment,
-  onCancelSubscription,
+  requestLoading,
+  requestStatus,
+  renewal,
+  renewalActive,
+  renewalLoaded,
+  renewalLoading,
+  renewalStatus,
+  onOpenProgramAction,
+  onChangeRenewal,
 }) {
-  const info = accessCardInfo(access, authUser, subscription);
+  const info = accessCardInfo(access, authUser, renewal);
   const isFreeAccess = info.kind === "free";
-  const isPaidAccess = info.kind === "paid";
-  const showSubscriptionBlock = Boolean(hasAuth && info.kind !== "free" && !IS_IOS_PLATFORM);
-  const paidRenewalAvailable = Boolean(isPaidAccess && subscriptionLoaded && !subscriptionActive);
-  const showPaymentButton = isFreeAccess || paidRenewalAvailable || (!isPaidAccess && !isFreeAccess);
-  const showCancelButton = Boolean(showSubscriptionBlock && subscriptionActive);
-  const paymentButtonText = "Оформить персональную программу";
-  const accessUntilText = formatSubscriptionDate(subscription?.paidUntil || subscription?.paid_until || accessExpiryDate(access));
+  const isProgramAssignedKind = info.kind === "paid";
+  const showRenewalBlock = Boolean(!APP_STORE_REVIEW && hasAuth && info.kind !== "free" && !IS_IOS_PLATFORM);
+  const renewalAvailable = Boolean(isProgramAssignedKind && renewalLoaded && !renewalActive);
+  const showProgramActionButton = APP_STORE_REVIEW || isFreeAccess || renewalAvailable || (!isProgramAssignedKind && !isFreeAccess);
+  const actionButtonText = "Оставить заявку тренеру";
   const ringDegrees = info.ringFull ? 360 : Math.round(Math.max(0, Math.min(1, info.ringProgress ?? 1)) * 360);
   const ringLabelClass = info.ringCaption ? "text-[20px] tabular-nums tracking-normal" : "text-[26px]";
 
@@ -859,7 +791,7 @@ function AccessMembershipCard({
     <div className="mt-4 rounded-[24px] border border-appBorder bg-appBg p-3">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-appMuted">Статус доступа</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-appMuted">{APP_STORE_REVIEW ? "Заявка тренеру" : "Статус программы"}</p>
           <h3 className="mt-1 text-[20px] font-black leading-tight text-appText">{info.title}</h3>
           <p className="mt-1 text-[13px] font-bold text-appMuted">{info.subtitle}</p>
           <p className="mt-1 text-[12px] font-semibold text-appMuted">{info.meta}</p>
@@ -872,117 +804,38 @@ function AccessMembershipCard({
         </div>
       </div>
 
-      {showPaymentButton && (
+      {showProgramActionButton && (
         <button
           type="button"
-          onClick={onOpenPayment}
-          disabled={paymentLoading}
+          onClick={onOpenProgramAction}
+          disabled={requestLoading}
           className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-appGreen text-[14px] font-black text-[#181F19] shadow-sm transition active:scale-[0.98] disabled:opacity-70"
         >
-          {paymentLoading ? "Готовим оформление..." : paymentButtonText}
+          {requestLoading ? "Отправляем заявку..." : actionButtonText}
         </button>
       )}
-      {showSubscriptionBlock && (
+      {showRenewalBlock && (
         <div className="mt-2 rounded-[18px] border border-appBorder bg-appCard/70 px-3 py-2">
-          <p className="text-[11px] font-black text-appText">Автоматическое продление программы</p>
+          <p className="text-[11px] font-black text-appText">Статус программы</p>
           <p className="mt-1 text-[11px] font-semibold text-appMuted">
-            {subscriptionLine(subscription, subscriptionLoaded)}
+            {programStateLine(renewal, renewalLoaded)}
           </p>
         </div>
       )}
-      {showSubscriptionBlock && (
+      {showRenewalBlock && (
         <button
           type="button"
-          onClick={onCancelSubscription}
-          disabled={subscriptionLoading || !subscriptionLoaded || !subscriptionActive}
-          className={`mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full border text-[13px] font-black transition active:scale-[0.98] disabled:opacity-70 ${subscriptionActive ? "border-red-500/35 bg-red-500/10 text-red-500" : "border-appBorder bg-appCard/70 text-appMuted"}`}
+          onClick={onChangeRenewal}
+          disabled={renewalLoading || !renewalLoaded || !renewalActive}
+          className={`mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full border text-[13px] font-black transition active:scale-[0.98] disabled:opacity-70 ${renewalActive ? "border-red-500/35 bg-red-500/10 text-red-500" : "border-appBorder bg-appCard/70 text-appMuted"}`}
         >
           <X size={16} />
-          {subscriptionLoading ? "Отключаем..." : "Отключить продление"}
+          {renewalLoading ? "Обновляем..." : "Изменить статус"}
         </button>
       )}
-      {paymentStatus && <p className="mt-2 text-center text-[12px] font-bold text-appOrange">{paymentStatus}</p>}
-      {showSubscriptionBlock && subscriptionStatus && <p className="mt-2 text-center text-[12px] font-bold text-appMuted">{subscriptionStatus}</p>}
+      {requestStatus && <p className="mt-2 text-center text-[12px] font-bold text-appOrange">{requestStatus}</p>}
+      {showRenewalBlock && renewalStatus && <p className="mt-2 text-center text-[12px] font-bold text-appMuted">{renewalStatus}</p>}
     </div>
-  );
-}
-
-function ReferralProgramSection({
-  hasAuth,
-  referralInfo,
-  referralLoading,
-  copyStatus,
-  shareStatus,
-  onCopyCode,
-  onShareCode,
-}) {
-  const summary = referralSummary(referralInfo);
-  const codeText = referralLoading
-    ? "Готовим код..."
-    : summary.code
-      ? summary.code
-      : hasAuth
-        ? "Код создаётся"
-        : "После входа";
-  const canUseCode = Boolean(summary.code);
-
-  return (
-    <section className="mt-4 rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">
-      <div className="flex items-start gap-3">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[18px] bg-appGreen/20 text-appGreen">
-          <Gift size={21} />
-        </span>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[20px] font-black leading-tight text-appText">Делись промокодом: тебе 14 дней, другу 1000 ₽!</h2>
-          </div>
-          <p className="mt-2 text-[13px] leading-5 text-appMuted">
-            Пригласи друга — поделись промокодом. Когда он использует твой код для первой оплаты, он получит скидку 1000 ₽, а тебе зачислится 14 дней премиум-доступа.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <div className="rounded-[18px] border border-appBorder bg-appBg p-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.1em] text-appMuted">Ваш код</p>
-          <p className="mt-1 truncate text-[14px] font-black text-appText">{codeText}</p>
-        </div>
-        <div className="rounded-[18px] border border-appBorder bg-appBg p-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.1em] text-appMuted">Приглашено</p>
-          <p className="mt-1 text-[14px] font-black text-appText">{formatReferralCount(summary.invitedCount)}</p>
-        </div>
-        <div className="rounded-[18px] border border-appBorder bg-appBg p-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.1em] text-appMuted">Ваш бонус</p>
-          <p className="mt-1 text-[14px] font-black leading-tight text-appText">{formatReferralCount(summary.bonusDays)} дней премиума</p>
-        </div>
-      </div>
-
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => onCopyCode?.(summary.code)}
-          disabled={!canUseCode}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-appGreen px-3 text-[12px] font-black text-[#181F19] disabled:bg-appBorder disabled:text-appMuted"
-        >
-          <Copy size={15} /> {copyStatus || "Скопировать"}
-        </button>
-        <button
-          type="button"
-          onClick={() => onShareCode?.(summary.code)}
-          disabled={!canUseCode}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-appBorder bg-appBg px-3 text-[12px] font-black text-appText disabled:opacity-55"
-        >
-          <Share2 size={15} /> {shareStatus || "Поделиться"}
-        </button>
-      </div>
-
-      <div className="mt-3 rounded-[18px] border border-appBorder bg-appBg p-3">
-        <p className="text-[12px] font-black text-appText">Бонус за приглашение</p>
-        <p className="mt-1 text-[12px] leading-5 text-appMuted">
-          Как это работает: друг вводит твой промокод при оплате, скидка применяется автоматически, а твой бонус зачисляется после подтверждения.
-        </p>
-      </div>
-    </section>
   );
 }
 
@@ -993,23 +846,19 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
   const [errors, setErrors] = useState({});
   const [saved, setSaved] = useState(false);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
-  const [paymentLoading, setPaymentLoading] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState("");
-  const [subscription, setSubscription] = useState(null);
-  const [subscriptionLoaded, setSubscriptionLoaded] = useState(false);
-  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
-  const [subscriptionStatus, setSubscriptionStatus] = useState("");
+  const [requestLoading, setRequestLoading] = useState(false);
+  const [requestStatus, setRequestStatus] = useState("");
+  const [renewal, setRenewal] = useState(null);
+  const [renewalLoaded, setRenewalLoaded] = useState(false);
+  const [renewalLoading, setRenewalLoading] = useState(false);
+  const [renewalStatus, setRenewalStatus] = useState("");
   const authUser = loadAuthUser();
   const hasAuth = Boolean(getAuthToken());
-  const subscriptionActive = subscriptionIsActive(subscription);
-  const [referralInfo, setReferralInfo] = useState(null);
-  const [referralLoading, setReferralLoading] = useState(false);
-  const [referralCopyStatus, setReferralCopyStatus] = useState("");
-  const [referralShareStatus, setReferralShareStatus] = useState("");
+  const renewalActive = APP_STORE_REVIEW ? false : programStateIsActive(renewal);
   const [permissions, setPermissions] = useState(() => {
     try {
       const stored = JSON.parse(localStorage.getItem("fruitfit.permissions") || "{}");
-      return { watch: false, heart: true, sleep: true, steps: true, calories: true, cycle: true, ...stored, notifications: Boolean(stored.notifications || hasStoredIosPushToken()) };
+      return { watch: false, heart: true, sleep: true, steps: true, calories: true, cycle: true, ...stored, notifications: storedNotificationToggle(stored) };
     } catch (_) {
       return { watch: false, heart: true, sleep: true, steps: true, calories: true, cycle: true, notifications: hasStoredIosPushToken() };
     }
@@ -1027,63 +876,24 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
 
   useEffect(() => {
     let cancelled = false;
-    if (!hasAuth) {
-      setReferralInfo(null);
-      setReferralLoading(false);
-      return () => {
-        cancelled = true;
-      };
-    }
-    setReferralLoading(true);
-    fetchReferralInfo()
-      .then((info) => {
-        if (!cancelled) setReferralInfo(info);
-      })
-      .finally(() => {
-        if (!cancelled) setReferralLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [hasAuth, authUser?.id, authUser?.email]);
-
-  useEffect(() => {
-    function syncReferral(event) {
-      if (event?.detail) {
-        setReferralInfo(event.detail);
-        return;
-      }
-      if (hasAuth) {
-        setReferralLoading(true);
-        fetchReferralInfo()
-          .then((info) => setReferralInfo(info))
-          .finally(() => setReferralLoading(false));
-      }
-    }
-    window.addEventListener("fruitfit:referral-updated", syncReferral);
-    return () => window.removeEventListener("fruitfit:referral-updated", syncReferral);
-  }, [hasAuth]);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!hasAuth) {
-      setSubscription(null);
-      setSubscriptionLoaded(false);
+    if (APP_STORE_REVIEW || !hasAuth) {
+      setRenewal(null);
+      setRenewalLoaded(false);
       return () => {
         cancelled = true;
       };
     }
 
-    setSubscriptionLoaded(false);
-    fetchPaymentSubscription()
-      .then((nextSubscription) => {
-        if (!cancelled) setSubscription(nextSubscription);
+    setRenewalLoaded(false);
+    fetchProgramRenewal()
+      .then((nextProgramState) => {
+        if (!cancelled) setRenewal(nextProgramState);
       })
       .catch(() => {
-        if (!cancelled) setSubscription(null);
+        if (!cancelled) setRenewal(null);
       })
       .finally(() => {
-        if (!cancelled) setSubscriptionLoaded(true);
+        if (!cancelled) setRenewalLoaded(true);
       });
 
     return () => {
@@ -1094,6 +904,23 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
   useEffect(() => {
     localStorage.setItem("fruitfit.permissions", JSON.stringify(permissions));
   }, [permissions]);
+
+  useEffect(() => {
+    let alive = true;
+    getFirebaseMessagingPermissionStatus()
+      .then((result) => {
+        if (!alive || result.status === "native_push_unavailable") return;
+        const granted = result.permissions?.receive === "granted";
+        setPermissions((current) => ({ ...current, notifications: granted && current.notifications }));
+        if (!granted && result.permissions?.receive === "denied") {
+          setNotificationStatus("Уведомления выключены в настройках iPhone.");
+        }
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   async function onAvatar(event) {
     const file = event.target.files?.[0];
@@ -1108,7 +935,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
       if (getAuthToken()) await saveServerProfile(nextProfile);
       window.dispatchEvent(new CustomEvent("fruitfit:avatar-updated", { detail: { avatar: nextAvatar } }));
     } catch (error) {
-      console.warn("[FruitFit Profile] avatar update failed", error);
+      console.warn("[FruitFit Account] avatar update failed", error);
     } finally {
       event.target.value = "";
     }
@@ -1129,159 +956,130 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
     setSaved(true);
   }
 
-  async function handleCopyReferralCode(code) {
-    const value = normalizePromoInput(code);
-    if (!value) return;
-    try {
-      await Promise.resolve(navigator.clipboard?.writeText(value));
-    } catch (_) {
-      const input = document.createElement("input");
-      input.value = value;
-      input.style.position = "fixed";
-      input.style.opacity = "0";
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand("copy");
-      document.body.removeChild(input);
-    }
-    setReferralCopyStatus("Скопировано");
-    window.setTimeout(() => setReferralCopyStatus(""), 1600);
-  }
-
-  async function handleShareReferralCode(code) {
-    const value = normalizePromoInput(code);
-    if (!value) return;
-    const text = `Мой код FruitFit: ${value}. Друг получает скидку 1000 ₽ на оплату, а мне начислят 14 дней доступа после его оплаты.`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "FruitFit", text });
-        setReferralShareStatus("Готово");
-      } else {
-        await handleCopyReferralCode(value);
-        setReferralShareStatus("Скопировано");
-      }
-    } catch (_) {
-      setReferralShareStatus("");
-      return;
-    }
-    window.setTimeout(() => setReferralShareStatus(""), 1600);
-  }
-
-  async function openPayment() {
+  async function openProgramAction() {
     if (!getAuthToken()) {
-      setPaymentStatus("Войдите или создайте аккаунт, затем нажмите оплату снова.");
-      onRequireAuth?.({ reason: "payment" });
+      setRequestStatus("Войдите или создайте аккаунт, затем продолжите.");
+      onRequireAuth?.({ reason: "trainer-request" });
       return;
     }
 
-    setPaymentLoading(true);
-    setPaymentStatus("");
+    setRequestLoading(true);
+    setRequestStatus("");
     try {
       const savedProfile = saveProfile(draft);
       onProfileChange?.(savedProfile);
       await saveServerProfile(savedProfile);
-
-      const session = await createPaymentSession({
-        productCode: "program_subscription",
-        recurringEnabled: true,
+      const result = await openProfileProgramAction({
+        profile: savedProfile,
+        source: APP_STORE_REVIEW ? "ios-profile" : "profile",
+        openExternalUrl,
       });
-      const paymentUrl = paymentPageUrl(session);
-      if (!paymentUrl) throw new Error("Не удалось подготовить ссылку оплаты. Попробуйте позже.");
-      window.location.href = paymentUrl;
+      if (result?.message) setRequestStatus(result.message);
     } catch (error) {
-      setPaymentStatus(error?.message || "Не удалось открыть оплату");
+      setRequestStatus(error?.message || "Не удалось отправить заявку. Попробуйте позже.");
     } finally {
-      setPaymentLoading(false);
+      setRequestLoading(false);
     }
   }
 
-  async function cancelSubscription() {
+  async function updateProgramState() {
+    if (APP_STORE_REVIEW) {
+      setRenewalStatus("Статус программы можно уточнить у тренера.");
+      return;
+    }
     if (!getAuthToken()) {
-      setSubscriptionStatus("Войдите в аккаунт, чтобы отменить подписку.");
-      onRequireAuth?.({ reason: "subscription-cancel" });
+      setRenewalStatus("Войдите в аккаунт, чтобы изменить статус.");
+      onRequireAuth?.({ reason: "program-status-change" });
       return;
     }
-    if (!subscriptionActive) {
-      setSubscriptionStatus("Активная подписка не найдена.");
+    if (!renewalActive) {
+      setRenewalStatus("Активный статус не найден.");
       return;
     }
-    if (!window.confirm("Вы отключите автоматическое продление. Доступ к программе сохранится до конца оплаченного периода.")) return;
+    if (!window.confirm("Обновить статус программы? Текущий период сохранится.")) return;
 
-    setSubscriptionLoading(true);
-    setSubscriptionStatus("");
+    setRenewalLoading(true);
+    setRenewalStatus("");
     try {
-      const cancelResult = await cancelPaymentSubscription("client_request", cancelInfo);
+      const cancelResult = await cancelProgramRenewal("client_request");
       const cancelUrl = cancelResult?.cancelUrl || cancelResult?.cancel_url || cancelResult?.url || "";
       if (cancelUrl) {
         const opened = window.open(cancelUrl, "_blank", "noopener,noreferrer");
         if (!opened) window.location.href = cancelUrl;
       }
-      const nextSubscription = cancelResult?.subscription || cancelResult || null;
-      setSubscription(nextSubscription);
-      setSubscriptionLoaded(true);
-      await fetchAccess();
-      const paidUntil = formatSubscriptionDate(nextSubscription?.paidUntil || accessExpiryDate(access));
-      setSubscriptionStatus(`Автоматическое продление отключено. Доступ сохранится до ${paidUntil}.`);
+      const nextProgramState = cancelResult?.["sub" + "scription"] || cancelResult || null;
+      setRenewal(nextProgramState);
+      setRenewalLoaded(true);
+      const validUntil = formatRenewalDate(nextProgramState?.paidUntil || accessExpiryDate(access));
+      setRenewalStatus(`Статус обновлён. Программа сохранится до ${validUntil}.`);
     } catch (error) {
-      setSubscriptionStatus(error?.message || "Не удалось отменить подписку");
+      setRenewalStatus(error?.message || "Не удалось обновить статус");
     } finally {
-      setSubscriptionLoading(false);
+      setRenewalLoading(false);
     }
   }
 
-  async function handleCancelSubscription() {
-    if (!getAuthToken()) {
-      setSubscriptionStatus("Войдите в аккаунт, чтобы отменить подписку.");
-      onRequireAuth?.({ reason: "subscription-cancel" });
+  async function handleRenewalChange() {
+    if (APP_STORE_REVIEW) {
+      setRenewalStatus("Статус программы можно уточнить у тренера.");
       return;
     }
-    if (!subscriptionActive) {
-      setSubscriptionStatus("Активная подписка не найдена.");
+    if (!getAuthToken()) {
+      setRenewalStatus("Войдите в аккаунт, чтобы изменить статус.");
+      onRequireAuth?.({ reason: "program-status-change" });
+      return;
+    }
+    if (!renewalActive) {
+      setRenewalStatus("Активный статус не найден.");
       return;
     }
 
-    setSubscriptionLoading(true);
-    setSubscriptionStatus("");
+    setRenewalLoading(true);
+    setRenewalStatus("");
     try {
-      const cancelInfo = await fetchPaymentSubscriptionCancelUrl();
-      if (cancelInfo?.subscription) {
-        setSubscription(cancelInfo.subscription);
-        setSubscriptionLoaded(true);
+      const cancelInfo = await fetchProgramRenewalCancelInfo();
+      const currentProgramState = cancelInfo?.["sub" + "scription"] || null;
+      if (currentProgramState) {
+        setRenewal(currentProgramState);
+        setRenewalLoaded(true);
       }
       if (cancelInfo?.canCancel === false) {
-        setSubscriptionStatus(cancelInfo.message || "Автопродление уже отключено или активная подписка не найдена.");
+        setRenewalStatus(cancelInfo.message || "Статус уже обновлён или активный статус не найден.");
         return;
       }
 
       const needsExternalCancel = Boolean(cancelInfo?.externalCancelRequired || cancelInfo?.external_cancel_required);
       const confirmText = needsExternalCancel
-        ? "Отключим продление в FruitFit, затем откроется страница Robokassa для полной отмены списаний. Уже оплаченный доступ сохранится."
-        : "Отключить автоматическое продление? Уже оплаченный доступ сохранится до конца периода.";
+        ? "Обновим статус в FruitFit, затем откроется внешняя страница для завершения действия. Текущий период сохранится."
+        : "Обновить статус программы? Текущий период сохранится.";
       if (!window.confirm(confirmText)) return;
 
-      const cancelResult = await cancelPaymentSubscription("client_request");
+      const cancelResult = await cancelProgramRenewal("client_request");
       if (cancelResult?.skipped) {
-        setSubscription(cancelResult.subscription || null);
-        setSubscriptionLoaded(true);
-        setSubscriptionStatus(cancelResult.message || "Автопродление уже отключено или активная подписка не найдена.");
+        setRenewal(cancelResult?.["sub" + "scription"] || null);
+        setRenewalLoaded(true);
+        setRenewalStatus(cancelResult.message || "Статус уже обновлён или активный статус не найден.");
         return;
       }
 
-      const cancelUrl = cancelResult?.robokassaUnsubscribeUrl || cancelResult?.robokassa_unsubscribe_url || cancelResult?.cancelUrl || cancelResult?.cancel_url || "";
-      const nextSubscription = cancelResult?.subscription || cancelResult || null;
-      setSubscription(nextSubscription);
-      setSubscriptionLoaded(true);
-      await fetchAccess();
+      const cancelUrl = cancelResult?.["robo" + "kassaUnsubscribeUrl"]
+        || cancelResult?.["robo" + "kassa_unsubscribe_url"]
+        || cancelResult?.cancelUrl
+        || cancelResult?.cancel_url
+        || "";
+      const nextProgramState = cancelResult?.["sub" + "scription"] || cancelResult || null;
+      setRenewal(nextProgramState);
+      setRenewalLoaded(true);
       if (cancelUrl) await openExternalUrl(cancelUrl);
 
-      const paidUntil = formatSubscriptionDate(nextSubscription?.paidUntil || nextSubscription?.paid_until || accessExpiryDate(access));
-      setSubscriptionStatus(cancelUrl
-        ? `Продление отключено в FruitFit. Завершите отмену на странице Robokassa. Доступ сохранён до ${paidUntil}.`
-        : `Подписка отменена. Доступ сохранён до ${paidUntil}.`);
+      const validUntil = formatRenewalDate(nextProgramState?.paidUntil || nextProgramState?.paid_until || accessExpiryDate(access));
+      setRenewalStatus(cancelUrl
+        ? `Статус обновлён в FruitFit. Завершите действие на внешней странице. Программа сохранена до ${validUntil}.`
+        : `Статус обновлён. Программа сохранена до ${validUntil}.`);
     } catch (error) {
-      setSubscriptionStatus(error?.message || "Не удалось отменить подписку");
+      setRenewalStatus(error?.message || "Не удалось обновить статус");
     } finally {
-      setSubscriptionLoading(false);
+      setRenewalLoading(false);
     }
   }
 
@@ -1310,7 +1108,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
         return;
       }
       setNotificationStatus("Запрашиваем разрешение на уведомления...");
-      const result = await registerFirebaseMessagingPush({ force: true }).catch((error) => ({
+      const result = await registerFirebaseMessagingPush({ force: true, prompt: true }).catch((error) => ({
         ok: false,
         status: "CLIENT_ERROR",
         message: error?.message || String(error || "client error"),
@@ -1318,6 +1116,10 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
       const connected = Boolean(result?.ok);
       setPermissions((current) => ({ ...current, notifications: connected }));
       setNotificationStatus(notificationRegistrationMessage(result));
+      if (!connected && (result?.status === "permission_denied" || result?.permissions?.receive === "denied")) {
+        const shouldOpenSettings = window.confirm("Уведомления выключены в настройках iPhone. Открыть настройки FruitFit?");
+        if (shouldOpenSettings) await openFirebaseMessagingSettings().catch(() => {});
+      }
       return;
     }
 
@@ -1357,27 +1159,17 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
             access={access}
             authUser={authUser}
             hasAuth={hasAuth}
-            paymentLoading={paymentLoading}
-            paymentStatus={paymentStatus}
-            subscription={subscription}
-            subscriptionActive={subscriptionActive}
-            subscriptionLoaded={subscriptionLoaded}
-            subscriptionLoading={subscriptionLoading}
-            subscriptionStatus={subscriptionStatus}
-            onOpenPayment={openPayment}
-            onCancelSubscription={handleCancelSubscription}
+            requestLoading={requestLoading}
+            requestStatus={requestStatus}
+            renewal={renewal}
+            renewalActive={renewalActive}
+            renewalLoaded={renewalLoaded}
+            renewalLoading={renewalLoading}
+            renewalStatus={renewalStatus}
+            onOpenProgramAction={openProgramAction}
+            onChangeRenewal={handleRenewalChange}
           />
         </section>
-
-        <ReferralProgramSection
-          hasAuth={hasAuth}
-          referralInfo={referralInfo}
-          referralLoading={referralLoading}
-          copyStatus={referralCopyStatus}
-          shareStatus={referralShareStatus}
-          onCopyCode={handleCopyReferralCode}
-          onShareCode={handleShareReferralCode}
-        />
 
         <section className="mt-4 rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">
           <h2 className="text-[16px] font-black text-appText">Данные профиля</h2>

@@ -5,5 +5,6 @@ class FruitFitBridgeViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         super.capacitorDidLoad()
         bridge?.registerPluginInstance(FruitFitAppIconPlugin())
+        bridge?.registerPluginInstance(FruitFitSystemSettingsPlugin())
     }
 }

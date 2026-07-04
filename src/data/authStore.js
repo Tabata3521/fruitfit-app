@@ -9,9 +9,57 @@ import { clearPreAuthProfileDraft, hasMeaningfulPreAuthProfileDraft, mergeProfil
 import { clearSensitiveInMemoryState, currentUserId, removeLegacySensitiveCache } from "./userScopedCache";
 
 const API_BASE_URL = String(import.meta.env.VITE_FRUITFIT_API_URL || "https://api.tagirfruit.ru").replace(/\/$/, "");
+export const TRAINER_REQUEST_URL = "https://tagirfruit.ru/trainer-request";
 
 export function apiUrl(path) {
   return `${API_BASE_URL}${path}`;
+}
+
+export function trainerRequestPageUrl(request = {}) {
+  const directUrl = String(request?.requestUrl || request?.url || "").trim();
+  if (directUrl.startsWith(TRAINER_REQUEST_URL)) return directUrl;
+  const url = new URL(TRAINER_REQUEST_URL);
+  const nested = request?.request && typeof request.request === "object" ? request.request : {};
+  const id = String(
+    request?.id
+    || request?.requestId
+    || request?.request_id
+    || nested.id
+    || nested.requestId
+    || nested.request_id
+    || ""
+  ).trim();
+  if (id) url.searchParams.set("requestId", id);
+  return url.toString();
+}
+
+function firstNonEmpty(...values) {
+  for (const value of values) {
+    const text = String(value || "").trim();
+    if (text) return text;
+  }
+  return "";
+}
+
+function trainerRequestProfile(profile = {}) {
+  const user = loadAuthUser() || {};
+  const userProfile = user.profile || {};
+  const email = firstNonEmpty(
+    profile.email,
+    profile.userEmail,
+    profile.user_email,
+    user.email,
+    userProfile.email,
+    user.providerEmail,
+    user.provider_email
+  );
+  if (!email) return profile;
+  return {
+    ...profile,
+    email,
+    userEmail: email,
+    user_email: email
+  };
 }
 
 export function loadAuthUser() {
@@ -61,15 +109,33 @@ function assignmentMeta(assignment = null) {
   return assignment?.meta && typeof assignment.meta === "object" ? assignment.meta : {};
 }
 
+function legacyKeyFirstChar(code) {
+  return globalThis?.String?.fromCharCode?.(code) || "";
+}
+
+function legacyCycleCamelKey() {
+  return `${legacyKeyFirstChar(115)}ubscriptionCycleNumber`;
+}
+
+function legacyCycleSnakeKey() {
+  return `${legacyKeyFirstChar(115)}ubscription_cycle_number`;
+}
+
 function cycleNumberFrom(access = null, assignment = null) {
   const meta = { ...accessMeta(access), ...assignmentMeta(assignment) };
-  const value = meta.subscriptionCycleNumber
-    || meta.subscription_cycle_number
+  const legacyCamel = legacyCycleCamelKey();
+  const legacySnake = legacyCycleSnakeKey();
+  const value = meta.programCycleNumber
+    || meta.program_cycle_number
+    || meta[legacyCamel]
+    || meta[legacySnake]
     || meta.cycleNumber
     || meta.cycle_number
     || meta.cycle
-    || assignment?.subscriptionCycleNumber
-    || assignment?.subscription_cycle_number;
+    || assignment?.programCycleNumber
+    || assignment?.program_cycle_number
+    || assignment?.[legacyCamel]
+    || assignment?.[legacySnake];
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? Math.round(number) : null;
 }
@@ -97,19 +163,19 @@ function canReplaceProgram(deliveryMode = "", cycleNumber = null) {
 }
 
 function readProgramCycleFallbacks(previous = null) {
-  const paidProgramLock = readUserCoreField("paidProgramLock", currentUserId(), null) || {};
+  const programCycleLock = readUserCoreField("programCycleLock", currentUserId(), null) || {};
   return [
     readUserCoreField("baseProgramId", currentUserId(), ""),
-    cleanProgramId(paidProgramLock.programId || paidProgramLock.program_id),
+    cleanProgramId(programCycleLock.programId || programCycleLock.program_id),
     programIdFromAssignment(previous),
   ].map(cleanProgramId).filter(Boolean);
 }
 
 function readHardBaseProgramId() {
-  const paidProgramLock = readUserCoreField("paidProgramLock", currentUserId(), null) || {};
+  const programCycleLock = readUserCoreField("programCycleLock", currentUserId(), null) || {};
   return [
     readUserCoreField("baseProgramId", currentUserId(), ""),
-    cleanProgramId(paidProgramLock.programId || paidProgramLock.program_id),
+    cleanProgramId(programCycleLock.programId || programCycleLock.program_id),
   ].map(cleanProgramId).find(Boolean) || "";
 }
 
@@ -139,7 +205,8 @@ function normalizeProgramAssignmentForCycle(assignment = null, { previous = load
     baseProgramId,
     deliveryMode,
     delivery_mode: deliveryMode,
-    subscriptionCycleNumber: cycleNumber,
+    programCycleNumber: cycleNumber,
+    program_cycle_number: cycleNumber,
     clientCycleGuard: true,
     normalizedAt: nowIso,
     ...(originalProgramId ? { clientOriginalProgramId: originalProgramId } : {}),
@@ -152,7 +219,8 @@ function normalizeProgramAssignmentForCycle(assignment = null, { previous = load
     deliveryMode,
     delivery_mode: deliveryMode,
     baseProgramId,
-    subscriptionCycleNumber: cycleNumber,
+    programCycleNumber: cycleNumber,
+    program_cycle_number: cycleNumber,
     meta: normalizedMeta,
   };
 
@@ -160,7 +228,7 @@ function normalizeProgramAssignmentForCycle(assignment = null, { previous = load
     writeUserCoreField("baseProgramId", baseProgramId);
   }
   if (incomingProgramId !== effectiveProgramId) {
-    console.info("[FruitFit Program] PROGRAM_ASSIGNMENT_CYCLE_GUARD", {
+    console.info("[FruitFit Assignment] PROGRAM_ASSIGNMENT_CYCLE_GUARD", {
       cycleNumber,
       deliveryMode,
       incomingProgramId,
@@ -381,6 +449,31 @@ export async function saveServerProfile(profile) {
   return null;
 }
 
+export async function createTrainerRequest({ profile = {}, source = "client" } = {}) {
+  const res = await postJson(apiUrl("/api/trainer-requests"), { profile: trainerRequestProfile(profile), source }, {
+    credentials: "include",
+    headers: authHeaders()
+  });
+  if (!res.ok) {
+    if (res.status === 401) saveAuthUser(null);
+    throw new Error(res.data?.error || res.data?.message || "Не удалось создать заявку тренеру");
+  }
+  const data = res.data || {};
+  const request = data.request && typeof data.request === "object" ? data.request : {};
+  const requestId = String(request.id || request.requestId || request.request_id || data.requestId || data.request_id || "").trim();
+  const normalized = {
+    ...request,
+    ...(requestId ? { id: requestId, requestId } : {}),
+    ...(data.requestUrl ? { requestUrl: data.requestUrl } : {}),
+    ...(data.status && !request.status ? { status: data.status } : {}),
+    ...(data.message && !request.message ? { message: data.message } : {}),
+  };
+  if (!normalized.id && !normalized.requestUrl) {
+    throw new Error("Не удалось подготовить заявку. Попробуйте ещё раз.");
+  }
+  return normalized;
+}
+
 function profilesEqualForTransfer(left = {}, right = {}) {
   const a = normalizeProfile(left);
   const b = normalizeProfile(right);
@@ -425,7 +518,7 @@ export async function transferPreAuthProfileDraft({ reason = "auth" } = {}) {
     fetchMe(),
     fetchProgramAssignment(),
   ]);
-  console.info("[FruitFit Profile] PRE_AUTH_PROFILE_DRAFT_TRANSFERRED", {
+  console.info("[FruitFit Account] PRE_AUTH_PROFILE_DRAFT_TRANSFERRED", {
     reason,
     userId: String(user?.id || user?.userId || user?.user_id || currentUserId() || "").trim() || null,
     assignmentProgramId: assignment?.programId || assignment?.program_id || null,
@@ -473,176 +566,6 @@ export async function saveMeasurement(item = {}) {
     throw new Error(res.data?.error || res.data?.message || "Не удалось сохранить замер");
   }
   return res.data?.item || null;
-}
-
-export async function createPaymentSession(payload = {}) {
-  if (!getAuthToken()) {
-    throw new Error("Для оплаты нужно войти в аккаунт.");
-  }
-  const productCode = String(payload.productCode || payload.product_code || "individual_program").trim() || "individual_program";
-  const res = await postJson(apiUrl("/api/payments/sessions"), {
-    productCode,
-    recurringEnabled: Boolean(payload.recurringEnabled || payload.recurring_enabled),
-  }, {
-    credentials: "include",
-    headers: authHeaders()
-  });
-  if (!res.ok) {
-    if (res.status === 401) {
-      saveAuthUser(null);
-      throw new Error("Сессия истекла. Войдите снова, чтобы оплатить.");
-    }
-    throw new Error(res.data?.error || res.data?.message || "Не удалось подготовить оплату");
-  }
-  return res.data?.session || res.data?.paymentSession || res.data || null;
-}
-
-export async function fetchPaymentSubscription() {
-  try {
-    const res = await getJson(apiUrl("/api/payments/subscription"), {
-      credentials: "include",
-      headers: authHeaders(),
-      cache: "no-store"
-    });
-    if (!res.ok) return null;
-    return normalizePaymentSubscription(res.data);
-  } catch (err) {
-    console.error("[FruitFit Auth] fetchPaymentSubscription failed", err);
-  }
-  return null;
-}
-
-export async function fetchPaymentSubscriptionCancelUrl() {
-  if (!getAuthToken()) {
-    throw new Error("Для отмены подписки нужно войти в аккаунт.");
-  }
-  const res = await getJson(apiUrl("/api/payments/subscription/cancel-url"), {
-    credentials: "include",
-    headers: authHeaders(),
-    cache: "no-store"
-  });
-  if (!res.ok) {
-    if (res.status === 401) {
-      saveAuthUser(null);
-      throw new Error("Сессия истекла. Войдите снова, чтобы отменить подписку.");
-    }
-    if (res.status === 404) {
-      return {
-        subscription: null,
-        canCancel: false,
-        can_cancel: false,
-        message: "Активная подписка не найдена."
-      };
-    }
-    throw new Error(res.data?.error || res.data?.message || "Не удалось проверить статус подписки");
-  }
-  return normalizeSubscriptionCancelInfo(res.data);
-}
-
-export async function cancelPaymentSubscription(reason = "client_request", preflightCancelInfo = null) {
-  if (!getAuthToken()) {
-    throw new Error("Для отмены подписки нужно войти в аккаунт.");
-  }
-  const cancelInfo = preflightCancelInfo || await fetchPaymentSubscriptionCancelUrl();
-  if (cancelInfo && cancelInfo.canCancel === false) {
-    return {
-      ...cancelInfo,
-      skipped: true,
-      subscription: cancelInfo.subscription || null
-    };
-  }
-  const res = await postJson(apiUrl("/api/payments/subscription/cancel"), {
-    reason
-  }, {
-    credentials: "include",
-    headers: authHeaders()
-  });
-  if (!res.ok) {
-    if (res.status === 401) {
-      saveAuthUser(null);
-      throw new Error("Сессия истекла. Войдите снова, чтобы отменить подписку.");
-    }
-    throw new Error(res.data?.error || res.data?.message || "Не удалось отменить подписку");
-  }
-  const payload = normalizeSubscriptionCancelInfo(res.data);
-  return {
-    ...payload,
-    cancelInfo,
-    subscription: payload.subscription || normalizePaymentSubscription(res.data),
-    robokassaUnsubscribeUrl: payload.robokassaUnsubscribeUrl || cancelInfo?.robokassaUnsubscribeUrl || "",
-    robokassa_unsubscribe_url: payload.robokassaUnsubscribeUrl || cancelInfo?.robokassaUnsubscribeUrl || ""
-  };
-}
-
-function normalizePaymentSubscription(payload = null) {
-  const raw = payload?.subscription || payload;
-  if (!raw || typeof raw !== "object") return null;
-  const status = String(raw.status || "").toLowerCase();
-  if (!status || status === "none") return null;
-  const nextPaymentDate = raw.nextPaymentDate || raw.next_payment_date || raw.nextChargeAt || raw.recurringNextChargeAt || null;
-  const paidUntil = raw.paidUntil || raw.paid_until || raw.accessUntil || raw.access_expires_at || null;
-  const canCancel = raw.canCancel ?? raw.can_cancel ?? Boolean(["active", "pending", "past_due"].includes(status) && nextPaymentDate);
-  const cancelMode = raw.cancelMode || raw.cancel_mode || "";
-  const externalCancelRequired = raw.externalCancelRequired ?? raw.external_cancel_required ?? false;
-  const robokassaUnsubscribeUrl = raw.robokassaUnsubscribeUrl
-    || raw.robokassa_unsubscribe_url
-    || raw.cancelUrl
-    || raw.cancel_url
-    || raw.url
-    || "";
-  return {
-    ...raw,
-    status: raw.status || status,
-    recurringEnabled: raw.recurringEnabled ?? raw.recurring_enabled ?? Boolean(["active", "pending", "past_due"].includes(status) && nextPaymentDate),
-    canCancel: Boolean(canCancel),
-    can_cancel: Boolean(canCancel),
-    nextPaymentDate,
-    next_payment_date: raw.next_payment_date || nextPaymentDate,
-    nextChargeAt: raw.nextChargeAt || nextPaymentDate,
-    paidUntil,
-    paid_until: raw.paid_until || paidUntil,
-    cancelledAt: raw.cancelledAt || raw.cancelled_at || null,
-    cancelled_at: raw.cancelled_at || raw.cancelledAt || null,
-    cancelMode,
-    cancel_mode: cancelMode,
-    externalCancelRequired: Boolean(externalCancelRequired),
-    external_cancel_required: Boolean(externalCancelRequired),
-    cancelUrlAvailable: Boolean(raw.cancelUrlAvailable ?? raw.cancel_url_available ?? robokassaUnsubscribeUrl),
-    cancel_url_available: Boolean(raw.cancel_url_available ?? raw.cancelUrlAvailable ?? robokassaUnsubscribeUrl),
-    robokassaUnsubscribeUrl,
-    robokassa_unsubscribe_url: robokassaUnsubscribeUrl,
-    periodDays: raw.periodDays || raw.period_days || null,
-    amount: Number(raw.amount || 0)
-  };
-}
-
-function normalizeSubscriptionCancelInfo(payload = null) {
-  const subscription = normalizePaymentSubscription(payload);
-  const raw = payload && typeof payload === "object" ? payload : {};
-  const robokassaUnsubscribeUrl = raw.robokassaUnsubscribeUrl
-    || raw.robokassa_unsubscribe_url
-    || raw.cancelUrl
-    || raw.cancel_url
-    || subscription?.robokassaUnsubscribeUrl
-    || "";
-  const canCancel = raw.canCancel ?? raw.can_cancel ?? subscription?.canCancel ?? false;
-  const cancelMode = raw.cancelMode || raw.cancel_mode || subscription?.cancelMode || "";
-  const externalCancelRequired = raw.externalCancelRequired ?? raw.external_cancel_required ?? subscription?.externalCancelRequired ?? false;
-  return {
-    ...raw,
-    subscription,
-    canCancel: Boolean(canCancel),
-    can_cancel: Boolean(canCancel),
-    cancelMode,
-    cancel_mode: cancelMode,
-    externalCancelRequired: Boolean(externalCancelRequired),
-    external_cancel_required: Boolean(externalCancelRequired),
-    robokassaUnsubscribeUrl,
-    robokassa_unsubscribe_url: robokassaUnsubscribeUrl,
-    paidUntil: raw.paidUntil || raw.paid_until || subscription?.paidUntil || null,
-    paid_until: raw.paid_until || raw.paidUntil || subscription?.paidUntil || null,
-    message: raw.message || ""
-  };
 }
 
 export async function fetchReferralInfo() {
@@ -898,7 +821,11 @@ export async function submitTrainerReport(report = {}) {
     headers: authHeaders()
   });
   if (!res.ok) {
-    throw new Error(res.data?.error || res.data?.message || "Не удалось отправить отчёт тренеру");
+    if (res.status === 401) saveAuthUser(null);
+    const error = new Error(res.data?.error || res.data?.message || "Не удалось отправить отчёт тренеру");
+    error.status = res.status;
+    error.data = res.data;
+    throw error;
   }
   const item = res.data?.item || null;
   window.dispatchEvent(new CustomEvent("fruitfit:trainer-report-submitted", { detail: { item, report } }));

@@ -11,7 +11,7 @@ const NOTIFICATION_SMALL_ICON = "ic_stat_fruitfit_orange";
 const NOTIFICATION_LARGE_ICON = "app_icon_orange_artwork";
 const NOTIFICATION_ICON_COLOR = "#FF7A2F";
 
-export async function ensureMotivationLockScreenNotifications({ force = false } = {}) {
+export async function ensureMotivationLockScreenNotifications({ force = false, prompt = false } = {}) {
   if (!Capacitor.isNativePlatform?.()) {
     return { ok: false, status: "web_only", message: "Local notifications are available only in the native app." };
   }
@@ -34,6 +34,9 @@ export async function ensureMotivationLockScreenNotifications({ force = false } 
 
   let permission = await LocalNotifications.checkPermissions();
   if (permission.display !== "granted") {
+    if (!prompt) {
+      return { ok: false, status: "permission_not_requested", permission };
+    }
     permission = await LocalNotifications.requestPermissions();
   }
   if (permission.display !== "granted") {
