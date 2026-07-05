@@ -72,7 +72,7 @@ const PHOTO_PREVIEW_CACHE_KEY = "fruitfit.progressPhotoPreviews";
 const STEP_SOURCE_STORAGE_KEY = "fruitfit.health.preferredSourcePackage";
 const CAPACITOR_PLATFORM = Capacitor.getPlatform?.() || "web";
 const IS_IOS_PLATFORM = CAPACITOR_PLATFORM === "ios" || CAPACITOR_PLATFORM === "web";
-const HEALTH_PROVIDER_NAME = IS_IOS_PLATFORM ? "Apple Health" : "Health Connect";
+const HEALTH_PROVIDER_NAME = IS_IOS_PLATFORM ? "Apple Health" : "Google Health Connect";
 const FEEDBACK_FORM_URL = "https://forms.gle/MygV9mU445St16ez5";
 
 const androidStepSourceOptions = [
@@ -1205,7 +1205,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
     try {
       let reportHealth = health;
       if (syncNativeHealth) {
-        setReportStatus({ loading: true, message: "Обновляем Apple Health..." });
+        setReportStatus({ loading: true, message: `Обновляем ${HEALTH_PROVIDER_NAME}...` });
         try {
           await syncNativeHealth({ force: true, reason: "trainer-report-submit", queryMode: "history", bypassCooldown: true });
           await new Promise((resolve) => window.setTimeout(resolve, 60));
@@ -1432,7 +1432,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
                   </div>
                 </div>
                 <p className="mt-2 text-[11px] font-semibold leading-4 text-appMuted">
-                  Перед отправкой отчёта приложение попробует обновить Apple Health и приложит недельную активность.
+                  Перед отправкой отчёта приложение попробует обновить {HEALTH_PROVIDER_NAME} и приложит недельную активность.
                 </p>
               </div>
 

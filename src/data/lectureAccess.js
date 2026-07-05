@@ -4,6 +4,7 @@ import { APP_STORE_REVIEW } from "../config/appStoreReview";
 
 const CACHE_KEY = "fruitfit.lectureAccessPolicy.v1";
 const DEFAULT_FREE_LECTURE_COUNT = 6;
+const ADMIN_ACCESS_EMAILS = new Set(["meyvaliev3521@gmail.com"]);
 
 export const defaultLectureAccessPolicy = APP_STORE_REVIEW
   ? Object.freeze({ mode: "first_n", visibleCount: DEFAULT_FREE_LECTURE_COUNT })
@@ -20,6 +21,34 @@ function firstFiniteNumber(...values) {
     if (Number.isFinite(number) && number >= 0) return number;
   }
   return null;
+}
+
+function normalizedAccessText(...values) {
+  return values.map((value) => String(value || "").trim().toLowerCase()).find(Boolean) || "";
+}
+
+function accessEmail(access = {}) {
+  return [
+    access?.email,
+    access?.user?.email,
+    access?.profile?.email,
+    access?.account?.email,
+  ].map((value) => String(value || "").trim().toLowerCase()).find((value) => value.includes("@")) || "";
+}
+
+function hasAdminLectureAccess(access = {}) {
+  const status = normalizedAccessText(access?.status, access?.plan);
+  const role = normalizedAccessText(access?.role, access?.userRole, access?.user?.role);
+  return Boolean(
+    access?.isAdmin ||
+    access?.isTrainer ||
+    access?.features?.admin ||
+    status === "admin" ||
+    status === "trainer" ||
+    role === "admin" ||
+    role === "trainer" ||
+    ADMIN_ACCESS_EMAILS.has(accessEmail(access))
+  );
 }
 
 export function loadLectureAccessPolicy() {
@@ -72,7 +101,7 @@ export function normalizeLectureAccessPolicy(value = {}) {
 }
 
 export function hasFullLectureAccess(access) {
-  if (APP_STORE_REVIEW) return true;
+  if (APP_STORE_REVIEW) return hasAdminLectureAccess(access);
 
   if (!access || access.isActive === false) return false;
   const status = String(access.status || access.plan || "").toLowerCase();
@@ -114,6 +143,7 @@ export function canOpenLecture(lecture, index, access, policy = defaultLectureAc
 export function visibleLecturesForAccess(lectures = [], access, policy = defaultLectureAccessPolicy) {
   const items = Array.isArray(lectures) ? lectures : [];
   if (APP_STORE_REVIEW) {
+    if (hasAdminLectureAccess(access)) return items;
     const normalized = normalizeLectureAccessPolicy(policy);
     const visibleCount = firstFiniteNumber(normalized.visibleCount, normalized.visible_count) ?? DEFAULT_FREE_LECTURE_COUNT;
     return items.slice(0, Math.max(0, Math.floor(visibleCount)));

@@ -291,7 +291,38 @@ export function saveAccessState(access) {
     localStorage.removeItem(ACCESS_KEY);
     writeUserCoreField("accessState", null);
   } else {
-    writeUserCoreField("accessState", { ...access, updatedAt: new Date().toISOString() });
+    const user = loadAuthUser() || {};
+    const userProfile = user.profile || {};
+    const email = firstNonEmpty(
+      access.email,
+      access.userEmail,
+      access.user_email,
+      access.user?.email,
+      user.email,
+      userProfile.email,
+      user.providerEmail,
+      user.provider_email
+    );
+    const role = firstNonEmpty(
+      access.role,
+      access.userRole,
+      access.user?.role,
+      user.role,
+      user.userRole,
+      userProfile.role
+    );
+    access = {
+      ...access,
+      ...(email ? { email, userEmail: email, user_email: email } : {}),
+      ...(role ? { role } : {}),
+      user: {
+        ...(access.user || {}),
+        ...(email ? { email } : {}),
+        ...(role ? { role } : {}),
+      },
+      updatedAt: new Date().toISOString(),
+    };
+    writeUserCoreField("accessState", access);
     const currentAssignment = loadProgramAssignment();
     if (currentAssignment) {
       saveProgramAssignment(currentAssignment, { access });

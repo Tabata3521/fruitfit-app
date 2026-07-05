@@ -1,5 +1,7 @@
 import { APP_STORE_REVIEW } from "../config/appStoreReview";
 
+const ADMIN_ACCESS_EMAILS = new Set(["meyvaliev3521@gmail.com"]);
+
 export const LOCKED_WORKOUT_MESSAGE = APP_STORE_REVIEW
   ? "Программа пока формируется."
   : "Эта тренировка недоступна по текущему доступу.";
@@ -10,6 +12,10 @@ function normalizedStatus(access) {
 
 function normalizedRole(...values) {
   return values.map((value) => String(value || "").trim().toLowerCase()).find(Boolean) || "";
+}
+
+function normalizedEmail(...values) {
+  return values.map((value) => String(value || "").trim().toLowerCase()).find((value) => value.includes("@")) || "";
 }
 
 function firstFiniteNumber(...values) {
@@ -65,16 +71,22 @@ export function originalWorkoutIndex(workouts = [], workout) {
 function isAdminAccess(access = {}, userRole = "") {
   const role = normalizedRole(userRole, access?.userRole, access?.role, access?.user?.role);
   const status = normalizedRole(access?.status, access?.plan);
+  const email = normalizedEmail(access?.email, access?.user?.email, access?.profile?.email, access?.account?.email);
   return Boolean(
     access?.isAdmin ||
+    access?.isTrainer ||
     access?.features?.admin ||
+    access?.features?.trainer ||
     status === "admin" ||
-    role === "admin"
+    status === "trainer" ||
+    role === "admin" ||
+    role === "trainer" ||
+    ADMIN_ACCESS_EMAILS.has(email)
   );
 }
 
 export function accessTier(access) {
-  if (APP_STORE_REVIEW) return "assigned";
+  if (APP_STORE_REVIEW && !isAdminAccess(access)) return "assigned";
 
   const status = normalizedStatus(access);
   const role = String(access?.role || "").toLowerCase();
@@ -194,6 +206,9 @@ export function getClientVisibleWorkouts({
 } = {}) {
   const items = Array.isArray(workouts) ? workouts : [];
   if (APP_STORE_REVIEW) {
+    const role = normalizedRole(userRole, access?.userRole, access?.role, access?.user?.role);
+    if (isAdminAccess(access, role)) return items;
+
     const serverIds = readServerVisibleWorkoutIds(access, serverVisibleWorkoutIds);
     const serverVisibleCount = serverWorkoutLimit(access, serverVisibleWorkoutCount);
     let visible = items;
@@ -257,6 +272,7 @@ export function getClientVisibleWorkouts({
 export function unlockedWorkoutCount(workoutsOrTotal = 0, access) {
   const total = workoutTotal(workoutsOrTotal);
   if (APP_STORE_REVIEW) {
+    if (isAdminAccess(access)) return total;
     return Array.isArray(workoutsOrTotal)
       ? getClientVisibleWorkouts({ workouts: workoutsOrTotal, access }).length
       : total;
@@ -294,7 +310,7 @@ export function visibleWorkoutsForAccess(workouts = [], access) {
 }
 
 export function workoutAccessLabel(access, workoutsOrTotal = 0) {
-  if (APP_STORE_REVIEW) return "Ознакомительная программа";
+  if (APP_STORE_REVIEW) return isAdminAccess(access) ? "Программа назначена" : "Ознакомительная программа";
 
   const tier = accessTier(access);
   const count = unlockedWorkoutCount(workoutsOrTotal, access);

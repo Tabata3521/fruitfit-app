@@ -21,7 +21,8 @@ const AVATAR_STORAGE_KEY = "fruitfit.avatar";
 const IOS_PUSH_TOKEN_KEY = "fruitfit.push.fcmToken.ios.v1";
 const CAPACITOR_PLATFORM = Capacitor.getPlatform?.() || "web";
 const IS_IOS_PLATFORM = CAPACITOR_PLATFORM === "ios";
-const HEALTH_PROVIDER_NAME = IS_IOS_PLATFORM ? "Apple Health" : "Health Connect";
+const HEALTH_PROVIDER_NAME = IS_IOS_PLATFORM ? "Apple Health" : "Google Health Connect";
+const HEALTH_PROVIDER_SETTINGS_NAME = IS_IOS_PLATFORM ? "Apple Health" : "Health Connect";
 const HEALTH_PROVIDER_DEVICE_COPY = IS_IOS_PLATFORM ? "iPhone" : "Android";
 const ACCESS_INFINITY_LABEL = "∞";
 
@@ -117,7 +118,7 @@ function healthPermissionSummary(availability) {
   if (state === healthProviderStates.CONNECTED) return "Активность подключена";
   if (state === healthProviderStates.PARTIALLY_GRANTED) return "Можно расширить доступ для точности";
   if (state === healthProviderStates.PERMISSIONS_REQUIRED) return "Настройте доступ к показателям";
-  if (state === healthProviderStates.NOT_INSTALLED) return "Apple Health недоступен на этом устройстве";
+  if (state === healthProviderStates.NOT_INSTALLED) return `${HEALTH_PROVIDER_NAME} недоступен на этом устройстве`;
   if (state === healthProviderStates.NO_DATA) return "Ждём первую синхронизацию";
   return "Подключите трекер для персонализации";
 }
@@ -129,9 +130,9 @@ function permissionLine(item, availability, active) {
   if (!item.permissionKey) return healthPermissionSummary(availability);
   const granted = Boolean(availability?.permissionStatus?.[item.permissionKey]);
   if (granted) return "Подключено и учитывается";
-  if (availability?.state === healthProviderStates.NOT_INSTALLED) return "Появится после настройки Apple Health";
+  if (availability?.state === healthProviderStates.NOT_INSTALLED) return `Появится после настройки ${HEALTH_PROVIDER_NAME}`;
   if (availability?.state === healthProviderStates.NOT_SUPPORTED) return "Доступно в приложении на Android";
-  return "Нужен доступ в Apple Health";
+  return `Нужен доступ в ${HEALTH_PROVIDER_NAME}`;
 }
 
 function notificationRegistrationMessage(result) {
@@ -161,8 +162,8 @@ function healthConnectionHint(availability, syncing) {
   if (state === healthProviderStates.CONNECTED) return "FruitFit использует активность, сон и пульс, чтобы точнее подбирать нагрузку.";
   if (state === healthProviderStates.PARTIALLY_GRANTED) return "Часть данных уже подключена. Сон и пульс сделают восстановление точнее.";
   if (state === healthProviderStates.PERMISSIONS_REQUIRED) return "Разрешите доступ к активности, сну и пульсу. Данные не передаются третьим лицам.";
-  if (state === healthProviderStates.NOT_INSTALLED) return "Откройте Apple Health и проверьте, что часы синхронизируют данные.";
-  return "Подключите Apple Health, чтобы FruitFit мог учитывать вашу активность и восстановление.";
+  if (state === healthProviderStates.NOT_INSTALLED) return `Откройте ${HEALTH_PROVIDER_NAME} и проверьте, что часы синхронизируют данные.`;
+  return `Подключите ${HEALTH_PROVIDER_NAME}, чтобы FruitFit мог учитывать вашу активность и восстановление.`;
 }
 
 function formatHealthSyncTime(value) {
@@ -1225,7 +1226,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
                   <div className="rounded-[18px] border border-appBorder bg-appBg p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-[12px] font-black text-appText">Apple Health</p>
+                        <p className="text-[12px] font-black text-appText">{HEALTH_PROVIDER_NAME}</p>
                         <p className="mt-1 text-[11px] leading-4 text-appMuted">{healthConnectionHint(availability, syncing)}</p>
                       </div>
                       <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black ${availability?.state === healthProviderStates.CONNECTED ? "accent-readable-shadow bg-appGreen/20 text-appGreen" : "bg-appCard text-appMuted"}`}>
@@ -1233,7 +1234,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
                       </span>
                     </div>
                     <p className="mt-2 text-[11px] leading-4 text-appMuted">
-                      FruitFit использует данные активности для расчёта восстановления и рекомендаций. Основной источник на iPhone — Apple Health.
+                      FruitFit использует данные активности для расчёта восстановления и рекомендаций. Основной источник на {HEALTH_PROVIDER_DEVICE_COPY} — {HEALTH_PROVIDER_NAME}.
                     </p>
                     <p className="mt-2 rounded-2xl bg-appCard px-3 py-2 text-[11px] font-bold text-appMuted">
                       Последняя синхронизация: {formatHealthSyncTime(health?.lastFruitFitRefreshAt || health?.generatedAt)}
@@ -1243,7 +1244,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
                     </button>
                   </div>
                   <p className="rounded-[18px] border border-appBorder bg-appBg px-3 py-2 text-[11px] font-semibold leading-4 text-appMuted">
-                    Тумблеры ниже управляют тем, какие подключённые данные FruitFit учитывает в рекомендациях. Разрешения на чтение меняются в самом Apple Health.
+                    Тумблеры ниже управляют тем, какие подключённые данные FruitFit учитывает в рекомендациях. Разрешения на чтение меняются в самом {HEALTH_PROVIDER_SETTINGS_NAME}.
                   </p>
                   {permissionItems.filter((item) => draft.gender !== "male" || item.id !== "cycle").map((item) => {
                     const disabled = item.id === "cycle" && draft.gender === "male";

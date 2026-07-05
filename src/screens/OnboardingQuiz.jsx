@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, X } from "lucide-react";
 import { normalizeProfile, profileDefaults, saveProfile } from "../data/profileStore";
+
+const HEALTH_PROVIDER_NAME = Capacitor.getPlatform?.() === "android" ? "Google Health Connect" : "Apple Health";
 
 const steps = [
   {
@@ -101,7 +104,7 @@ export default function OnboardingQuiz({ initialProfile = profileDefaults, onCom
         <h2 className="text-[28px] font-black leading-tight text-appText">{step.title}</h2>
         {index === steps.length - 1 && (
           <div className="mt-4 rounded-[20px] border border-appBorder bg-appCard px-4 py-3 text-[12px] leading-5 text-appMuted shadow-sm">
-            После квиза можно подключить Apple Health. Это поможет FruitFit учитывать сон, пульс и активность в рекомендациях. Данные нужны только для персонализации и не передаются третьим лицам.
+            После квиза можно подключить {HEALTH_PROVIDER_NAME}. Это поможет FruitFit учитывать сон, пульс и активность в рекомендациях. Данные нужны только для персонализации и не передаются третьим лицам.
           </div>
         )}
         <div className="mt-5 space-y-3">

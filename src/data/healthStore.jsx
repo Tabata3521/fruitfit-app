@@ -88,7 +88,7 @@ const LEGACY_CANONICAL_STRATEGIES = new Set([
 const weekLabels = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
 function nativeHealthDisplayName(source = "") {
-  return String(source || "").toLowerCase().includes("apple") ? "Apple Health" : "Apple Health";
+  return String(source || "").toLowerCase().includes("apple") ? "Apple Health" : nativeHealthFallbackName();
 }
 
 function nativeHealthFallbackName() {
@@ -3936,7 +3936,7 @@ export function HealthProvider({ children }) {
           message: "Health Connect rate limit reached; cached snapshot reused.",
         };
       }
-      const message = error?.message || "Не удалось подключить Apple Health.";
+      const message = error?.message || `Не удалось подключить ${nativeHealthFallbackName()}.`;
       setSyncError(message);
       setHealth((current) => ({
         ...current,
