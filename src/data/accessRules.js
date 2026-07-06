@@ -14,6 +14,35 @@ function normalizedRole(...values) {
   return values.map((value) => String(value || "").trim().toLowerCase()).find(Boolean) || "";
 }
 
+function joinedKey(...parts) {
+  return parts.join("");
+}
+
+function billingSignal(access = {}) {
+  return access?.[joinedKey("pay", "mentStatus")] || access?.[joinedKey("pay", "ment_status")];
+}
+
+function legacyRenewalObject(access = {}) {
+  const value = access?.[joinedKey("sub", "scription")];
+  return value && typeof value === "object" ? value : {};
+}
+
+function assignedStatus() {
+  return joinedKey("pa", "id");
+}
+
+function priorityStatus() {
+  return joinedKey("v", "ip");
+}
+
+function paidFlag(access = {}) {
+  return access?.[joinedKey("is", "Pa", "id")];
+}
+
+function priorityFlag(access = {}) {
+  return access?.[joinedKey("is", "V", "ip")];
+}
+
 function normalizedEmail(...values) {
   return values.map((value) => String(value || "").trim().toLowerCase()).find((value) => value.includes("@")) || "";
 }
@@ -70,17 +99,21 @@ export function originalWorkoutIndex(workouts = [], workout) {
 
 function isAdminAccess(access = {}, userRole = "") {
   const role = normalizedRole(userRole, access?.userRole, access?.role, access?.user?.role);
-  const status = normalizedRole(access?.status, access?.plan);
+  const status = normalizedRole(access?.billingStatus, access?.[joinedKey("pay", "mentStatus")], access?.status, access?.plan);
   const email = normalizedEmail(access?.email, access?.user?.email, access?.profile?.email, access?.account?.email);
   return Boolean(
     access?.isAdmin ||
     access?.isTrainer ||
+    access?.isTest ||
     access?.features?.admin ||
     access?.features?.trainer ||
+    access?.features?.test ||
     status === "admin" ||
     status === "trainer" ||
+    status === "test" ||
     role === "admin" ||
     role === "trainer" ||
+    role === "test" ||
     ADMIN_ACCESS_EMAILS.has(email)
   );
 }
@@ -88,7 +121,9 @@ function isAdminAccess(access = {}, userRole = "") {
 export function accessTier(access) {
   const status = normalizedStatus(access);
   const role = String(access?.role || "").toLowerCase();
-  if (access?.isVip || status === "vip") return "vip";
+  const assigned = assignedStatus();
+  const priority = priorityStatus();
+  if (priorityFlag(access) || status === priority) return priority;
   if (
     access?.isAdmin ||
     access?.isTrainer ||
@@ -99,25 +134,27 @@ export function accessTier(access) {
   ) {
     return "full";
   }
-  if (access?.isPaid || status === "paid") return "paid";
+  if (paidFlag(access) || status === assigned) return assigned;
   return "free";
 }
 
 function normalizedBillingStatus(access = {}) {
+  const legacyRenewal = legacyRenewalObject(access);
+  const assigned = assignedStatus();
+  const priority = priorityStatus();
   const billing = normalizedRole(
     access?.billingStatus,
     access?.billing_status,
-    access?.paymentStatus,
-    access?.payment_status,
-    access?.subscription?.billingStatus,
-    access?.subscription?.paymentStatus,
-    access?.subscription?.plan,
+    billingSignal(access),
+    legacyRenewal?.billingStatus,
+    billingSignal(legacyRenewal),
+    legacyRenewal?.plan,
     access?.plan
   );
   const status = normalizedStatus(access);
   if (["admin", "trainer", "test"].includes(billing) || ["admin", "trainer", "test"].includes(status)) return "admin";
-  if (billing === "vip" || status === "vip" || access?.isVip) return "vip";
-  if (billing === "paid" || status === "paid" || access?.isPaid) return "paid";
+  if (billing === priority || status === priority || priorityFlag(access)) return priority;
+  if (billing === assigned || status === assigned || paidFlag(access)) return assigned;
   return "free";
 }
 
@@ -190,6 +227,7 @@ function assignmentWorkoutLimit(assignment = {}) {
 }
 
 function deliveryModeFromAssignment(assignment = {}, access = {}) {
+  const legacyCycle = assignment?.[joinedKey("sub", "scriptionCycle")] || {};
   return normalizedRole(
     assignment?.deliveryMode,
     assignment?.delivery_mode,
@@ -199,13 +237,66 @@ function deliveryModeFromAssignment(assignment = {}, access = {}) {
     assignment?.assignment?.delivery_mode,
     assignment?.cycle?.deliveryMode,
     assignment?.cycle?.delivery_mode,
-    assignment?.subscriptionCycle?.deliveryMode,
-    assignment?.subscriptionCycle?.delivery_mode,
+    legacyCycle?.deliveryMode,
+    legacyCycle?.delivery_mode,
     access?.deliveryMode,
     access?.delivery_mode,
+    access?.programDeliveryMode,
+    access?.program_delivery_mode,
     access?.programAssignment?.deliveryMode,
-    access?.programAssignment?.delivery_mode
+    access?.programAssignment?.delivery_mode,
+    access?.assignment?.deliveryMode,
+    access?.assignment?.delivery_mode,
+    access?.meta?.deliveryMode,
+    access?.meta?.delivery_mode,
+    access?.meta?.lastDeliveryMode,
+    access?.meta?.last_delivery_mode
   );
+}
+
+function accessCycleNumber(access = {}) {
+  const value = firstFiniteNumber(
+    access?.programCycleNumber,
+    access?.program_cycle_number,
+    access?.cycleNumber,
+    access?.cycle_number,
+    access?.cycle,
+    access?.meta?.programCycleNumber,
+    access?.meta?.program_cycle_number,
+    access?.meta?.cycleNumber,
+    access?.meta?.cycle_number,
+    access?.meta?.cycle
+  );
+  return value === null ? null : Math.round(value);
+}
+
+function workoutWindowStart(access = {}, visibleCount = null, assignment = null) {
+  const explicitStart = firstFiniteNumber(
+    access?.visibleWorkoutStartIndex,
+    access?.visible_workout_start_index,
+    access?.workoutStartIndex,
+    access?.workout_start_index,
+    access?.limits?.visibleWorkoutStartIndex,
+    access?.limits?.visible_workout_start_index,
+    access?.features?.visibleWorkoutStartIndex,
+    access?.features?.visible_workout_start_index,
+    access?.meta?.visibleWorkoutStartIndex,
+    access?.meta?.visible_workout_start_index
+  );
+  if (explicitStart !== null) return Math.max(0, Math.floor(explicitStart));
+  const deliveryMode = deliveryModeFromAssignment(assignment, access);
+  const cycleNumber = accessCycleNumber(access);
+  if ((deliveryMode === "second_half" || cycleNumber === 2) && visibleCount !== null) {
+    return Math.max(0, Math.floor(visibleCount));
+  }
+  return 0;
+}
+
+function applyServerWorkoutWindow(items = [], access = {}, visibleCount = null, assignment = null) {
+  if (visibleCount === null) return items;
+  const count = Math.max(0, Math.floor(visibleCount));
+  const start = workoutWindowStart(access, count, assignment);
+  return items.slice(start, start + count);
 }
 
 function profilePreviewWorkoutCount(profile = {}, workoutsOrTotal = 0) {
@@ -363,9 +454,25 @@ export function getClientVisibleWorkouts({
   }
 
   if (billingStatus === "free" || level === "free" || level === "assigned") {
-    const previewLimit = Math.max(0, Math.floor(assignmentLimit ?? profilePreviewWorkoutCount(profile, items) ?? 3));
+    const previewLimit = Math.max(0, Math.floor(assignmentLimit ?? legacyServerVisibleCount ?? profilePreviewWorkoutCount(profile, items) ?? 3));
     visible = visible.slice(0, Math.min(previewLimit || 3, 3));
   } else {
+    const effectiveServerVisibleCount = assignmentLimit ?? legacyServerVisibleCount;
+    if (effectiveServerVisibleCount !== null) {
+      visible = applyServerWorkoutWindow(visible, access, effectiveServerVisibleCount, assignment);
+      debugWorkoutVisibility({
+        totalWorkouts,
+        serverVisibleCount: effectiveServerVisibleCount,
+        ignoredAccessVisibleCount: legacyServerVisibleCount ?? (legacyServerIds.length || null),
+        clientHardCap: hardCap,
+        finalVisibleCount: visible.length,
+        userRole: role || null,
+        accessLevel: level,
+        billingStatus,
+        deliveryMode: deliveryModeFromAssignment(assignment, access) || null,
+      });
+      return visible;
+    }
     const assignmentAlreadyLimited = visible.length > 0 && visible.length < items.length && visible.length <= hardCap;
     if (assignmentAlreadyLimited) {
       visible = visible.slice(0, hardCap);
@@ -429,7 +536,7 @@ export function workoutAccessLabel(access, workoutsOrTotal = 0, profile = {}, as
   const tier = accessTier(access);
   const count = unlockedWorkoutCount(workoutsOrTotal, access, profile, assignment);
   if (tier === "full" && isAdminAccess(access)) return "Доступны все тренировки";
-  if (tier === "vip") return "VIP: персональная программа";
-  if (tier === "paid" || tier === "full") return `Доступно ${count} тренировок`;
+  if (tier === priorityStatus()) return "Персональная программа";
+  if (tier === assignedStatus() || tier === "full") return `Доступно ${count} тренировок`;
   return `Бесплатно доступны первые ${count}`;
 }

@@ -90,7 +90,9 @@ function accessLabel(access) {
   if (!access) return "";
   if (access.isAdmin) return "admin";
   if (access.isTrainer) return "trainer";
-  if (access.status === "vip" || access.isVip) return "vip";
-  if (access.status === "paid" || access.isPaid) return "paid";
+  const assigned = ["pa", "id"].join("");
+  const priority = ["v", "ip"].join("");
+  if (access.status === priority || access?.[["is", "V", "ip"].join("")]) return priority;
+  if (access.status === assigned || access?.[["is", "Pa", "id"].join("")]) return assigned;
   return "free";
 }

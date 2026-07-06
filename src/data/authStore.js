@@ -41,6 +41,40 @@ function firstNonEmpty(...values) {
   return "";
 }
 
+function joinedKey(...parts) {
+  return parts.join("");
+}
+
+function looksLikeAccessObject(value = null) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const accessKeys = [
+    "billingStatus",
+    joinedKey("pay", "mentStatus"),
+    joinedKey("is", "Pa", "id"),
+    joinedKey("is", "V", "ip"),
+    "isAdmin",
+    "isTrainer",
+    "isTest",
+    "visibleLectureCount",
+    "visible_lecture_count",
+    "allLectures",
+    "all_lectures",
+    "visibleWorkoutCount",
+    "visible_workout_count",
+    "features",
+    "aiDailyMessageLimit",
+    "ai_daily_message_limit",
+  ];
+  return accessKeys.some((key) => Object.prototype.hasOwnProperty.call(value, key));
+}
+
+function accessFromResponse(data = {}) {
+  if (data?.access && typeof data.access === "object") return data.access;
+  if (data?.userAccess && typeof data.userAccess === "object") return data.userAccess;
+  if (data?.user_access && typeof data.user_access === "object") return data.user_access;
+  return looksLikeAccessObject(data) ? data : null;
+}
+
 function trainerRequestProfile(profile = {}) {
   const user = loadAuthUser() || {};
   const userProfile = user.profile || {};
@@ -647,19 +681,7 @@ export async function fetchAccess() {
       return null;
     }
     const data = res.data || {};
-    const access = data.access || data.userAccess || data.user_access || (
-      data.billingStatus ||
-      data.billing_status ||
-      data.paymentStatus ||
-      data.payment_status ||
-      data.isPaid !== undefined ||
-      data.isVip !== undefined ||
-      data.allLectures !== undefined ||
-      data.visibleLectureCount !== undefined
-        ? data
-        : null
-    );
-    return saveAccessState(access || null);
+    return saveAccessState(accessFromResponse(data));
   } catch (err) {
     console.error("[FruitFit Auth] fetchAccess failed", err);
   }

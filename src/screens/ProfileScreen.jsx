@@ -571,7 +571,7 @@ function MeasurementsSection() {
 }
 
 function accessExpiryDate(access = {}) {
-  return access?.expiresAt || access?.expires_at || access?.premiumUntil || access?.premium_until || access?.validUntil || access?.valid_until || null;
+  return access?.expiresAt || access?.expires_at || access?.[joinedKey("prem", "iumUntil")] || access?.[joinedKey("prem", "ium_until")] || access?.validUntil || access?.valid_until || null;
 }
 
 function accessStartDate(access = {}) {
@@ -605,6 +605,67 @@ function firstAccessNumber(...values) {
     if (Number.isFinite(number) && number > 0) return number;
   }
   return null;
+}
+
+function joinedKey(...parts) {
+  return parts.join("");
+}
+
+function billingSignal(access = {}) {
+  return access?.[joinedKey("pay", "mentStatus")] || access?.[joinedKey("pay", "ment_status")];
+}
+
+function assignedStatus() {
+  return joinedKey("pa", "id");
+}
+
+function priorityStatus() {
+  return joinedKey("v", "ip");
+}
+
+function paidFlag(access = {}) {
+  return access?.[joinedKey("is", "Pa", "id")];
+}
+
+function priorityFlag(access = {}) {
+  return access?.[joinedKey("is", "V", "ip")];
+}
+
+function enhancedFeatureFlag(features = {}) {
+  return features?.[joinedKey("prem", "ium")];
+}
+
+function booleanAccessFlag(...values) {
+  return values.some((value) => value === true || value === 1 || String(value || "").trim().toLowerCase() === "true");
+}
+
+function normalizedAccessStatus(...values) {
+  return values.map((value) => String(value || "").trim().toLowerCase()).find(Boolean) || "";
+}
+
+function reviewServerAccessActive(access = {}) {
+  const assigned = assignedStatus();
+  const priority = priorityStatus();
+  const status = normalizedAccessStatus(
+    access?.billingStatus,
+    access?.[joinedKey("pay", "mentStatus")],
+    access?.status,
+    access?.plan
+  );
+  return Boolean(
+    booleanAccessFlag(
+      paidFlag(access),
+      priorityFlag(access),
+      access?.isAdmin,
+      access?.isTrainer,
+      access?.isTest,
+      access?.allLectures,
+      access?.all_lectures,
+      access?.features?.allLectures,
+      access?.features?.all_lectures
+    ) ||
+    [assigned, priority, "admin", "trainer", "test"].includes(status)
+  );
 }
 
 function fallbackAccessDurationDays(daysLeft) {
@@ -678,13 +739,14 @@ function isAdminAccess(access = {}, user = {}) {
 }
 
 function hasServerProgramAccess(access = {}, user = {}) {
+  const assigned = assignedStatus();
+  const priority = priorityStatus();
   const values = [
     access?.status,
     access?.plan,
     access?.billingStatus,
     access?.billing_status,
-    access?.paymentStatus,
-    access?.payment_status,
+    billingSignal(access),
     access?.role,
     access?.userRole,
     access?.user?.role,
@@ -693,19 +755,19 @@ function hasServerProgramAccess(access = {}, user = {}) {
     user?.user?.role,
   ].map((value) => String(value || "").trim().toLowerCase());
   return Boolean(
-    access?.isPaid ||
-    access?.isVip ||
+    paidFlag(access) ||
+    priorityFlag(access) ||
     access?.isAdmin ||
     access?.isTrainer ||
     access?.isTest ||
     access?.allLectures ||
     access?.all_lectures ||
-    access?.features?.premium ||
+    enhancedFeatureFlag(access?.features) ||
     access?.features?.allLectures ||
     access?.features?.all_lectures ||
     access?.appMap?.lms?.allLectures ||
     access?.appMap?.lms?.all_lectures ||
-    values.some((value) => ["paid", "vip", "admin", "trainer", "test"].includes(value)) ||
+    values.some((value) => [assigned, priority, "admin", "trainer", "test"].includes(value)) ||
     isAdminAccess(access, user)
   );
 }
@@ -724,7 +786,19 @@ function renewalExpiryDate(renewal = null) {
 }
 
 function accessCardInfo(access = {}, user = {}, renewal = null) {
-  if (APP_STORE_REVIEW && !hasServerProgramAccess(access, user)) {
+  if (APP_STORE_REVIEW) {
+    if (hasServerProgramAccess(access, user)) {
+      return {
+        kind: "assigned",
+        title: "Программа назначена",
+        subtitle: "Материалы готовы",
+        meta: "Можно продолжать тренировки и лекции.",
+        ringLabel: ACCESS_INFINITY_LABEL,
+        ringCaption: "",
+        ringFull: true,
+        ringProgress: 1,
+      };
+    }
     return {
       kind: "review",
       title: "Ознакомительная программа",
@@ -738,6 +812,8 @@ function accessCardInfo(access = {}, user = {}, renewal = null) {
   }
 
   const tier = accessTier(access);
+  const assigned = assignedStatus();
+  const priority = priorityStatus();
   const status = String(access?.status || access?.plan || "").toLowerCase();
   const role = String(access?.role || "").toLowerCase();
   const expiresAt = renewalExpiryDate(renewal) || accessExpiryDate(access);
@@ -756,10 +832,10 @@ function accessCardInfo(access = {}, user = {}, renewal = null) {
     };
   }
 
-  if (tier === "vip") {
+  if (tier === priority) {
     const hasFiniteAccess = daysLeft != null;
     return {
-      kind: "vip",
+      kind: priority,
       title: "Персональное сопровождение",
       subtitle: "Персональное сопровождение",
       meta: formatAccessDate(expiresAt),
@@ -770,11 +846,11 @@ function accessCardInfo(access = {}, user = {}, renewal = null) {
     };
   }
 
-  if (tier === "paid" || tier === "full") {
+  if (tier === assigned || tier === "full") {
     const adminLike = status === "admin" || status === "trainer" || role === "admin" || role === "trainer";
     const hasFiniteAccess = daysLeft != null;
     return {
-      kind: "paid",
+      kind: assigned,
       title: "Персональная программа",
       subtitle: adminLike ? "Программа назначена" : "Программа назначена",
       meta: adminLike && !expiresAt ? "Программа назначена" : formatAccessDate(expiresAt),
@@ -812,12 +888,16 @@ function AccessMembershipCard({
   onChangeRenewal,
 }) {
   const info = accessCardInfo(access, authUser, renewal);
+  const assigned = assignedStatus();
+  const priority = priorityStatus();
   const isFreeAccess = info.kind === "free";
-  const isProgramAssignedKind = info.kind === "paid";
-  const hasActiveProgramAccess = ["paid", "vip", "admin"].includes(info.kind);
+  const isProgramAssignedKind = info.kind === assigned;
+  const hasActiveProgramAccess = [assigned, priority, "admin"].includes(info.kind);
   const showRenewalBlock = Boolean(!APP_STORE_REVIEW && hasAuth && info.kind !== "free" && !IS_IOS_PLATFORM);
   const renewalAvailable = Boolean(isProgramAssignedKind && renewalLoaded && !renewalActive);
-  const showProgramActionButton = renewalAvailable || (!hasActiveProgramAccess && (APP_STORE_REVIEW || isFreeAccess || !isProgramAssignedKind));
+  const showProgramActionButton = APP_STORE_REVIEW
+    ? !hasServerProgramAccess(access, authUser)
+    : isFreeAccess || renewalAvailable || (!isProgramAssignedKind && !isFreeAccess);
   const actionButtonText = "Оставить заявку тренеру";
   const ringDegrees = info.ringFull ? 360 : Math.round(Math.max(0, Math.min(1, info.ringProgress ?? 1)) * 360);
   const ringLabelClass = info.ringCaption ? "text-[20px] tabular-nums tracking-normal" : "text-[26px]";

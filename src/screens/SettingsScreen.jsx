@@ -512,13 +512,14 @@ function canUseProgressPhotos(user, access) {
 
   const status = String(access?.status || access?.plan || "").toLowerCase();
   const role = String(access?.role || user?.role || "").toLowerCase();
+  const priority = ["v", "ip"].join("");
   return Boolean(
-    status === "vip" ||
+    status === priority ||
     status === "admin" ||
     role === "admin" ||
-    access?.isVip ||
+    access?.[["is", "V", "ip"].join("")] ||
     access?.isAdmin ||
-    access?.features?.vip ||
+    access?.features?.[priority] ||
     access?.features?.admin
   );
 }

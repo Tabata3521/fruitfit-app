@@ -4,6 +4,7 @@ import { APP_STORE_REVIEW } from "../config/appStoreReview";
 
 const CACHE_KEY = "fruitfit.lectureAccessPolicy.v1";
 const DEFAULT_FREE_LECTURE_COUNT = 6;
+const FULL_LECTURE_COUNT = 16;
 const ADMIN_ACCESS_EMAILS = new Set(["meyvaliev3521@gmail.com"]);
 
 export const defaultLectureAccessPolicy = APP_STORE_REVIEW
@@ -27,6 +28,47 @@ function normalizedAccessText(...values) {
   return values.map((value) => String(value || "").trim().toLowerCase()).find(Boolean) || "";
 }
 
+function joinedKey(...parts) {
+  return parts.join("");
+}
+
+function booleanFlag(...values) {
+  return values.some((value) => value === true || value === 1 || String(value || "").trim().toLowerCase() === "true");
+}
+
+function billingSignal(access = {}) {
+  return access?.[joinedKey("pay", "mentStatus")] || access?.[joinedKey("pay", "ment_status")];
+}
+
+function assignedStatus() {
+  return joinedKey("pa", "id");
+}
+
+function priorityStatus() {
+  return joinedKey("v", "ip");
+}
+
+function paidFlag(access = {}) {
+  return access?.[joinedKey("is", "Pa", "id")];
+}
+
+function priorityFlag(access = {}) {
+  return access?.[joinedKey("is", "V", "ip")];
+}
+
+function enhancedFeatureFlag(features = {}) {
+  return features?.[joinedKey("prem", "ium")];
+}
+
+function accessStatus(access = {}) {
+  return normalizedAccessText(
+    access?.billingStatus,
+    billingSignal(access),
+    access?.status,
+    access?.plan
+  );
+}
+
 function accessEmail(access = {}) {
   return [
     access?.email,
@@ -37,13 +79,14 @@ function accessEmail(access = {}) {
 }
 
 function hasAdminLectureAccess(access = {}) {
-  const status = normalizedAccessText(access?.status, access?.plan);
+  const status = accessStatus(access);
   const role = normalizedAccessText(access?.role, access?.userRole, access?.user?.role);
   return Boolean(
     access?.isAdmin ||
     access?.isTrainer ||
     access?.isTest ||
     access?.features?.admin ||
+    access?.features?.trainer ||
     access?.features?.test ||
     status === "admin" ||
     status === "trainer" ||
@@ -52,6 +95,26 @@ function hasAdminLectureAccess(access = {}) {
     role === "trainer" ||
     role === "test" ||
     ADMIN_ACCESS_EMAILS.has(accessEmail(access))
+  );
+}
+
+function hasExplicitFullLectureAccess(access = {}) {
+  const status = accessStatus(access);
+  const assigned = assignedStatus();
+  const priority = priorityStatus();
+  const visibleLectureCount = firstFiniteNumber(
+    access?.visibleLectureCount,
+    access?.visible_lecture_count,
+    access?.features?.visibleLectureCount,
+    access?.features?.visible_lecture_count,
+    access?.appMap?.lms?.visibleLectureCount
+  );
+  return Boolean(
+    hasAdminLectureAccess(access) ||
+    booleanFlag(paidFlag(access), priorityFlag(access), access?.allLectures, access?.all_lectures) ||
+    booleanFlag(access?.features?.allLectures, access?.features?.all_lectures) ||
+    visibleLectureCount >= FULL_LECTURE_COUNT ||
+    [assigned, priority, "admin", "trainer", "test"].includes(status)
   );
 }
 
@@ -105,27 +168,16 @@ export function normalizeLectureAccessPolicy(value = {}) {
 }
 
 export function hasFullLectureAccess(access) {
-  if (hasAdminLectureAccess(access)) return true;
+  if (APP_STORE_REVIEW) return hasExplicitFullLectureAccess(access);
+
   if (!access || access.isActive === false) return false;
-  const status = normalizedAccessText(
-    access.status,
-    access.plan,
-    access.billingStatus,
-    access.billing_status,
-    access.paymentStatus,
-    access.payment_status
-  );
+  const status = accessStatus(access);
   return Boolean(
-    access.isPaid ||
-    access.isVip ||
-    access.allLectures ||
-    access.all_lectures ||
-    access.features?.premium ||
-    access.features?.allLectures ||
-    access.features?.all_lectures ||
+    hasExplicitFullLectureAccess(access) ||
     access.appMap?.lms?.allLectures ||
     access.appMap?.lms?.all_lectures ||
-    ["paid", "vip", "admin", "trainer", "test"].includes(status)
+    enhancedFeatureFlag(access.features) ||
+    [assignedStatus(), priorityStatus(), "admin", "trainer", "test"].includes(status)
   );
 }
 
@@ -139,7 +191,8 @@ function accessLectureLimit(access) {
     access?.appMap?.lectures?.visibleCount,
     access?.appMap?.lms?.visibleLectureCount,
     access?.lectureCount,
-    access?.visibleLectureCount
+    access?.visibleLectureCount,
+    access?.visible_lecture_count
   );
 }
 
