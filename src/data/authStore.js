@@ -647,7 +647,19 @@ export async function fetchAccess() {
       return null;
     }
     const data = res.data || {};
-    return saveAccessState(data.access || null);
+    const access = data.access || data.userAccess || data.user_access || (
+      data.billingStatus ||
+      data.billing_status ||
+      data.paymentStatus ||
+      data.payment_status ||
+      data.isPaid !== undefined ||
+      data.isVip !== undefined ||
+      data.allLectures !== undefined ||
+      data.visibleLectureCount !== undefined
+        ? data
+        : null
+    );
+    return saveAccessState(access || null);
   } catch (err) {
     console.error("[FruitFit Auth] fetchAccess failed", err);
   }

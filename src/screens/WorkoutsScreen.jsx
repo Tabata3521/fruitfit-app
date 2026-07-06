@@ -17,10 +17,10 @@ function programTypeLabel(course) {
   return "Программа";
 }
 
-export default function WorkoutsScreen({ program, selectedWorkoutIndex, onOpenWorkout, onNavigate, access }) {
+export default function WorkoutsScreen({ program, selectedWorkoutIndex, onOpenWorkout, onNavigate, access, profile, programAssignment }) {
   const completedUntil = Math.max(0, selectedWorkoutIndex - 1);
   const totalWorkouts = program.workouts.length;
-  const visibleWorkouts = visibleWorkoutsForAccess(program.workouts, access);
+  const visibleWorkouts = visibleWorkoutsForAccess(program.workouts, access, profile, programAssignment);
   const visibleTotal = Math.max(1, visibleWorkouts.length);
   const visibleSelectedIndex = Math.min(selectedWorkoutIndex, visibleTotal - 1);
 
@@ -33,7 +33,7 @@ export default function WorkoutsScreen({ program, selectedWorkoutIndex, onOpenWo
           </div>
           <h1 className="mt-4 text-[26px] font-black leading-tight text-appText">Тренировки</h1>
           <p className="mt-2 line-clamp-2 text-[13px] text-appMuted">{program.course.display_name}</p>
-          <p className="mt-2 inline-flex rounded-full bg-appCard px-3 py-1 text-[11px] font-bold text-appMuted">{workoutAccessLabel(access, program.workouts)}</p>
+          <p className="mt-2 inline-flex rounded-full bg-appCard px-3 py-1 text-[11px] font-bold text-appMuted">{workoutAccessLabel(access, program.workouts, profile, programAssignment)}</p>
           <div className="mt-4 h-1.5 rounded-full bg-[#E6E6DF]">
             <div className="h-full rounded-full bg-[#8BBE3D]" style={{ width: `${((visibleSelectedIndex + 1) / visibleTotal) * 100}%` }} />
           </div>
@@ -66,7 +66,7 @@ export default function WorkoutsScreen({ program, selectedWorkoutIndex, onOpenWo
             const sourceIndex = originalWorkoutIndex(program.workouts, workout);
             const safeSourceIndex = sourceIndex >= 0 ? sourceIndex : index;
             const active = safeSourceIndex === selectedWorkoutIndex;
-            const locked = !APP_STORE_REVIEW && !isWorkoutUnlocked(safeSourceIndex, program.workouts, access);
+            const locked = !APP_STORE_REVIEW && !isWorkoutUnlocked(safeSourceIndex, program.workouts, access, profile, programAssignment);
             const completed = safeSourceIndex <= completedUntil;
             const status = locked ? "закрыта" : completed ? "завершена" : active ? "в процессе" : "не начата";
             return (

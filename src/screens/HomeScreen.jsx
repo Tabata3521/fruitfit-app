@@ -15,7 +15,7 @@ const fallbackCoachTip = {
   body: "Сегодня ты становишься версией себя, которую раньше только представлял.",
 };
 
-export default function HomeScreen({ program, workout, profile, access, onStartWorkout, onNavigate }) {
+export default function HomeScreen({ program, workout, profile, access, programAssignment, onStartWorkout, onNavigate }) {
   const [notificationItems, setNotificationItems] = useState(() => loadNotificationCenter());
   const greetingName = profileGreetingName(profile);
   const accessBadge = APP_STORE_REVIEW ? "" : accessLabel(access);
@@ -69,7 +69,7 @@ export default function HomeScreen({ program, workout, profile, access, onStartW
         </header>
 
         <div className="mt-3.5">
-          <HeroWorkoutCard program={program} workout={workout} access={access} onStart={onStartWorkout} />
+          <HeroWorkoutCard program={program} workout={workout} access={access} profile={profile} programAssignment={programAssignment} onStart={onStartWorkout} />
         </div>
 
         <WidgetGrid profile={profile} access={access} onNavigate={onNavigate} />

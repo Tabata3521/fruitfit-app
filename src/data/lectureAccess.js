@@ -42,11 +42,15 @@ function hasAdminLectureAccess(access = {}) {
   return Boolean(
     access?.isAdmin ||
     access?.isTrainer ||
+    access?.isTest ||
     access?.features?.admin ||
+    access?.features?.test ||
     status === "admin" ||
     status === "trainer" ||
+    status === "test" ||
     role === "admin" ||
     role === "trainer" ||
+    role === "test" ||
     ADMIN_ACCESS_EMAILS.has(accessEmail(access))
   );
 }
@@ -101,17 +105,27 @@ export function normalizeLectureAccessPolicy(value = {}) {
 }
 
 export function hasFullLectureAccess(access) {
-  if (APP_STORE_REVIEW) return hasAdminLectureAccess(access);
-
+  if (hasAdminLectureAccess(access)) return true;
   if (!access || access.isActive === false) return false;
-  const status = String(access.status || access.plan || "").toLowerCase();
+  const status = normalizedAccessText(
+    access.status,
+    access.plan,
+    access.billingStatus,
+    access.billing_status,
+    access.paymentStatus,
+    access.payment_status
+  );
   return Boolean(
     access.isPaid ||
     access.isVip ||
-    access.isAdmin ||
-    access.isTrainer ||
+    access.allLectures ||
+    access.all_lectures ||
     access.features?.premium ||
-    ["paid", "vip", "admin", "trainer"].includes(status)
+    access.features?.allLectures ||
+    access.features?.all_lectures ||
+    access.appMap?.lms?.allLectures ||
+    access.appMap?.lms?.all_lectures ||
+    ["paid", "vip", "admin", "trainer", "test"].includes(status)
   );
 }
 
@@ -129,32 +143,46 @@ function accessLectureLimit(access) {
   );
 }
 
-export function canOpenLecture(lecture, index, access, policy = defaultLectureAccessPolicy) {
-  if (APP_STORE_REVIEW) return true;
-
-  if (hasFullLectureAccess(access)) return true;
-  const limit = accessLectureLimit(access);
-  if (limit !== null) return index < limit;
+function freeLectureLimit(access, policy = defaultLectureAccessPolicy) {
   const normalized = normalizeLectureAccessPolicy(policy);
-  if (normalized.mode === "list") return normalized.freeLectureIds.includes(String(lecture?.id || ""));
-  return index < normalized.freeLectureCount;
+  const policyLimit = firstFiniteNumber(
+    normalized.visibleCount,
+    normalized.visible_count,
+    normalized.freeLectureCount,
+    normalized.free_lecture_count
+  ) ?? DEFAULT_FREE_LECTURE_COUNT;
+  const serverLimit = accessLectureLimit(access);
+  const limit = Math.min(
+    DEFAULT_FREE_LECTURE_COUNT,
+    Math.max(0, Math.floor(policyLimit)),
+    serverLimit === null ? DEFAULT_FREE_LECTURE_COUNT : Math.max(0, Math.floor(serverLimit))
+  );
+  return limit;
+}
+
+export function canOpenLecture(lecture, index, access, policy = defaultLectureAccessPolicy) {
+  if (hasFullLectureAccess(access)) return true;
+  const normalized = normalizeLectureAccessPolicy(policy);
+  if (!APP_STORE_REVIEW && normalized.mode === "list" && normalized.freeLectureIds.length) {
+    const allowedIds = visibleLecturesForAccess([lecture], access, policy).map((item) => String(item?.id || ""));
+    return allowedIds.includes(String(lecture?.id || "")) && index < DEFAULT_FREE_LECTURE_COUNT;
+  }
+  return index < freeLectureLimit(access, normalized);
 }
 
 export function visibleLecturesForAccess(lectures = [], access, policy = defaultLectureAccessPolicy) {
   const items = Array.isArray(lectures) ? lectures : [];
   if (APP_STORE_REVIEW) {
-    if (hasAdminLectureAccess(access)) return items;
-    const normalized = normalizeLectureAccessPolicy(policy);
-    const visibleCount = firstFiniteNumber(normalized.visibleCount, normalized.visible_count) ?? DEFAULT_FREE_LECTURE_COUNT;
-    return items.slice(0, Math.max(0, Math.floor(visibleCount)));
+    if (hasFullLectureAccess(access)) return items;
+    return items.slice(0, freeLectureLimit(access, policy));
   }
 
   if (hasFullLectureAccess(access)) return items;
-  const limit = accessLectureLimit(access);
-  if (limit !== null) return items.slice(0, Math.max(0, Math.floor(limit)));
   const normalized = normalizeLectureAccessPolicy(policy);
   if (normalized.mode === "list") {
-    return items.filter((item) => normalized.freeLectureIds.includes(String(item?.id || "")));
+    return items
+      .filter((item) => normalized.freeLectureIds.includes(String(item?.id || "")))
+      .slice(0, DEFAULT_FREE_LECTURE_COUNT);
   }
-  return items.slice(0, normalized.freeLectureCount);
+  return items.slice(0, freeLectureLimit(access, normalized));
 }

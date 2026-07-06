@@ -677,6 +677,39 @@ function isAdminAccess(access = {}, user = {}) {
   return Boolean(access?.isAdmin || user?.isAdmin || values.includes("admin"));
 }
 
+function hasServerProgramAccess(access = {}, user = {}) {
+  const values = [
+    access?.status,
+    access?.plan,
+    access?.billingStatus,
+    access?.billing_status,
+    access?.paymentStatus,
+    access?.payment_status,
+    access?.role,
+    access?.userRole,
+    access?.user?.role,
+    user?.role,
+    user?.userRole,
+    user?.user?.role,
+  ].map((value) => String(value || "").trim().toLowerCase());
+  return Boolean(
+    access?.isPaid ||
+    access?.isVip ||
+    access?.isAdmin ||
+    access?.isTrainer ||
+    access?.isTest ||
+    access?.allLectures ||
+    access?.all_lectures ||
+    access?.features?.premium ||
+    access?.features?.allLectures ||
+    access?.features?.all_lectures ||
+    access?.appMap?.lms?.allLectures ||
+    access?.appMap?.lms?.all_lectures ||
+    values.some((value) => ["paid", "vip", "admin", "trainer", "test"].includes(value)) ||
+    isAdminAccess(access, user)
+  );
+}
+
 function renewalExpiryDate(renewal = null) {
   return (
     renewal?.paidUntil
@@ -691,7 +724,7 @@ function renewalExpiryDate(renewal = null) {
 }
 
 function accessCardInfo(access = {}, user = {}, renewal = null) {
-  if (APP_STORE_REVIEW) {
+  if (APP_STORE_REVIEW && !hasServerProgramAccess(access, user)) {
     return {
       kind: "review",
       title: "Ознакомительная программа",
@@ -781,9 +814,10 @@ function AccessMembershipCard({
   const info = accessCardInfo(access, authUser, renewal);
   const isFreeAccess = info.kind === "free";
   const isProgramAssignedKind = info.kind === "paid";
+  const hasActiveProgramAccess = ["paid", "vip", "admin"].includes(info.kind);
   const showRenewalBlock = Boolean(!APP_STORE_REVIEW && hasAuth && info.kind !== "free" && !IS_IOS_PLATFORM);
   const renewalAvailable = Boolean(isProgramAssignedKind && renewalLoaded && !renewalActive);
-  const showProgramActionButton = APP_STORE_REVIEW || isFreeAccess || renewalAvailable || (!isProgramAssignedKind && !isFreeAccess);
+  const showProgramActionButton = renewalAvailable || (!hasActiveProgramAccess && (APP_STORE_REVIEW || isFreeAccess || !isProgramAssignedKind));
   const actionButtonText = "Оставить заявку тренеру";
   const ringDegrees = info.ringFull ? 360 : Math.round(Math.max(0, Math.min(1, info.ringProgress ?? 1)) * 360);
   const ringLabelClass = info.ringCaption ? "text-[20px] tabular-nums tracking-normal" : "text-[26px]";

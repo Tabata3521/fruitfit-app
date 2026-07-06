@@ -853,7 +853,7 @@ function AppContent() {
     const forceServerSelection = Boolean(options.forceServerSelection);
     const activeSelectionIndex = selectedWorkoutStateIndex(programForServerIndex?.workouts || [], selectedWorkoutState, effectiveAssignedProgramId);
     const userSelectionStillValid = activeSelectionIndex >= 0
-      ? isWorkoutUnlocked(activeSelectionIndex, program?.workouts || [], accessState)
+      ? isWorkoutUnlocked(activeSelectionIndex, program?.workouts || [], accessState, profile, programAssignment)
       : false;
     const shouldApplyServerSelection = forceServerSelection || !userSelectionStillValid;
     console.info("[FruitFit currentWorkout] SERVER_WORKOUT", {
@@ -902,15 +902,15 @@ function AppContent() {
 
   useEffect(() => {
     if (!program?.workouts?.length) return;
-    const unlockedCount = unlockedWorkoutCount(program.workouts, accessState);
-    if (unlockedCount > 0 && !isWorkoutUnlocked(uiSelectedWorkoutIndex, program.workouts, accessState)) {
-      const visibleWorkouts = visibleWorkoutsForAccess(program.workouts, accessState);
+    const unlockedCount = unlockedWorkoutCount(program.workouts, accessState, profile, programAssignment);
+    if (unlockedCount > 0 && !isWorkoutUnlocked(uiSelectedWorkoutIndex, program.workouts, accessState, profile, programAssignment)) {
+      const visibleWorkouts = visibleWorkoutsForAccess(program.workouts, accessState, profile, programAssignment);
       const fallbackIndex = originalWorkoutIndex(program.workouts, visibleWorkouts[visibleWorkouts.length - 1]);
       const safeIndex = fallbackIndex >= 0 ? fallbackIndex : unlockedCount - 1;
       const fallbackWorkout = program.workouts[safeIndex] || null;
       saveSelectedWorkoutSelection(fallbackWorkout, safeIndex, "fallback-to-visible-workout");
     }
-  }, [accessState, program?.workouts, uiSelectedWorkoutIndex]);
+  }, [accessState, profile, programAssignment, program?.workouts, uiSelectedWorkoutIndex]);
 
   useEffect(() => {
     if (!authUser) return;
@@ -996,7 +996,7 @@ function AppContent() {
   function selectWorkoutFromUi(nextIndex) {
     const total = program?.workouts?.length || 0;
     const safeIndex = Math.max(0, Math.min(Number(nextIndex) || 0, Math.max(total - 1, 0)));
-    if (!APP_STORE_REVIEW && !isWorkoutUnlocked(safeIndex, program?.workouts || total, accessState)) {
+    if (!isWorkoutUnlocked(safeIndex, program?.workouts || total, accessState, profile, programAssignment)) {
       window.alert(LOCKED_WORKOUT_MESSAGE);
       return;
     }
@@ -1021,7 +1021,7 @@ function AppContent() {
       serverIndex: serverSelectedWorkoutIndex,
       selectedWorkoutState: selectedWorkoutState || null,
     });
-    if (!APP_STORE_REVIEW && !isWorkoutUnlocked(safeIndex, program?.workouts || total, accessState)) {
+    if (!isWorkoutUnlocked(safeIndex, program?.workouts || total, accessState, profile, programAssignment)) {
       window.alert(LOCKED_WORKOUT_MESSAGE);
       return;
     }
@@ -1052,6 +1052,7 @@ function AppContent() {
         onNavigate={navigate}
         profile={profile}
         access={accessState}
+        programAssignment={programAssignment}
       />
     );
   }
@@ -1067,6 +1068,7 @@ function AppContent() {
         onNavigate={navigate}
         profile={profile}
         access={accessState}
+        programAssignment={programAssignment}
       />
     );
   }
@@ -1080,6 +1082,7 @@ function AppContent() {
         onNavigate={navigate}
         profile={profile}
         access={accessState}
+        programAssignment={programAssignment}
       />
     );
   }
@@ -1111,6 +1114,7 @@ function AppContent() {
       profile={profile}
       authUser={authUser}
       access={accessState}
+      programAssignment={programAssignment}
       onStartWorkout={() => openWorkout(uiSelectedWorkoutIndex)}
       onNavigate={navigate}
     />

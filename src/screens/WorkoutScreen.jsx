@@ -838,7 +838,7 @@ function WarmupBlock() {
   );
 }
 
-export default function WorkoutScreen({ program, workout, profile, access, selectedWorkoutIndex = 0, mode = "workout", onBack, onNavigate, onSelectWorkout }) {
+export default function WorkoutScreen({ program, workout, profile, access, programAssignment, selectedWorkoutIndex = 0, mode = "workout", onBack, onNavigate, onSelectWorkout }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completed, setCompleted] = useState(() => new Set());
   const [completedSets, setCompletedSets] = useState(0);
@@ -888,7 +888,7 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
   const progress = displayExercises.length ? Math.round((completed.size / displayExercises.length) * 100) : 0;
   const day = workout.lesson?.lesson_number || selectedWorkoutIndex + 1;
   const total = program?.workouts?.length || workout.lessons?.length || 1;
-  const visibleWorkouts = useMemo(() => visibleWorkoutsForAccess(program?.workouts || [], access), [access, program?.workouts]);
+  const visibleWorkouts = useMemo(() => visibleWorkoutsForAccess(program?.workouts || [], access, profile, programAssignment), [access, profile, programAssignment, program?.workouts]);
   const visibleTotal = Math.max(1, visibleWorkouts.length || total);
   const currentVisibleIndex = visibleWorkouts.findIndex((item) => originalWorkoutIndex(program?.workouts || [], item) === selectedWorkoutIndex);
   const visibleSelectedIndex = currentVisibleIndex >= 0 ? currentVisibleIndex : Math.min(selectedWorkoutIndex, visibleTotal - 1);
@@ -1102,7 +1102,7 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
     const nextWorkout = visibleWorkouts[nextVisibleIndex];
     const nextIndex = originalWorkoutIndex(program?.workouts || [], nextWorkout);
     const safeIndex = nextIndex >= 0 ? nextIndex : nextVisibleIndex;
-    if (!APP_STORE_REVIEW && !isWorkoutUnlocked(safeIndex, program?.workouts || total, access)) {
+    if (!APP_STORE_REVIEW && !isWorkoutUnlocked(safeIndex, program?.workouts || total, access, profile, programAssignment)) {
       window.alert(LOCKED_WORKOUT_MESSAGE);
       return;
     }
@@ -1185,7 +1185,7 @@ export default function WorkoutScreen({ program, workout, profile, access, selec
             {visibleWorkouts.map((item, index) => {
               const sourceIndex = originalWorkoutIndex(program?.workouts || [], item);
               const safeSourceIndex = sourceIndex >= 0 ? sourceIndex : index;
-              const locked = !APP_STORE_REVIEW && !isWorkoutUnlocked(safeSourceIndex, program?.workouts || total, access);
+              const locked = !APP_STORE_REVIEW && !isWorkoutUnlocked(safeSourceIndex, program?.workouts || total, access, profile, programAssignment);
               return (
                 <button key={item.workout_id} type="button" onClick={() => selectDay(index)} className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-[12px] font-bold ${locked ? "bg-appCard/70 text-appMuted opacity-70" : index === visibleSelectedIndex ? "bg-appDark text-appGreen" : "bg-appCard text-appMuted"}`}>
                   {locked && <Lock size={12} />}

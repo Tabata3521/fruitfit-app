@@ -28,6 +28,26 @@ Validation:
 
 - `npm run build` passed.
 - `npx cap sync ios` passed.
+
+## 2026-07-06 - Android free workout visibility guard
+
+Scope: Android/client workout access guard only. Backend, payments, Robokassa, Health Connect native reads, iOS, nutrition, and AI backend logic were not changed.
+
+- Stopped treating `APP_STORE_REVIEW` / `status=assigned` as permission to open the full workout catalog.
+- Made client workout visibility depend on `/api/me/program-assignment` data and `assignment.accessRules` before any legacy `/api/me/access` count fields.
+- Added a safety fallback for non-admin free users: visible workouts are capped to `assignment.accessRules.visibleWorkoutLimit`, or questionnaire frequency (`2`/`3`), with a hard max of `3`.
+- Added paid/vip client hard caps for non-admin users: 24-workout programs show `12` per cycle, 16-workout programs show `8` per cycle; `second_half` starts from the second block.
+- Kept full visibility only for admin/trainer/test users.
+- Propagated `profile` and `programAssignment` into Home hero, workout list, workout detail, and open-workout guards so hidden workouts cannot be opened through stale selection/index state.
+- Debug visibility logs now include ignored legacy `/access` visible counts separately.
+
+Validation:
+
+- `npm run build` passed.
+- `npx cap sync android` passed.
+- Android release build passed with RuStore release signing injected through Gradle.
+- APK signature verified with local `apksig`: `verified=true`, `v2=true`, `errors=0`, `warnings=0`.
+- Release APK copied to `release-builds/2026-07-06-free-access-hotfix/FruitFit-1.9.3-v16-free-access-release-signed.apk`.
 - Forbidden UI text grep returned no matches for old payment/debug/video strings.
 - Nutrition data in iOS assets has `1960` local image paths, `0` remote photo URLs, and `0` missing local images.
 
@@ -1916,3 +1936,11 @@ Validation:
 - `npm install` completed in the clean iOS worktree.
 - `npm run build` passed.
 - `npx cap sync ios` passed.
+## 2026-07-06 - Android lecture preview and trainer request route
+
+Scope: Android/RuStore review-safe client access guard. Backend, payment endpoints, Robokassa, Health Connect native reads, iOS, nutrition, and AI backend logic were not changed.
+
+- Capped introductory/free lecture visibility to the first `6` lectures out of `16` for non-admin users.
+- Stopped allowing review-safe mode to open every lecture by default; full lecture access remains admin/trainer only.
+- Prevented legacy server `/access` lecture count fields from expanding free lecture access beyond the client preview cap.
+- Confirmed the trainer request CTA path uses `https://tagirfruit.ru/trainer-request` through the review-safe `programAction` flow.

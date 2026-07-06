@@ -86,8 +86,6 @@ function isAdminAccess(access = {}, userRole = "") {
 }
 
 export function accessTier(access) {
-  if (APP_STORE_REVIEW && !isAdminAccess(access)) return "assigned";
-
   const status = normalizedStatus(access);
   const role = String(access?.role || "").toLowerCase();
   if (access?.isVip || status === "vip") return "vip";
@@ -102,6 +100,24 @@ export function accessTier(access) {
     return "full";
   }
   if (access?.isPaid || status === "paid") return "paid";
+  return "free";
+}
+
+function normalizedBillingStatus(access = {}) {
+  const billing = normalizedRole(
+    access?.billingStatus,
+    access?.billing_status,
+    access?.paymentStatus,
+    access?.payment_status,
+    access?.subscription?.billingStatus,
+    access?.subscription?.paymentStatus,
+    access?.subscription?.plan,
+    access?.plan
+  );
+  const status = normalizedStatus(access);
+  if (["admin", "trainer", "test"].includes(billing) || ["admin", "trainer", "test"].includes(status)) return "admin";
+  if (billing === "vip" || status === "vip" || access?.isVip) return "vip";
+  if (billing === "paid" || status === "paid" || access?.isPaid) return "paid";
   return "free";
 }
 
@@ -155,6 +171,115 @@ function serverWorkoutLimit(access, explicitCount = null) {
   );
 }
 
+function accessRulesFromAssignment(assignment = {}) {
+  return assignment?.accessRules || assignment?.access_rules || assignment?.rules || {};
+}
+
+function assignmentWorkoutLimit(assignment = {}) {
+  const rules = accessRulesFromAssignment(assignment);
+  return firstFiniteNumber(
+    rules?.visibleWorkoutLimit,
+    rules?.visible_workout_limit,
+    rules?.visibleWorkouts,
+    rules?.visible_workouts,
+    rules?.visibleWorkoutCount,
+    rules?.visible_workout_count,
+    rules?.workoutLimit,
+    rules?.workout_limit
+  );
+}
+
+function deliveryModeFromAssignment(assignment = {}, access = {}) {
+  return normalizedRole(
+    assignment?.deliveryMode,
+    assignment?.delivery_mode,
+    assignment?.programAssignment?.deliveryMode,
+    assignment?.programAssignment?.delivery_mode,
+    assignment?.assignment?.deliveryMode,
+    assignment?.assignment?.delivery_mode,
+    assignment?.cycle?.deliveryMode,
+    assignment?.cycle?.delivery_mode,
+    assignment?.subscriptionCycle?.deliveryMode,
+    assignment?.subscriptionCycle?.delivery_mode,
+    access?.deliveryMode,
+    access?.delivery_mode,
+    access?.programAssignment?.deliveryMode,
+    access?.programAssignment?.delivery_mode
+  );
+}
+
+function profilePreviewWorkoutCount(profile = {}, workoutsOrTotal = 0) {
+  const total = workoutTotal(workoutsOrTotal);
+  const text = [
+    profile?.trainingFrequency,
+    profile?.training_frequency,
+    profile?.workoutFrequency,
+    profile?.workout_frequency,
+    profile?.trainingsPerWeek,
+    profile?.trainings_per_week,
+    profile?.daysPerWeek,
+    profile?.days_per_week,
+  ].filter(Boolean).join(" ").toLowerCase();
+  if (/(^|\D)2(\D|$)/.test(text) || text.includes("2 раза")) return Math.min(total, 2);
+  if (/(^|\D)3(\D|$)/.test(text) || text.includes("3 раза")) return Math.min(total, 3);
+  return freePreviewWorkoutCount(workoutsOrTotal);
+}
+
+function collectAssignmentWorkoutRefs(value, refs = []) {
+  if (!value) return refs;
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectAssignmentWorkoutRefs(item, refs));
+    return refs;
+  }
+  if (typeof value !== "object") return refs;
+  refs.push(value);
+  if (Array.isArray(value.days)) collectAssignmentWorkoutRefs(value.days, refs);
+  if (Array.isArray(value.workouts)) collectAssignmentWorkoutRefs(value.workouts, refs);
+  if (Array.isArray(value.lessons)) collectAssignmentWorkoutRefs(value.lessons, refs);
+  if (value.workout && typeof value.workout === "object") collectAssignmentWorkoutRefs(value.workout, refs);
+  if (value.lesson && typeof value.lesson === "object") collectAssignmentWorkoutRefs(value.lesson, refs);
+  return refs;
+}
+
+function assignmentWorkoutRefs(assignment = {}) {
+  const program = assignment?.program || assignment?.assignedProgram || {};
+  return [
+    program?.days,
+    program?.workouts,
+    program?.lessons,
+    assignment?.days,
+    assignment?.workouts,
+    assignment?.lessons,
+    assignment?.availableWorkouts,
+    assignment?.visibleWorkouts,
+  ].reduce((refs, root) => collectAssignmentWorkoutRefs(root, refs), []);
+}
+
+function assignmentVisibleWorkoutIds(assignment = {}) {
+  const rules = accessRulesFromAssignment(assignment);
+  return firstArray(
+    rules?.visibleWorkoutIds,
+    rules?.visible_workout_ids,
+    assignment?.visibleWorkoutIds,
+    assignment?.visible_workout_ids
+  ).map((value) => String(value));
+}
+
+function scopeToAssignmentWorkouts(items = [], assignment = {}) {
+  if (!Array.isArray(items) || !items.length || !assignment) return items;
+  const explicitIds = assignmentVisibleWorkoutIds(assignment);
+  if (explicitIds.length) {
+    const allowed = new Set(explicitIds);
+    const matched = items.filter((workout) => workoutIdentityValues(workout).some((value) => allowed.has(value)));
+    if (matched.length) return matched;
+  }
+
+  const refs = assignmentWorkoutRefs(assignment).filter((ref) => workoutIdentityValues(ref).length);
+  if (!refs.length) return items;
+  const matched = items.filter((workout) => refs.some((ref) => workoutMatches(workout, ref)));
+  return matched.length ? matched : items;
+}
+
 function freePreviewWorkoutCount(workoutsOrTotal = 0) {
   const total = workoutTotal(workoutsOrTotal);
   if (!Array.isArray(workoutsOrTotal) || !workoutsOrTotal.length) return Math.min(total, 3);
@@ -203,117 +328,106 @@ export function getClientVisibleWorkouts({
   serverVisibleWorkoutIds = null,
   serverVisibleWorkoutCount = null,
   access = {},
+  profile = {},
+  assignment = null,
 } = {}) {
   const items = Array.isArray(workouts) ? workouts : [];
-  if (APP_STORE_REVIEW) {
-    const role = normalizedRole(userRole, access?.userRole, access?.role, access?.user?.role);
-    if (isAdminAccess(access, role)) return items;
-
-    const serverIds = readServerVisibleWorkoutIds(access, serverVisibleWorkoutIds);
-    const serverVisibleCount = serverWorkoutLimit(access, serverVisibleWorkoutCount);
-    let visible = items;
-    if (serverIds.length) {
-      const allowed = new Set(serverIds);
-      visible = visible.filter((workout) => workoutIdentityValues(workout).some((value) => allowed.has(value)));
-    }
-    if (serverVisibleCount !== null) {
-      visible = visible.slice(0, Math.max(0, Math.floor(serverVisibleCount)));
-    } else if (!serverIds.length) {
-      visible = visible.slice(0, freePreviewWorkoutCount(items));
-    }
-    return visible.length ? visible : items.slice(0, Math.min(items.length, 3));
-  }
-
   const totalWorkouts = items.length;
   const role = normalizedRole(userRole, access?.userRole, access?.role, access?.user?.role);
   const level = normalizedRole(accessLevel) || accessTier(access);
   const admin = isAdminAccess(access, role);
-  const serverIds = readServerVisibleWorkoutIds(access, serverVisibleWorkoutIds);
-  const serverVisibleCount = serverWorkoutLimit(access, serverVisibleWorkoutCount);
+  const billingStatus = normalizedBillingStatus(access);
+  const serverIds = assignmentVisibleWorkoutIds(assignment);
+  const assignmentLimit = assignmentWorkoutLimit(assignment);
+  const legacyServerIds = readServerVisibleWorkoutIds(access, serverVisibleWorkoutIds);
+  const legacyServerVisibleCount = serverWorkoutLimit(access, serverVisibleWorkoutCount);
   const hardCap = clientHardCap(totalWorkouts, admin);
 
   if (admin) {
     debugWorkoutVisibility({
       totalWorkouts,
-      serverVisibleCount: serverVisibleCount ?? (serverIds.length || null),
+      serverVisibleCount: assignmentLimit ?? (serverIds.length || null),
       clientHardCap: hardCap,
       finalVisibleCount: totalWorkouts,
       userRole: role || null,
       accessLevel: level,
+      billingStatus,
     });
     return items;
   }
 
-  let visible = items;
+  let visible = scopeToAssignmentWorkouts(items, assignment);
   if (serverIds.length) {
     const allowed = new Set(serverIds);
     visible = visible.filter((workout) => workoutIdentityValues(workout).some((value) => allowed.has(value)));
   }
-  if (serverVisibleCount !== null) {
-    visible = visible.slice(0, Math.max(0, Math.floor(serverVisibleCount)));
+
+  if (billingStatus === "free" || level === "free" || level === "assigned") {
+    const previewLimit = Math.max(0, Math.floor(assignmentLimit ?? profilePreviewWorkoutCount(profile, items) ?? 3));
+    visible = visible.slice(0, Math.min(previewLimit || 3, 3));
+  } else {
+    const assignmentAlreadyLimited = visible.length > 0 && visible.length < items.length && visible.length <= hardCap;
+    if (assignmentAlreadyLimited) {
+      visible = visible.slice(0, hardCap);
+    } else if (totalWorkouts >= 24 || totalWorkouts >= 16) {
+      const deliveryMode = deliveryModeFromAssignment(assignment, access);
+      const start = deliveryMode === "second_half" ? hardCap : 0;
+      visible = items.slice(start, Math.min(items.length, start + hardCap));
+    } else {
+      visible = visible.slice(0, hardCap);
+    }
   }
-  if (level === "free") {
-    visible = visible.slice(0, freePreviewWorkoutCount(items));
-  }
-  visible = visible.slice(0, hardCap);
 
   debugWorkoutVisibility({
     totalWorkouts,
-    serverVisibleCount: serverVisibleCount ?? (serverIds.length || null),
+    serverVisibleCount: assignmentLimit ?? (serverIds.length || null),
+    ignoredAccessVisibleCount: legacyServerVisibleCount ?? (legacyServerIds.length || null),
     clientHardCap: hardCap,
     finalVisibleCount: visible.length,
     userRole: role || null,
     accessLevel: level,
+    billingStatus,
+    deliveryMode: deliveryModeFromAssignment(assignment, access) || null,
   });
 
   return visible;
 }
 
-export function unlockedWorkoutCount(workoutsOrTotal = 0, access) {
+export function unlockedWorkoutCount(workoutsOrTotal = 0, access, profile = {}, assignment = null) {
   const total = workoutTotal(workoutsOrTotal);
-  if (APP_STORE_REVIEW) {
-    if (isAdminAccess(access)) return total;
-    return Array.isArray(workoutsOrTotal)
-      ? getClientVisibleWorkouts({ workouts: workoutsOrTotal, access }).length
-      : total;
-  }
-
   if (Array.isArray(workoutsOrTotal)) {
-    return getClientVisibleWorkouts({ workouts: workoutsOrTotal, access }).length;
+    return getClientVisibleWorkouts({ workouts: workoutsOrTotal, access, profile, assignment }).length;
   }
 
   const admin = isAdminAccess(access);
-  const tier = accessTier(access);
-  const serverLimit = serverWorkoutLimit(access);
-  const serverIds = readServerVisibleWorkoutIds(access);
-  let count = tier === "free" ? freePreviewWorkoutCount(total) : total;
-  if (serverIds.length) count = Math.min(count, serverIds.length);
-  if (serverLimit !== null) count = Math.min(count, Math.max(0, Math.floor(serverLimit)));
+  const billingStatus = normalizedBillingStatus(access);
+  const assignmentLimit = assignmentWorkoutLimit(assignment);
+  let count = billingStatus === "free"
+    ? Math.min(assignmentLimit ?? profilePreviewWorkoutCount(profile, total) ?? 3, 3)
+    : total;
   return Math.min(total, count, clientHardCap(total, admin));
 }
 
-export function isWorkoutUnlocked(index, workoutsOrTotal, access) {
-  if (APP_STORE_REVIEW) return true;
-
+export function isWorkoutUnlocked(index, workoutsOrTotal, access, profile = {}, assignment = null) {
   const safeIndex = Number(index);
   if (!Number.isFinite(safeIndex) || safeIndex < 0) return false;
   if (Array.isArray(workoutsOrTotal)) {
     const workout = workoutsOrTotal[safeIndex];
     if (!workout) return false;
-    return getClientVisibleWorkouts({ workouts: workoutsOrTotal, access }).some((item) => workoutMatches(item, workout));
+    return getClientVisibleWorkouts({ workouts: workoutsOrTotal, access, profile, assignment }).some((item) => workoutMatches(item, workout));
   }
-  return safeIndex < unlockedWorkoutCount(workoutsOrTotal, access);
+  return safeIndex < unlockedWorkoutCount(workoutsOrTotal, access, profile, assignment);
 }
 
-export function visibleWorkoutsForAccess(workouts = [], access) {
-  return getClientVisibleWorkouts({ workouts, access });
+export function visibleWorkoutsForAccess(workouts = [], access, profile = {}, assignment = null) {
+  return getClientVisibleWorkouts({ workouts, access, profile, assignment });
 }
 
-export function workoutAccessLabel(access, workoutsOrTotal = 0) {
+export function workoutAccessLabel(access, workoutsOrTotal = 0, profile = {}, assignment = null) {
   if (APP_STORE_REVIEW) return isAdminAccess(access) ? "Программа назначена" : "Ознакомительная программа";
 
   const tier = accessTier(access);
-  const count = unlockedWorkoutCount(workoutsOrTotal, access);
+  const count = unlockedWorkoutCount(workoutsOrTotal, access, profile, assignment);
   if (tier === "full" && isAdminAccess(access)) return "Доступны все тренировки";
   if (tier === "vip") return "VIP: персональная программа";
   if (tier === "paid" || tier === "full") return `Доступно ${count} тренировок`;

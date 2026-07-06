@@ -19,10 +19,10 @@ function compactTitle(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
 }
 
-export default function HeroWorkoutCard({ program, workout, access, onStart }) {
+export default function HeroWorkoutCard({ program, workout, access, profile, programAssignment, onStart }) {
   const exerciseCount = workout?.exercises?.length || 0;
   const lessonNumber = workout?.lesson?.lesson_number || 1;
-  const visibleWorkouts = visibleWorkoutsForAccess(program?.workouts || workout?.lessons || [], access);
+  const visibleWorkouts = visibleWorkoutsForAccess(program?.workouts || workout?.lessons || [], access, profile, programAssignment);
   const totalLessons = visibleWorkouts.length || program?.workouts?.length || workout?.lessons?.length || 1;
   const progress = workout?.progress || 0;
   const supersetCount = workout?.superset?.length > 1 ? 1 : 0;
