@@ -32,7 +32,7 @@ workflows:
 
       - name: Build bundled web assets
         script: |
-          npm run build
+          npm run build:ios-review
 
       - name: Sync Capacitor iOS
         script: |
