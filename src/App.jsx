@@ -10,6 +10,7 @@ import { accessTier, isWorkoutUnlocked, LOCKED_WORKOUT_MESSAGE, originalWorkoutI
 import { readUserCoreField, writeUserCoreField } from "./data/dataContainers";
 import { findWorkoutIndexForServerWorkout, normalizeServerWorkout, persistCurrentWorkout, resetStaleWorkoutState, serverCurrentWorkoutFromAssignment } from "./data/dataAccess";
 import { buildAssignmentProgramView, buildProgramView, useTrainingData } from "./data/useTrainingData";
+import { selectedWorkoutStateIndex } from "./data/workoutSelection";
 import CoachScreen from "./screens/CoachScreen";
 import AuthPrompt from "./screens/AuthPrompt";
 import HomeScreen from "./screens/HomeScreen";
@@ -171,7 +172,20 @@ function emailAuthActionFromUrl(rawUrl) {
 }
 
 function programIdFromAssignment(assignment = null) {
-  return String(assignment?.programId || assignment?.program_id || assignment?.id || "").trim();
+  const program = assignment?.program || assignment?.assignedProgram || assignment?.assigned_program || {};
+  return String(
+    assignment?.programId
+    || assignment?.program_id
+    || assignment?.courseId
+    || assignment?.course_id
+    || program?.programId
+    || program?.program_id
+    || program?.courseId
+    || program?.course_id
+    || program?.id
+    || assignment?.id
+    || ""
+  ).trim();
 }
 
 function programIdFromCourse(course = null) {
@@ -330,36 +344,6 @@ function selectedWorkoutStateFromWorkout(workout = null, dayIndex = 0, assignmen
     programId: snapshot?.programId || programIdFromAssignment(assignment) || programIdFromCourse(workout?.course) || null,
     dayIndex: Number.isFinite(indexNumber) && indexNumber >= 0 ? Math.floor(indexNumber) : null,
   });
-}
-
-function selectedWorkoutStateIndex(workouts = [], state = null, programId = "") {
-  const items = Array.isArray(workouts) ? workouts : [];
-  const normalized = normalizeSelectedWorkoutState(state);
-  if (!items.length || !normalized) return -1;
-  const selectedProgramId = String(normalized.programId || "").trim();
-  const activeProgramId = String(programId || "").trim();
-  if (selectedProgramId && activeProgramId && selectedProgramId !== activeProgramId) return -1;
-  const selectedId = String(normalized.workoutId || "").trim();
-  if (selectedId) {
-    const idIndex = items.findIndex((item) => {
-      const itemId = workoutSelectionId(item);
-      const lesson = item?.lesson || {};
-      return [itemId, item?.lesson_id, item?.lessonId, lesson.lesson_id, lesson.lessonId, lesson.id]
-        .map((value) => String(value || "").trim())
-        .filter(Boolean)
-        .includes(selectedId);
-    });
-    if (idIndex >= 0) return idIndex;
-  }
-  const selectedTitle = String(normalized.title || "").trim().toLowerCase();
-  if (selectedTitle) {
-    const titleIndex = items.findIndex((item) => workoutSelectionTitle(item).toLowerCase() === selectedTitle);
-    if (titleIndex >= 0) return titleIndex;
-  }
-  if (Number.isFinite(Number(normalized.dayIndex)) && items[normalized.dayIndex]) {
-    return normalized.dayIndex;
-  }
-  return -1;
 }
 
 function workoutSelectionSnapshot(workout = null, assignment = null) {

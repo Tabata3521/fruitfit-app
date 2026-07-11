@@ -7,6 +7,7 @@ const vite = await createServer({ server: { middlewareMode: true }, appType: "cu
 try {
   const training = await vite.ssrLoadModule("/src/data/useTrainingData.js");
   const access = await vite.ssrLoadModule("/src/data/accessRules.js");
+  const selection = await vite.ssrLoadModule("/src/data/workoutSelection.js");
   const data = {
     courses: JSON.parse(fs.readFileSync("public/data/courses.json", "utf8")),
     lessons: JSON.parse(fs.readFileSync("public/data/lessons.json", "utf8")),
@@ -35,6 +36,28 @@ try {
   const fullProgram = training.buildAssignmentProgramView(assignment, 0, data);
   assert.equal(access.getClientVisibleWorkouts({ workouts: fullProgram.workouts, access: { billingStatus: "free" }, assignment: { accessRules: { visibleWorkoutLimit: 3 } } }).length, 3);
   assert.equal(access.getClientVisibleWorkouts({ workouts: fullProgram.workouts, access: { billingStatus: "vip", isVip: true }, assignment }).length, 12);
+
+  const previewWorkouts = fullProgram.workouts.slice(0, 3);
+  assert.equal(selection.selectedWorkoutStateIndex(previewWorkouts, {
+    workoutId: previewWorkouts[2].workout_id,
+    programId: "server-program-alias",
+    dayIndex: 2,
+  }, customProgramId), 2);
+  assert.equal(selection.selectedWorkoutStateIndex(previewWorkouts, {
+    workoutId: previewWorkouts[1].workout_id,
+    programId: "client-program-alias",
+    dayIndex: 1,
+  }, customProgramId), 1);
+  assert.equal(selection.selectedWorkoutStateIndex(previewWorkouts, {
+    workoutId: previewWorkouts[0].workout_id,
+    programId: "client-program-alias",
+    dayIndex: 0,
+  }, customProgramId), 0);
+  assert.equal(selection.selectedWorkoutStateIndex(previewWorkouts, {
+    workoutId: "workout-from-another-program",
+    programId: "other-program",
+    dayIndex: 0,
+  }, customProgramId), -1);
   console.log("program assignment client tests: PASS");
 } finally {
   await vite.close();
