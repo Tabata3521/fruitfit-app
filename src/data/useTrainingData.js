@@ -29,51 +29,52 @@ function normalizeLesson(lesson) {
 }
 
 function muscleMapFields(exercise = {}, meta = {}) {
+  const safeMeta = meta || {};
   const assetPath = exercise.muscle_map_asset_path
     || exercise.muscleMapAssetPath
     || exercise.muscle_map_url
     || exercise.muscleMapUrl
-    || meta.muscle_map_asset_path
-    || meta.muscleMapAssetPath
-    || meta.muscle_map_url
-    || meta.muscleMapUrl
+    || safeMeta.muscle_map_asset_path
+    || safeMeta.muscleMapAssetPath
+    || safeMeta.muscle_map_url
+    || safeMeta.muscleMapUrl
     || "";
   const label = exercise.muscle_map_label
     || exercise.muscleMapLabel
-    || meta.muscle_map_label
-    || meta.muscleMapLabel
+    || safeMeta.muscle_map_label
+    || safeMeta.muscleMapLabel
     || "";
   const key = exercise.muscle_map_key
     || exercise.muscleMapKey
-    || meta.muscle_map_key
-    || meta.muscleMapKey
+    || safeMeta.muscle_map_key
+    || safeMeta.muscleMapKey
     || label;
   const version = exercise.muscle_map_version
     || exercise.muscleMapVersion
-    || meta.muscle_map_version
-    || meta.muscleMapVersion
+    || safeMeta.muscle_map_version
+    || safeMeta.muscleMapVersion
     || "";
   const revision = exercise.muscle_map_revision
     || exercise.muscleMapRevision
-    || meta.muscle_map_revision
-    || meta.muscleMapRevision
+    || safeMeta.muscle_map_revision
+    || safeMeta.muscleMapRevision
     || version;
   const hash = exercise.muscle_map_hash
     || exercise.muscleMapHash
-    || meta.muscle_map_hash
-    || meta.muscleMapHash
+    || safeMeta.muscle_map_hash
+    || safeMeta.muscleMapHash
     || revision;
   const updatedAt = exercise.muscle_map_updated_at
     || exercise.muscleMapUpdatedAt
-    || meta.muscle_map_updated_at
-    || meta.muscleMapUpdatedAt
+    || safeMeta.muscle_map_updated_at
+    || safeMeta.muscleMapUpdatedAt
     || hash;
 
   return {
     muscle_map_asset_path: assetPath,
     muscleMapAssetPath: assetPath,
-    muscle_map_url: exercise.muscle_map_url || exercise.muscleMapUrl || meta.muscle_map_url || meta.muscleMapUrl || assetPath,
-    muscleMapUrl: exercise.muscleMapUrl || exercise.muscle_map_url || meta.muscleMapUrl || meta.muscle_map_url || assetPath,
+    muscle_map_url: exercise.muscle_map_url || exercise.muscleMapUrl || safeMeta.muscle_map_url || safeMeta.muscleMapUrl || assetPath,
+    muscleMapUrl: exercise.muscleMapUrl || exercise.muscle_map_url || safeMeta.muscleMapUrl || safeMeta.muscle_map_url || assetPath,
     muscle_map_label: label,
     muscleMapLabel: label,
     muscle_map_key: key,
@@ -128,6 +129,329 @@ function normalizeCatalogExercise(exercise) {
     muscle_template_id: exercise.muscle_template_id || template.id,
     ...muscleMapFields(exercise, resolvedMeta),
     exercise_table_meta: resolvedMeta || null,
+  };
+}
+
+function firstNonEmpty(...values) {
+  return values.find((value) => value !== undefined && value !== null && String(value).trim() !== "");
+}
+
+function numberOrFallback(value, fallback = null) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function assignmentProgramSource(assignment = {}) {
+  return assignment?.program || assignment?.assignedProgram || assignment?.assigned_program || {};
+}
+
+function assignmentProgramId(assignment = {}) {
+  const program = assignmentProgramSource(assignment);
+  return String(firstNonEmpty(
+    program.programId,
+    program.program_id,
+    program.courseId,
+    program.course_id,
+    program.id,
+    assignment.programId,
+    assignment.program_id,
+    assignment.courseId,
+    assignment.course_id,
+    assignment.id
+  ) || "").trim();
+}
+
+function normalizeAssignmentCourse(assignment = {}) {
+  const program = assignmentProgramSource(assignment);
+  const id = assignmentProgramId(assignment) || "server_program";
+  const title = cleanTitle(firstNonEmpty(
+    program.display_name,
+    program.displayName,
+    program.title,
+    program.name,
+    assignment.programTitle,
+    assignment.program_title,
+    assignment.title,
+    assignment.name,
+    "Персональная программа"
+  ));
+  return {
+    ...program,
+    course_id: id,
+    id,
+    display_name: title,
+    technical_name: cleanTitle(firstNonEmpty(program.technical_name, program.technicalName, title)),
+    gender: decodeText(firstNonEmpty(program.gender, assignment.gender, "")),
+    goal: decodeText(firstNonEmpty(program.goal, assignment.goal, "")),
+    level: decodeText(firstNonEmpty(program.level, assignment.level, "")),
+    restrictions: decodeText(firstNonEmpty(program.restrictions, assignment.restrictions, "")),
+  };
+}
+
+function serverWorkoutRoots(assignment = {}) {
+  const program = assignmentProgramSource(assignment);
+  return [
+    assignment.availableWorkouts,
+    assignment.available_workouts,
+    assignment.visibleWorkouts,
+    assignment.visible_workouts,
+    program.days,
+    program.workouts,
+    program.lessons,
+    assignment.days,
+    assignment.workouts,
+    assignment.lessons,
+  ].filter(Array.isArray);
+}
+
+function collectServerExercises(value = {}) {
+  const direct = [
+    value.exercises,
+    value.exerciseList,
+    value.exercise_list,
+    value.items,
+  ].find(Array.isArray);
+  if (direct) return direct;
+
+  const groups = [
+    value.blocks,
+    value.exerciseBlocks,
+    value.exercise_blocks,
+    value.sections,
+    value.supersets,
+  ].filter(Array.isArray);
+
+  return groups.flatMap((group) => group.flatMap((item) => collectServerExercises(item)));
+}
+
+function serverWorkoutId(workout = {}, index = 0) {
+  const lesson = workout.lesson || workout.day || workout.workout || {};
+  return String(firstNonEmpty(
+    workout.workout_id,
+    workout.workoutId,
+    workout.day_id,
+    workout.dayId,
+    workout.lesson_id,
+    workout.lessonId,
+    workout.id,
+    lesson.workout_id,
+    lesson.workoutId,
+    lesson.day_id,
+    lesson.dayId,
+    lesson.lesson_id,
+    lesson.lessonId,
+    lesson.id,
+    `server_day_${index + 1}`
+  ) || "").trim();
+}
+
+function serverWorkoutTitle(workout = {}, index = 0) {
+  const lesson = workout.lesson || workout.day || workout.workout || {};
+  return cleanTitle(firstNonEmpty(
+    workout.lesson_title,
+    workout.lessonTitle,
+    workout.title,
+    workout.name,
+    workout.dayTitle,
+    workout.day_title,
+    lesson.lesson_title,
+    lesson.lessonTitle,
+    lesson.title,
+    lesson.name,
+    `День ${index + 1}`
+  ));
+}
+
+function serverWorkoutLessonNumber(workout = {}, index = 0) {
+  const lesson = workout.lesson || workout.day || workout.workout || {};
+  const dayIndex = numberOrFallback(firstNonEmpty(workout.dayIndex, workout.day_index, lesson.dayIndex, lesson.day_index), null);
+  if (dayIndex !== null) return dayIndex + 1;
+  return numberOrFallback(firstNonEmpty(
+    workout.lesson_number,
+    workout.lessonNumber,
+    workout.dayNumber,
+    workout.day_number,
+    workout.order,
+    lesson.lesson_number,
+    lesson.lessonNumber,
+    lesson.dayNumber,
+    lesson.day_number,
+    lesson.order
+  ), index + 1);
+}
+
+function normalizeServerWorkoutExercise(exercise = {}, index = 0, programId = "", lessonId = "") {
+  const title = cleanTitle(firstNonEmpty(
+    exercise.exercise_name,
+    exercise.exerciseName,
+    exercise.name,
+    exercise.title,
+    exercise.exercise_title,
+    exercise.exerciseTitle,
+    ""
+  ));
+  if (!title) return null;
+  const resolvedMeta = resolveDidacticExercise(title);
+  const resolvedVideo = exercise.video_url
+    || exercise.videoUrl
+    || exercise.rf_video_url
+    || exercise.rfVideoUrl
+    || resolvedMeta?.video_url
+    || resolvedMeta?.rfVideoUrl
+    || resolvedMeta?.rf_video_url
+    || resolveExerciseVideoOverride(title)
+    || null;
+  const template = assignMuscleTemplate({
+    ...exercise,
+    exercise_name: title,
+    exercise_table_meta: resolvedMeta,
+  });
+  const order = numberOrFallback(firstNonEmpty(
+    exercise.exercise_order,
+    exercise.exerciseOrder,
+    exercise.order,
+    exercise.position,
+    exercise.sort,
+    exercise.sort_order
+  ), index + 1);
+  return {
+    ...exercise,
+    id: firstNonEmpty(exercise.id, exercise.exercise_id, exercise.exerciseId, `${lessonId || programId}_${order}`),
+    exercise_id: firstNonEmpty(exercise.exercise_id, exercise.exerciseId, exercise.id, `${lessonId || programId}_${order}`),
+    course_id: firstNonEmpty(exercise.course_id, exercise.courseId, programId),
+    lesson_id: firstNonEmpty(exercise.lesson_id, exercise.lessonId, lessonId),
+    exercise_order: order,
+    exercise_name: title,
+    name: title,
+    sets: firstNonEmpty(exercise.sets, exercise.setCount, exercise.set_count, exercise.plan?.sets, ""),
+    reps: firstNonEmpty(exercise.reps, exercise.repetitions, exercise.repRange, exercise.rep_range, exercise.plan?.reps, ""),
+    weight: firstNonEmpty(exercise.weight, exercise.weightText, exercise.weight_text, exercise.plan?.weight, null),
+    rest: firstNonEmpty(exercise.rest, exercise.restSeconds, exercise.rest_seconds, exercise.plan?.rest, null),
+    comment: decodeText(firstNonEmpty(exercise.comment, exercise.notes, exercise.note, "")),
+    raw_line: decodeText(firstNonEmpty(exercise.raw_line, exercise.rawLine, exercise.comment, exercise.notes, "")),
+    preview_url: firstNonEmpty(exercise.preview_url, exercise.previewUrl, exercise.image_path, exercise.imagePath, null),
+    video_url: resolvedVideo,
+    rf_video_url: resolvedVideo,
+    muscle_template_id: exercise.muscle_template_id || exercise.muscleTemplateId || template.id,
+    ...muscleMapFields(exercise, resolvedMeta),
+    exercise_table_meta: resolvedMeta || exercise.exercise_table_meta || exercise.exerciseTableMeta || null,
+    group_id: firstNonEmpty(exercise.group_id, exercise.groupId, exercise.superset_id, exercise.supersetId, exercise.block_id, exercise.blockId, null),
+  };
+}
+
+function normalizeServerWorkout(workout = {}, index = 0, course, lessons = []) {
+  const lessonNumber = serverWorkoutLessonNumber(workout, index);
+  const lessonId = serverWorkoutId(workout, index);
+  const title = serverWorkoutTitle(workout, index);
+  const lesson = {
+    ...(workout.lesson || workout.day || {}),
+    lesson_id: lessonId,
+    id: lessonId,
+    course_id: course.course_id,
+    lesson_number: lessonNumber,
+    lesson_title: title,
+    lesson_description: decodeText(firstNonEmpty(
+      workout.lesson_description,
+      workout.lessonDescription,
+      workout.description,
+      workout.notes,
+      workout.lesson?.lesson_description,
+      workout.lesson?.description,
+      ""
+    )),
+    training_type: decodeText(firstNonEmpty(workout.training_type, workout.trainingType, workout.type, "")),
+  };
+  const exercises = collectServerExercises(workout)
+    .map((exercise, exerciseIndex) => normalizeServerWorkoutExercise(exercise, exerciseIndex, course.course_id, lessonId))
+    .filter(Boolean)
+    .sort((a, b) => Number(a.exercise_order) - Number(b.exercise_order));
+  const grouped = exercises.reduce((acc, exercise) => {
+    if (!exercise.group_id) return acc;
+    acc[exercise.group_id] = acc[exercise.group_id] || [];
+    acc[exercise.group_id].push(exercise);
+    return acc;
+  }, {});
+  const superset = Object.values(grouped).find((group) => group.length > 1) || [];
+  return {
+    ...workout,
+    index,
+    dayIndex: index,
+    day_index: index,
+    program_id: course.course_id,
+    course_id: course.course_id,
+    workout_id: lessonId,
+    workoutId: lessonId,
+    lesson_id: lessonId,
+    lessonId: lessonId,
+    title,
+    course,
+    lessons,
+    lesson,
+    exercises,
+    currentExercise: exercises[0],
+    completedCount: 0,
+    progress: 0,
+    superset,
+    hasSupersetData: superset.length > 1,
+    totals: {
+      programs: 1,
+      workouts: lessons.length,
+      exercises: exercises.length,
+    },
+    source: "server_assignment",
+  };
+}
+
+function chooseServerWorkoutRoot(assignment = {}) {
+  const roots = serverWorkoutRoots(assignment);
+  if (!roots.length) return [];
+  return roots
+    .map((items) => ({
+      items,
+      score: items.length * 10 + items.reduce((sum, item) => sum + collectServerExercises(item).length * 5 + (serverWorkoutTitle(item) ? 1 : 0), 0),
+    }))
+    .sort((a, b) => b.score - a.score)[0]?.items || [];
+}
+
+export function buildAssignmentProgramView(assignment = null, lessonIndex = 0, fallbackData = null) {
+  if (!assignment || typeof assignment !== "object") return null;
+  const rawWorkouts = chooseServerWorkoutRoot(assignment);
+  if (!rawWorkouts.length) return null;
+
+  const course = normalizeAssignmentCourse(assignment);
+  const lessons = rawWorkouts.map((workout, index) => ({
+    ...(workout.lesson || workout.day || {}),
+    lesson_id: serverWorkoutId(workout, index),
+    id: serverWorkoutId(workout, index),
+    course_id: course.course_id,
+    lesson_number: serverWorkoutLessonNumber(workout, index),
+    lesson_title: serverWorkoutTitle(workout, index),
+    lesson_description: decodeText(firstNonEmpty(workout.lesson_description, workout.lessonDescription, workout.description, "")),
+    training_type: decodeText(firstNonEmpty(workout.training_type, workout.trainingType, workout.type, "")),
+  }));
+  const workouts = rawWorkouts.map((workout, index) => normalizeServerWorkout(workout, index, course, lessons));
+  workouts.forEach((workout, index) => {
+    workout.nextLesson = lessons[index + 1];
+    workout.totals = {
+      programs: fallbackData?.courses?.length || 1,
+      workouts: workouts.length,
+      exercises: workouts.reduce((sum, item) => sum + item.exercises.length, 0),
+    };
+  });
+
+  const safeIndex = Math.max(0, Math.min(Number(lessonIndex) || 0, Math.max(workouts.length - 1, 0)));
+  return {
+    course,
+    assignment,
+    workouts,
+    selectedWorkout: workouts[safeIndex],
+    selectedWorkoutIndex: safeIndex,
+    source: "server_assignment",
+    exerciseCatalog: [
+      ...(Array.isArray(fallbackData?.exercises) ? fallbackData.exercises : []),
+      ...(Array.isArray(didacticCatalog) ? didacticCatalog.map(normalizeCatalogExercise) : []),
+      ...workouts.flatMap((workout) => workout.exercises),
+    ],
   };
 }
 

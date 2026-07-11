@@ -9,7 +9,7 @@ import { loadProfile, profileDefaults, saveProfile } from "./data/profileStore";
 import { accessTier, isWorkoutUnlocked, LOCKED_WORKOUT_MESSAGE, originalWorkoutIndex, unlockedWorkoutCount, visibleWorkoutsForAccess } from "./data/accessRules";
 import { readUserCoreField, writeUserCoreField } from "./data/dataContainers";
 import { findWorkoutIndexForServerWorkout, normalizeServerWorkout, persistCurrentWorkout, resetStaleWorkoutState, serverCurrentWorkoutFromAssignment } from "./data/dataAccess";
-import { buildProgramView, useTrainingData } from "./data/useTrainingData";
+import { buildAssignmentProgramView, buildProgramView, useTrainingData } from "./data/useTrainingData";
 import CoachScreen from "./screens/CoachScreen";
 import AuthPrompt from "./screens/AuthPrompt";
 import HomeScreen from "./screens/HomeScreen";
@@ -822,14 +822,21 @@ function AppContent() {
   const serverWorkoutForProgram = useMemo(() => serverCurrentWorkoutFromAssignment(programAssignment), [programAssignment]);
   const serverWorkoutProgramId = String(serverWorkoutForProgram?.programId || serverWorkoutForProgram?.program_id || "").trim();
   const effectiveAssignedProgramId = serverWorkoutProgramId || assignedProgramId || (programCycleLocked ? (programCycleLock?.programId || "") : "");
-  const programForServerIndex = useMemo(() => buildProgramView(data, 0, profile, effectiveAssignedProgramId), [data, profile, effectiveAssignedProgramId]);
+  const assignmentProgramForIndex = useMemo(() => buildAssignmentProgramView(programAssignment, 0, data), [programAssignment, data]);
+  const programForServerIndex = useMemo(
+    () => assignmentProgramForIndex || buildProgramView(data, 0, profile, effectiveAssignedProgramId),
+    [assignmentProgramForIndex, data, profile, effectiveAssignedProgramId]
+  );
   const serverSelectedWorkoutIndex = findWorkoutIndexForServerWorkout(programForServerIndex, serverWorkoutForProgram);
   const selectedWorkoutStateResolvedIndex = selectedWorkoutStateIndex(programForServerIndex?.workouts || [], selectedWorkoutState, effectiveAssignedProgramId);
   const hasPersistentWorkoutSelection = selectedWorkoutStateResolvedIndex >= 0;
   const renderSelectedWorkoutIndex = hasPersistentWorkoutSelection
     ? selectedWorkoutStateResolvedIndex
     : (serverSelectedWorkoutIndex >= 0 ? serverSelectedWorkoutIndex : selectedWorkoutIndex);
-  const program = useMemo(() => buildProgramView(data, renderSelectedWorkoutIndex, profile, effectiveAssignedProgramId), [data, profile, renderSelectedWorkoutIndex, effectiveAssignedProgramId]);
+  const program = useMemo(
+    () => buildAssignmentProgramView(programAssignment, renderSelectedWorkoutIndex, data) || buildProgramView(data, renderSelectedWorkoutIndex, profile, effectiveAssignedProgramId),
+    [programAssignment, data, profile, renderSelectedWorkoutIndex, effectiveAssignedProgramId]
+  );
   const workout = program?.selectedWorkout;
   const uiSelectedWorkoutIndex = program?.selectedWorkoutIndex ?? renderSelectedWorkoutIndex;
   const derivedWorkoutForCoach = useMemo(() => workoutSelectionSnapshot(workout, programAssignment), [programAssignment, workout]);
@@ -1112,7 +1119,7 @@ function AppContent() {
       program={program}
       workout={workout}
       profile={profile}
-      authUser={authUser}
+      user={authUser}
       access={accessState}
       programAssignment={programAssignment}
       onStartWorkout={() => openWorkout(uiSelectedWorkoutIndex)}

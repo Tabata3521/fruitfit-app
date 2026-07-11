@@ -9,6 +9,8 @@
     "api": "node server.js",
     "db:nutrition:seed": "node scripts/seed-nutrition-db.js",
     "test:nutrition": "node scripts/test-nutrition.js",
+    "test:engagement": "node scripts/test-engagement-prompts.mjs",
+    "test:program-assignment": "node scripts/test-program-assignment-client.mjs",
     "build:exercise-catalog": "node tools/import-didactic-exercises.mjs",
     "audit:muscle-templates": "node scripts/audit-muscle-templates.mjs",
     "audit:exercise-videos": "node scripts/audit-missing-exercise-videos.mjs",

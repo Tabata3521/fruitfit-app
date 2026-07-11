@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import BottomNavigation from "../components/BottomNavigation";
 import HeroWorkoutCard from "../components/HeroWorkoutCard";
 import WidgetGrid from "../components/WidgetGrid";
+import EngagementPrompt from "../components/EngagementPrompt";
 import { loadNotificationCenter } from "../data/notificationCenterStore";
 import { profileGreetingName } from "../data/profileStore";
 import { ensureMotivationLockScreenNotifications } from "../services/notifications/localMotivationNotifications";
@@ -15,7 +16,7 @@ const fallbackCoachTip = {
   body: "Сегодня ты становишься версией себя, которую раньше только представлял.",
 };
 
-export default function HomeScreen({ program, workout, profile, access, programAssignment, onStartWorkout, onNavigate }) {
+export default function HomeScreen({ program, workout, profile, user, access, programAssignment, onStartWorkout, onNavigate }) {
   const [notificationItems, setNotificationItems] = useState(() => loadNotificationCenter());
   const greetingName = profileGreetingName(profile);
   const accessBadge = APP_STORE_REVIEW ? "" : accessLabel(access);
@@ -75,6 +76,7 @@ export default function HomeScreen({ program, workout, profile, access, programA
         <WidgetGrid profile={profile} access={access} onNavigate={onNavigate} />
       </div>
       <BottomNavigation active="home" onNavigate={onNavigate} />
+      <EngagementPrompt user={user} access={access} profile={profile} />
     </main>
   );
 }

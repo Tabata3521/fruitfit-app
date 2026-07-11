@@ -1,5 +1,30 @@
 ﻿# WORKLOG - FruitFit Food Database & Nutrition Parser
 
+## 2026-07-11 - Server-assignment programs and native engagement prompts
+
+Scope: shared React client for Android and iOS. Backend assignment, payments, Health Connect, HealthKit, Firebase delivery, nutrition, and native signing configuration were not changed.
+
+- Made `assignment.program` / `assignment.availableWorkouts` the primary workout source for both stock canonical `ffp_*` programs and generated `custom_program_*` programs.
+- Normalized server workouts and exercises into the existing `WorkoutScreen` shape while retaining static JSON as an offline/legacy fallback.
+- Preserved a valid explicit workout selection across `/api/me/program-assignment` refreshes; `currentWorkout` remains the initial default only.
+- Added a user-scoped native engagement prompt schedule:
+  - FREE program prompt starts after seven days and can repeat no more often than every fourteen days.
+  - Rating prompt starts after ten days and five native launches; dismissal snoozes it for thirty days and a completed rating suppresses it.
+  - At most one prompt is shown per app session; program prompts are never shown to paid, VIP, admin, or trainer accounts.
+- Program prompt uses the same platform build action as Profile and lecture 6.
+- Rating opens FruitFit in App Store on iOS and RuStore on Android.
+- Added focused smoke tests for custom/stock assignment mapping and engagement cadence.
+
+Validation:
+
+- `npm run test:program-assignment` passed for custom workout selection (1/3/6/12), FREE preview (3), and VIP block visibility (12).
+- `npm run test:engagement` passed for FREE, paid, test, trainer, Android, iOS, cadence, and store URL scenarios.
+- Review-safe `npm run build`, `npx cap sync android`, and `npx cap sync ios` passed.
+- Local browser launch passed without a white screen or encoding errors.
+- Android release `1.9.3 (20)` was zipaligned, signed with the existing RuStore release certificate, and verified with APK Signature Scheme v2/v3.
+- APK and iOS bundled assets contain the server-assignment renderer, engagement copy, and platform store URLs.
+- No Android device was visible to ADB during this run, so physical installation remains a manual follow-up.
+
 ## 2026-07-01 - iOS registration privacy consent
 
 Scope: iOS/App Store registration compliance. No backend, payments, HealthKit, Firebase, or Android release logic changes were made.

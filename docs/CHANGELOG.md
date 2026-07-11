@@ -2,6 +2,15 @@
 
 This is a human-readable project log. Add entries whenever behavior changes.
 
+## 2026-07-11
+
+### Personalized Programs and Gentle Follow-ups
+
+- Personalized and generated programs now render directly from the authenticated server assignment, so selecting a workout no longer falls back to the date-based default.
+- Stock assignments with canonical server ids and custom trainer-built programs share the same client rendering path.
+- Native users may receive a user-scoped request to rate FruitFit after sustained use.
+- FREE users may receive a periodic reminder after their first week that a personal program can be requested; paid and privileged accounts never see this reminder.
+
 ## 2026-06-18
 
 ### Client Data Access Cache Recovery
