@@ -826,7 +826,7 @@ function DualMetricBarChart({ days = [], selectedIndex = 6, onSelect, height = 1
                     <p>{formatAxisValue(steps)}</p>
                     <p className="text-[#FF7A2F]">{formatAxisValue(calories)}</p>
                   </div>
-                  <div className="flex h-[82px] w-full items-end justify-center gap-0.5">
+                  <div className="flex h-[70px] w-full items-end justify-center gap-0.5">
                     <motion.span
                       className="w-[45%] rounded-t-full bg-appGreen"
                       animate={{ height: steps > 0 ? `${Math.max(10, stepsHeight)}%` : "0%" }}

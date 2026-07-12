@@ -958,6 +958,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
   const { health, availability, syncing, requestConnection, syncNativeHealth } = useHealth();
   const [avatar, setAvatar] = useState(() => loadAvatar(profile, loadAuthUser()));
   const [draft, setDraft] = useState(() => normalizeProfile(profile));
+  const [draftDirty, setDraftDirty] = useState(false);
   const [errors, setErrors] = useState({});
   const [saved, setSaved] = useState(false);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
@@ -983,11 +984,12 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
   ));
 
   useEffect(() => {
+    if (draftDirty) return;
     const normalized = normalizeProfile(profile);
     setDraft(normalized);
     const nextAvatar = loadAvatar(normalized, loadAuthUser());
     setAvatar(nextAvatar);
-  }, [profile]);
+  }, [profile, draftDirty]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1046,6 +1048,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
       persistAvatarLocally(nextAvatar);
       const nextProfile = saveProfile({ ...draft, avatar: nextAvatar });
       setDraft(nextProfile);
+      setDraftDirty(false);
       onProfileChange?.(nextProfile);
       if (getAuthToken()) await saveServerProfile(nextProfile);
       window.dispatchEvent(new CustomEvent("fruitfit:avatar-updated", { detail: { avatar: nextAvatar } }));
@@ -1058,6 +1061,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
 
   function updateDraft(key, value) {
     setSaved(false);
+    setDraftDirty(true);
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
@@ -1066,6 +1070,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
     const savedProfile = saveProfile(draft);
+    setDraftDirty(false);
     onProfileChange?.(savedProfile);
     await saveServerProfile(savedProfile);
     setSaved(true);
@@ -1082,6 +1087,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
     setRequestStatus("");
     try {
       const savedProfile = saveProfile(draft);
+      setDraftDirty(false);
       onProfileChange?.(savedProfile);
       await saveServerProfile(savedProfile);
       const result = await openProfileProgramAction({

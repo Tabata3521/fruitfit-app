@@ -2,16 +2,16 @@ import { ArrowRight } from "lucide-react";
 import femaleProgramImage from "../assets/program-female.png";
 import maleProgramImage from "../assets/program-male.png";
 import { visibleWorkoutsForAccess } from "../data/accessRules";
+import { programGender } from "../data/programPresentation";
 
 function programImage(course) {
-  const text = `${course?.gender || ""} ${course?.display_name || ""} ${course?.technical_name || ""}`.toLowerCase();
-  return text.includes("муж") || text.includes("male") ? maleProgramImage : femaleProgramImage;
+  return programGender(course) === "male" ? maleProgramImage : femaleProgramImage;
 }
 
 function programTypeLabel(course) {
-  const text = `${course?.gender || ""} ${course?.display_name || ""} ${course?.technical_name || ""}`.toLowerCase();
-  if (text.includes("муж") || text.includes("male")) return "Мужская программа";
-  if (text.includes("жен") || text.includes("female")) return "Женская программа";
+  const gender = programGender(course);
+  if (gender === "male") return "Мужская программа";
+  if (gender === "female") return "Женская программа";
   return "Программа";
 }
 

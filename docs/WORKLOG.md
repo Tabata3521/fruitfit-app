@@ -1969,3 +1969,35 @@ Scope: Android/RuStore review-safe client access guard. Backend, payment endpoin
 - Stopped allowing review-safe mode to open every lecture by default; full lecture access remains admin/trainer only.
 - Prevented legacy server `/access` lecture count fields from expanding free lecture access beyond the client preview cap.
 - Confirmed the trainer request CTA path uses `https://tagirfruit.ru/trainer-request` through the review-safe `programAction` flow.
+
+## 2026-07-12 - Future progression tools (planned for autumn)
+
+Status: planned only. Do not implement during an unrelated hotfix.
+
+At the start of the next substantial workout patch, remind the product owner about this block and confirm whether it is in scope.
+
+Planned scope:
+
+- Move working-weight history from local-only `fruitfit.workout_history:<userId>.exerciseWeights` to a server-backed, user-scoped exercise performance history.
+- Keep offline/user-scoped cache as a display fallback, while backend remains the source of truth for progression.
+- Record at minimum: `user_id`, `program_id`, `workout_id`, `exercise_id`, `set_number`, prescribed reps, completed reps, weight, RPE/RIR, completion status, and timestamp.
+- Add configurable progression rules instead of the current manual-only `+/- 2.5 kg` controls.
+- Support progression structures in the same data model: supersets, pyramids, drop sets, warm-up sets, working sets, and deload/recovery adjustments.
+- Make AI Coach consume server working-weight history only after user scoping and freshness validation.
+- Preserve existing manual weights during migration and prevent cross-user leakage on shared devices.
+
+Suggested initial progression policy for discussion, not an implemented rule:
+
+- all prescribed sets/reps completed with `RIR >= 2`: suggest the next configured increment;
+- target not completed: keep the same weight;
+- repeated failed sessions or poor recovery: suggest a configurable deload;
+- exercise-specific increments must be configurable and must not assume every exercise uses `2.5 kg`.
+
+Required rollout order:
+
+1. Backend schema and authenticated performance endpoints.
+2. Migration/sync of existing local working weights.
+3. Client set logging and offline queue.
+4. Server progression engine with feature flag.
+5. Superset/pyramid/drop-set UI and program schema.
+6. AI context integration and two-account isolation tests.

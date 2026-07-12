@@ -15,6 +15,7 @@ Use this when continuing FruitFit work.
    npm run build
    ```
 3. Do not deploy until the requested task is complete and the user approves deploy when needed.
+4. If the new task is a substantial workout/program patch, remind the product owner about the planned autumn progression block in `docs/WORKLOG.md`: server working weights, RPE/RIR, supersets, pyramids, drop sets, and configurable progression.
 
 ## Before Touching Muscle Map
 

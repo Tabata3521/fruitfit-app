@@ -8,6 +8,7 @@ try {
   const training = await vite.ssrLoadModule("/src/data/useTrainingData.js");
   const access = await vite.ssrLoadModule("/src/data/accessRules.js");
   const selection = await vite.ssrLoadModule("/src/data/workoutSelection.js");
+  const presentation = await vite.ssrLoadModule("/src/data/programPresentation.js");
   const data = {
     courses: JSON.parse(fs.readFileSync("public/data/courses.json", "utf8")),
     lessons: JSON.parse(fs.readFileSync("public/data/lessons.json", "utf8")),
@@ -58,6 +59,8 @@ try {
     programId: "other-program",
     dayIndex: 0,
   }, customProgramId), -1);
+  assert.equal(presentation.programGender({ gender: "female", display_name: "Женская программа" }), "female");
+  assert.equal(presentation.programGender({ gender: "male", display_name: "Мужская программа" }), "male");
   console.log("program assignment client tests: PASS");
 } finally {
   await vite.close();
