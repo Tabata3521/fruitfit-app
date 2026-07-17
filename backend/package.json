@@ -8,6 +8,7 @@
     "migrate": "node src/migrate.js",
     "import:local": "node scripts/import-local-data.js",
     "test:payments": "node --test test/payments.test.js",
+    "test:nutrition": "node --test test/nutritionPlan.test.js",
     "smoke": "node scripts/smoke-test.js"
   },
   "dependencies": {

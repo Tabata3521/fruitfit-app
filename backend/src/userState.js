@@ -16,6 +16,12 @@ import {
   normalizeSubscriptionQuestionnaire,
   selectSubscriptionProgramPlan
 } from "./payments.js";
+import {
+  buildNutritionPlanResponse,
+  calculateRecommendedNutritionTarget,
+  isNutritionCatalogPrivileged,
+  loadNutritionCatalog
+} from "./nutritionPlan.js";
 
 export const meRouter = express.Router();
 export const adminRouter = express.Router();
@@ -70,6 +76,29 @@ meRouter.get("/", async (req, res) => {
 meRouter.get("/profile", async (req, res) => {
   const result = await query("SELECT profile, updated_at FROM user_profiles WHERE user_id = $1", [req.user.id]);
   res.json({ user: req.user, profile: result.rows[0]?.profile || {}, updatedAt: result.rows[0]?.updated_at || null });
+});
+
+meRouter.get("/nutrition-plan", async (req, res) => {
+  try {
+    const [profile, access, catalog] = await Promise.all([
+      loadUserProfile(req.user.id),
+      loadEffectiveAccess(req.user),
+      loadNutritionCatalog()
+    ]);
+    const fullCatalog = req.query.catalog === "1" && isNutritionCatalogPrivileged(req.user, access);
+    res.set("Cache-Control", "private, no-cache");
+    res.json(buildNutritionPlanResponse(catalog, {
+      profile,
+      userId: req.user.id,
+      fullCatalog
+    }));
+  } catch (error) {
+    console.error("[nutrition-plan] load failed", {
+      userId: req.user.id,
+      error: error?.message || "unknown"
+    });
+    res.status(503).json({ error: "NUTRITION_PLAN_UNAVAILABLE" });
+  }
 });
 
 meRouter.post("/profile", saveUserProfile);
@@ -272,18 +301,10 @@ function mergeProfilePatch(currentProfile = {}, incomingProfile = {}) {
 }
 
 function normalizeProfileNutritionAssignment(profile = {}) {
-  const gender = profile.gender === "male" ? "male" : "female";
-  const age = positiveNumber(profile.age, 30);
-  const height = positiveNumber(profile.height || profile.heightCm || profile.height_cm, 170);
-  const weight = positiveNumber(profile.weight || profile.weightKg || profile.weight_kg, 70);
-  const trainingFrequency = String(profile.trainingFrequency || profile.training_frequency || profile.frequency || "");
-  const workoutsPerWeek = trainingFrequency.startsWith("3") ? 3 : 2;
-  const bmr = 10 * weight + 6.25 * height - 5 * age + (gender === "male" ? 5 : -161);
-  const activityMultiplier = workoutsPerWeek >= 3 ? 1.35 : 1.2;
-  const goal = String(profile.goal || profile.trainingGoal || profile.training_goal || "").toLowerCase();
-  const goalOffset = goal.includes("похуд") ? -300 : goal.includes("масс") || goal.includes("набор") ? 200 : 0;
-  const calculatedCalories = Math.min(Math.max(1200, Math.round(bmr * activityMultiplier + goalOffset)), 3000);
-  const recommendedCaloriesTarget = nearestNutritionCaloriesTarget(calculatedCalories);
+  const { calculatedCalories, recommendedCaloriesTarget } = calculateRecommendedNutritionTarget(
+    profile,
+    NUTRITION_CALORIE_TARGETS
+  );
   const dietType = normalizeProfileDietType(profile.dietType || profile.diet_type || profile.nutritionType || profile.nutrition_type);
 
   return {
@@ -306,9 +327,13 @@ function positiveNumber(value, fallback) {
   return Number.isFinite(number) && number > 0 ? number : fallback;
 }
 
-function nearestNutritionCaloriesTarget(value) {
+function nearestNutritionCaloriesTarget(value, { roundUp = false } = {}) {
   const number = Number(value);
   const target = Number.isFinite(number) ? number : 1800;
+  if (roundUp) {
+    return NUTRITION_CALORIE_TARGETS.find((current) => current >= target)
+      || NUTRITION_CALORIE_TARGETS[NUTRITION_CALORIE_TARGETS.length - 1];
+  }
   return NUTRITION_CALORIE_TARGETS.reduce((best, current) => (
     Math.abs(current - target) < Math.abs(best - target) ? current : best
   ), NUTRITION_CALORIE_TARGETS[0]);

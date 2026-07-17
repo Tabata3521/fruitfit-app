@@ -1,0 +1,214 @@
+{
+  "generatedAt": "2026-07-17T12:43:33.715Z",
+  "inputPath": "C:\\Users\\Meyva\\Documents\\Codex\\fruitfit-nutrition-fix-20260717\\public\\data\\nutrition.json",
+  "summary": {
+    "contentVersion": "766f593c4749f6ede54188ac9a1677e0d39bc757b347fbf1a5705488b23c8df8",
+    "meals": 3920,
+    "planCombinations": 490,
+    "formulaMismatchOver10": 0,
+    "missingRecipes": 0,
+    "remotePhotos": 0,
+    "portionIssues": 0,
+    "suspiciousTinyProteinPortions": 0,
+    "incompleteMeals": 0,
+    "caloriesDeviationOver10": 0,
+    "fatBelow25": 0,
+    "fatAbove35": 0,
+    "fatAbove40": 0,
+    "woman34Height169Weight55ThreeWorkoutsGain": {
+      "target": 2200,
+      "maxProteinGrams": 121,
+      "daysOverProteinLimit": 0,
+      "days": [
+        {
+          "ration": "Без ограничений",
+          "caloriesTarget": 2200,
+          "day": "Понедельник",
+          "mealIds": [
+            "169570792832-plan-8af75d33b0-1",
+            "355919217972-plan-8af75d33b0-2",
+            "303710032372-plan-8af75d33b0-3",
+            "435939929262-plan-8af75d33b0-4"
+          ],
+          "mealTypes": [
+            "Завтрак",
+            "Обед",
+            "Ужин",
+            "Перекус"
+          ],
+          "missingMealTypes": [],
+          "totals": {
+            "calories": 2200,
+            "protein": 113.8,
+            "fat": 74.9,
+            "carbs": 267.7
+          },
+          "calorieDiffPercent": 0,
+          "fatPercent": 30.6
+        },
+        {
+          "ration": "Без ограничений",
+          "caloriesTarget": 2200,
+          "day": "Вторник",
+          "mealIds": [
+            "388258191982-plan-0fddd28819-1",
+            "535611722132-plan-0fddd28819-2",
+            "251381593572-plan-0fddd28819-3",
+            "487143215832-fill-без-ограничений-2200-вторник-перекус-plan-0fddd28819-4"
+          ],
+          "mealTypes": [
+            "Завтрак",
+            "Обед",
+            "Ужин",
+            "Перекус"
+          ],
+          "missingMealTypes": [],
+          "totals": {
+            "calories": 2202,
+            "protein": 107.6,
+            "fat": 79.8,
+            "carbs": 263.1
+          },
+          "calorieDiffPercent": 0.1,
+          "fatPercent": 32.6
+        },
+        {
+          "ration": "Без ограничений",
+          "caloriesTarget": 2200,
+          "day": "Четверг",
+          "mealIds": [
+            "576000144222-plan-6c8ea8d6d7-1",
+            "211119739152-plan-6c8ea8d6d7-2",
+            "524518473282-plan-6c8ea8d6d7-3",
+            "766402918972-plan-6c8ea8d6d7-4"
+          ],
+          "mealTypes": [
+            "Завтрак",
+            "Обед",
+            "Ужин",
+            "Перекус"
+          ],
+          "missingMealTypes": [],
+          "totals": {
+            "calories": 2201,
+            "protein": 117.6,
+            "fat": 80.1,
+            "carbs": 252.5
+          },
+          "calorieDiffPercent": 0,
+          "fatPercent": 32.8
+        },
+        {
+          "ration": "Без ограничений",
+          "caloriesTarget": 2200,
+          "day": "Воскресенье",
+          "mealIds": [
+            "201399568182-plan-8329296f6c-1",
+            "252106904892-plan-8329296f6c-2",
+            "814284856702-plan-8329296f6c-3",
+            "968243112202-plan-8329296f6c-4"
+          ],
+          "mealTypes": [
+            "Завтрак",
+            "Обед",
+            "Ужин",
+            "Перекус"
+          ],
+          "missingMealTypes": [],
+          "totals": {
+            "calories": 2201,
+            "protein": 106.9,
+            "fat": 73.5,
+            "carbs": 277.8
+          },
+          "calorieDiffPercent": 0,
+          "fatPercent": 30.1
+        },
+        {
+          "ration": "Без ограничений",
+          "caloriesTarget": 2200,
+          "day": "Пятница",
+          "mealIds": [
+            "380288071382-plan-c30027a7d4-1",
+            "599705775772-plan-c30027a7d4-2",
+            "715705714372-plan-c30027a7d4-3",
+            "905044395522-plan-c30027a7d4-4"
+          ],
+          "mealTypes": [
+            "Завтрак",
+            "Обед",
+            "Ужин",
+            "Перекус"
+          ],
+          "missingMealTypes": [],
+          "totals": {
+            "calories": 2201,
+            "protein": 93.6,
+            "fat": 82.8,
+            "carbs": 270.1
+          },
+          "calorieDiffPercent": 0,
+          "fatPercent": 33.9
+        },
+        {
+          "ration": "Без ограничений",
+          "caloriesTarget": 2200,
+          "day": "Суббота",
+          "mealIds": [
+            "111576042312-plan-0dd4c518ae-1",
+            "261477299712-plan-0dd4c518ae-2",
+            "119136252562-plan-0dd4c518ae-3",
+            "239947995002-plan-0dd4c518ae-4"
+          ],
+          "mealTypes": [
+            "Завтрак",
+            "Обед",
+            "Ужин",
+            "Перекус"
+          ],
+          "missingMealTypes": [],
+          "totals": {
+            "calories": 2201,
+            "protein": 109.1,
+            "fat": 74.6,
+            "carbs": 273.1
+          },
+          "calorieDiffPercent": 0,
+          "fatPercent": 30.5
+        },
+        {
+          "ration": "Без ограничений",
+          "caloriesTarget": 2200,
+          "day": "Среда",
+          "mealIds": [
+            "991779016942-plan-4a60462570-1",
+            "449470473162-plan-4a60462570-2",
+            "757429205602-plan-4a60462570-3",
+            "487143215832-plan-4a60462570-4"
+          ],
+          "mealTypes": [
+            "Завтрак",
+            "Обед",
+            "Ужин",
+            "Перекус"
+          ],
+          "missingMealTypes": [],
+          "totals": {
+            "calories": 2200,
+            "protein": 121,
+            "fat": 77.8,
+            "carbs": 254.1
+          },
+          "calorieDiffPercent": 0,
+          "fatPercent": 31.8
+        }
+      ]
+    }
+  },
+  "formulaMismatches": [],
+  "missingRecipes": [],
+  "remotePhotos": [],
+  "portionIssues": [],
+  "suspiciousTinyProteinPortions": [],
+  "dailyWarnings": []
+}

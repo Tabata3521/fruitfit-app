@@ -1,7 +1,7 @@
 import { readAiMemory, readHealthContainer, readUserCore, readUserCoreField, writeUserCoreField } from "./dataContainers";
 import { dietTypeToRation } from "./profileStore";
 import { currentUserId, scopedCacheKey } from "./userScopedCache";
-import bundledNutritionData from "../../public/data/nutrition.json";
+import { activeNutritionData } from "./nutritionCatalogStore";
 
 function cleanId(value) {
   return String(value || "").trim();
@@ -37,10 +37,11 @@ function normalizedTitle(value) {
 
 function nutritionTargetFromProfile(profile = {}) {
   if (!profile || typeof profile !== "object") return null;
+  const nutritionData = activeNutritionData(profile);
   const rawCaloriesTarget = numberOrNull(profile.recommendedCaloriesTarget || profile.recommended_calories_target || profile.calculatedCalories || profile.calculated_calories);
-  const caloriesTarget = nearestNutritionCaloriesTarget(rawCaloriesTarget || 1800);
-  const ration = nutritionRationFromProfile(profile);
-  const totals = nutritionTotalsForTarget({ caloriesTarget, ration });
+  const caloriesTarget = nearestNutritionCaloriesTarget(rawCaloriesTarget || 1800, nutritionData);
+  const ration = nutritionRationFromProfile(profile, nutritionData);
+  const totals = nutritionTotalsForTarget({ caloriesTarget, ration, nutritionData });
   return {
     calories: caloriesTarget,
     caloriesTarget,
@@ -56,8 +57,8 @@ function nutritionTargetFromProfile(profile = {}) {
   };
 }
 
-function nearestNutritionCaloriesTarget(preferred = 1800) {
-  const targets = (bundledNutritionData?.filters?.caloriesTargets || []).map(Number).filter(Number.isFinite).sort((a, b) => a - b);
+function nearestNutritionCaloriesTarget(preferred = 1800, nutritionData = {}) {
+  const targets = (nutritionData?.filters?.caloriesTargets || []).map(Number).filter(Number.isFinite).sort((a, b) => a - b);
   const target = numberOrNull(preferred) || 1800;
   if (!targets.length) return target;
   return targets.reduce((best, current) => (
@@ -65,20 +66,33 @@ function nearestNutritionCaloriesTarget(preferred = 1800) {
   ), targets[0]);
 }
 
-function nutritionRationFromProfile(profile = {}) {
+function nutritionRationFromProfile(profile = {}, nutritionData = {}) {
   const preferred = dietTypeToRation[profile?.dietType] || dietTypeToRation[profile?.diet_type] || cleanTitle(profile?.dietType || profile?.diet_type);
-  const rations = bundledNutritionData?.filters?.rations || [];
+  const rations = nutritionData?.filters?.rations || [];
   if (rations.includes(preferred)) return preferred;
   return rations[0] || preferred || null;
 }
 
-function nutritionTotalsForTarget({ caloriesTarget, ration } = {}) {
-  const days = bundledNutritionData?.filters?.days || [];
+function nutritionTotalsForTarget({ caloriesTarget, ration, nutritionData = {} } = {}) {
+  const days = nutritionData?.filters?.days || [];
   const day = days.includes("Понедельник") ? "Понедельник" : days[0];
-  const meals = Array.isArray(bundledNutritionData?.meals) ? bundledNutritionData.meals : [];
+  const planKey = `${ration}|${Number(caloriesTarget)}|${day}`;
+  const planTotals = nutritionData?.plans?.[planKey]?.totals;
+  if (planTotals && typeof planTotals === "object") {
+    return {
+      calories: Number(planTotals.calories) || Number(caloriesTarget) || null,
+      protein: Number(planTotals.protein) || null,
+      fat: Number(planTotals.fat) || null,
+      carbs: Number(planTotals.carbs) || null,
+    };
+  }
+  const meals = Array.isArray(nutritionData?.meals) ? nutritionData.meals : [];
+  const plannedIds = nutritionData?.plans?.[planKey]?.mealIds || [];
+  const mealById = new Map(meals.map((meal) => [String(meal.id), meal]));
+  const plannedMeals = plannedIds.map((id) => mealById.get(String(id))).filter(Boolean);
   const uniqueMeals = [];
   const seenTypes = new Set();
-  for (const meal of meals) {
+  for (const meal of plannedMeals.length ? plannedMeals : meals) {
     if (!meal?.rations?.includes(ration)) continue;
     if (!meal?.caloriesTargets?.includes(Number(caloriesTarget))) continue;
     if (day && meal.day !== day) continue;

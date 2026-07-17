@@ -122,7 +122,7 @@ function MealCard({ meal }) {
               <>
                 <h4 className="mt-3 text-[12px] font-black uppercase text-appMuted">Ингредиенты</h4>
                 <ul className="mt-2 space-y-1 text-[12px] leading-5 text-appText">
-                  {meal.ingredients.slice(0, 10).map((item) => <li key={item}>• {item}</li>)}
+                  {meal.ingredients.map((item) => <li key={item}>• {item}</li>)}
                 </ul>
               </>
             )}
@@ -179,8 +179,8 @@ function hasUnrestrictedNutritionAccess(access, user = null) {
 }
 
 export default function NutritionScreen({ onNavigate, profile, access, user, showBack = false, onBack }) {
-  const { loading, data } = useNutritionData();
   const unrestrictedNutrition = useMemo(() => hasUnrestrictedNutritionAccess(access, user), [access, user]);
+  const { loading, data } = useNutritionData({ profile, fullCatalog: unrestrictedNutrition });
   const [filters, setFilters] = useState(() => ({
     ...defaultFilters,
     ration: dietTypeToRation[profile?.dietType] || defaultFilters.ration,

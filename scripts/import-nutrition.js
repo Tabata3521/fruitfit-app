@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { cleanTitle, decodeText } from "../src/utils/decodeText.js";
 import { foodMvpProducts } from "../server/foodMvpSeed.js";
@@ -9,6 +10,8 @@ const projectRoot = path.resolve(__dirname, "..");
 const defaultInput = "C:\\Users\\Meyva\\Downloads\\store-5905500-202605091613.csv";
 const input = process.argv[2] || defaultInput;
 const output = path.join(projectRoot, "public", "data", "nutrition.json");
+const backendOutput = path.join(projectRoot, "backend", "data", "nutrition.json");
+const runtimeSummaryOutput = path.join(projectRoot, "src", "data", "nutritionPlanSummary.json");
 const reportDate = (process.env.NUTRITION_REPORT_DATE || new Date().toISOString().slice(0, 10));
 const quarantineOutput = path.join(projectRoot, "reports", `nutrition-quarantine-${reportDate}.json`);
 const nutritionImagesManifestPath = path.join(projectRoot, "public", "nutrition-images", "manifest.json");
@@ -62,6 +65,7 @@ function localizeNutritionImages(meals) {
       meal.photo = localPath;
       localized += 1;
     } else {
+      meal.photo = "";
       missing += 1;
     }
   }
@@ -281,6 +285,8 @@ function htmlToSections(html) {
     .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
+    .replace(/(продукты|ингредиенты)\s*:/gi, "\n$1\n")
+    .replace(/(рецепт|приготовление)\s*:/gi, "\n$1\n")
     .replace(/\r/g, "")
     .split("\n")
     .map((line) => line.replace(/\s+/g, " ").trim())
@@ -289,13 +295,17 @@ function htmlToSections(html) {
   const ingredients = [];
   const recipe = [];
   let mode = "";
+  let ingredientsHeaders = 0;
+  let recipeHeaders = 0;
   for (const line of clean) {
-    if (/продукты|ингредиенты/i.test(line)) {
+    if (/^(?:продукты|ингредиенты)$/i.test(line)) {
       mode = "ingredients";
+      ingredientsHeaders += 1;
       continue;
     }
-    if (/рецепт|приготов/i.test(line)) {
+    if (/^(?:рецепт|приготовление)$/i.test(line)) {
       mode = "recipe";
+      recipeHeaders += 1;
       continue;
     }
     if (mode === "ingredients") ingredients.push(line.replace(/^•\s*/, ""));
@@ -306,6 +316,8 @@ function htmlToSections(html) {
     ingredients,
     recipe: recipe.join(" "),
     text: clean.join("\n"),
+    ingredientsHeaders,
+    recipeHeaders,
   };
 }
 
@@ -415,11 +427,15 @@ function parseIngredient(line) {
     .replace(/\(.+?\)/g, "")
     .trim();
   const compositeMatch = text.match(/\(([^()]+)\)/);
-  const parentheticalCompositeNames = compositeMatch && /[,/]/.test(compositeMatch[1])
+  const genericComposite = /(?:ягод|овощ|орех|морепродукт|ассорти|смесь|микс)/i.test(name);
+  const parentheticalCompositeNames = genericComposite && compositeMatch && /[,/]/.test(compositeMatch[1])
     ? compositeMatch[1].split(/[,/]/).map((item) => item.trim()).filter(Boolean)
     : [];
-  const nameCompositeNames = grams && /,/.test(name)
+  const commaSeparatedNames = grams && /,/.test(name)
     ? name.split(",").map((item) => item.trim()).filter(Boolean)
+    : [];
+  const nameCompositeNames = commaSeparatedNames.length > 1 && commaSeparatedNames.every((item) => productByName(item))
+    ? commaSeparatedNames
     : [];
   const compositeNames = parentheticalCompositeNames.length ? parentheticalCompositeNames : nameCompositeNames;
   const count = countMatch ? Number(countMatch[1].replace(",", ".")) : null;
@@ -482,11 +498,14 @@ function addProductTotals(acc, product, grams) {
 
 function macrosForProductGrams(product, grams) {
   const multiplier = Number(grams || 0) / 100;
+  const protein = Number(product.protein || 0) * multiplier;
+  const fat = Number(product.fat || 0) * multiplier;
+  const carbs = Number(product.carbs || 0) * multiplier;
   return {
-    calories: Number(product.kcal || 0) * multiplier,
-    protein: Number(product.protein || 0) * multiplier,
-    fat: Number(product.fat || 0) * multiplier,
-    carbs: Number(product.carbs || 0) * multiplier,
+    calories: protein * 4 + fat * 9 + carbs * 4,
+    protein,
+    fat,
+    carbs,
   };
 }
 
@@ -520,7 +539,11 @@ function portionLimitForProduct(product = {}) {
 }
 
 function productCaloriesPerGram(product = {}) {
-  return Number(product.kcal || 0) / 100;
+  return (
+    Number(product.protein || 0) * 4
+    + Number(product.fat || 0) * 9
+    + Number(product.carbs || 0) * 4
+  ) / 100;
 }
 
 function isProteinDominantProduct(product = {}) {
@@ -664,82 +687,51 @@ function generatedIngredientLine(part) {
 
 function balanceMealParts(inputParts, targetCalories) {
   const issues = [];
-  const adjustments = [];
   const parts = mergeParts(inputParts.map((part) => ({ product: part.product, grams: Number(part.grams || 0) })));
-  adjustments.push(...capPortions(parts));
+  const adjustments = [];
+  for (const part of parts) {
+    const limit = portionLimitForProduct(part.product);
+    if (!limit || part.grams <= limit) continue;
+    const before = part.grams;
+    part.grams = limit;
+    adjustments.push({
+      type: "portion_capped",
+      product: part.product.name,
+      before: round(before),
+      after: limit,
+    });
+  }
 
-  const targetProtein = Number(targetCalories || 0) * MEAL_PROTEIN_MAX_PERCENT / 100 / 4;
   let totals = totalsForParts(parts);
-  if (targetProtein && totals.protein > targetProtein) {
-    const proteinParts = parts.filter((part) => isProteinDominantProduct(part.product));
-    const nonProteinProtein = parts
-      .filter((part) => !isProteinDominantProduct(part.product))
-      .reduce((sum, part) => sum + macrosForProductGrams(part.product, part.grams).protein, 0);
-    const proteinPartProtein = proteinParts.reduce((sum, part) => sum + macrosForProductGrams(part.product, part.grams).protein, 0);
-    if (proteinPartProtein > 0) {
-      const allowedProteinPartProtein = Math.max(0, targetProtein - nonProteinProtein);
-      const ratio = Math.max(0.2, Math.min(1, allowedProteinPartProtein / proteinPartProtein));
-      if (ratio < 0.999) {
-        for (const part of proteinParts) {
-          const before = part.grams;
-          part.grams *= ratio;
-          adjustments.push({ type: "protein_reduced", product: part.product.name, before: round(before), after: round(part.grams), ratio: round(ratio, 3) });
-        }
-      }
+  let calorieDeficit = Number(targetCalories || 0) - totals.calories;
+  if (calorieDeficit > Number(targetCalories || 0) * REALISTIC_CALORIE_DIFF_PERCENT / 100) {
+    const candidates = parts
+      .filter((part) => !isProteinDominantProduct(part.product) && productCaloriesPerGram(part.product) > 0)
+      .sort((a, b) => {
+        const aFat = isFatDominantProduct(a.product) ? 1 : 0;
+        const bFat = isFatDominantProduct(b.product) ? 1 : 0;
+        return bFat - aFat;
+      });
+
+    for (const part of candidates) {
+      if (calorieDeficit <= Number(targetCalories || 0) * 0.02) break;
+      const explicitLimit = portionLimitForProduct(part.product);
+      const practicalLimit = explicitLimit || Math.max(part.grams * 1.75, part.grams + 120);
+      const capacity = Math.max(0, practicalLimit - part.grams);
+      const caloriesPerGram = productCaloriesPerGram(part.product);
+      const addedGrams = Math.min(capacity, calorieDeficit / caloriesPerGram);
+      if (addedGrams <= 0) continue;
+      part.grams += addedGrams;
+      calorieDeficit -= addedGrams * caloriesPerGram;
+      adjustments.push({
+        type: "existing_ingredient_increased",
+        product: part.product.name,
+        grams: round(addedGrams),
+      });
     }
-  }
-  adjustments.push(...capPortions(parts));
-
-  const oilProduct = productByName("оливковое масло") || productByName("масло");
-  const carbProduct = parts.find((part) => isCarbDominantProduct(part.product))?.product
-    || productByName("рис")
-    || productByName("картофель")
-    || productByName("хлеб цельнозерновой");
-  const nutProduct = parts.find((part) => isNutProduct(part.product))?.product || productByName("грецкие орехи");
-
-  const carbCandidates = [
-    carbProduct,
-    productByName("\u0440\u0438\u0441"),
-    productByName("\u043a\u0430\u0440\u0442\u043e\u0444\u0435\u043b\u044c"),
-    productByName("\u0445\u043b\u0435\u0431 \u0446\u0435\u043b\u044c\u043d\u043e\u0437\u0435\u0440\u043d\u043e\u0432\u043e\u0439"),
-  ].filter(Boolean);
-
-  for (let iteration = 0; iteration < 4; iteration += 1) {
     totals = totalsForParts(parts);
-    const calorieDeficit = Number(targetCalories || 0) - totals.calories;
-    if (calorieDeficit <= Number(targetCalories || 0) * REALISTIC_CALORIE_DIFF_PERCENT / 100) break;
-
-    const targetFat = Number(targetCalories || 0) * 0.30 / 9;
-    const fatDeficit = targetFat - totals.fat;
-    if (fatDeficit > 1 && oilProduct) {
-      const oilToAdd = Math.min(fatDeficit, calorieDeficit / Math.max(1, productCaloriesPerGram(oilProduct)) / 100 * 100);
-      const added = addOrIncreasePart(parts, oilProduct, oilToAdd, PORTION_LIMITS_GRAMS.oil);
-      if (added > 0) {
-        adjustments.push({ type: "fat_added", product: oilProduct.name, grams: round(added) });
-        continue;
-      }
-    }
-
-    if (fatDeficit > 3 && nutProduct) {
-      const nutFatPerGram = Number(nutProduct.fat || 0) / 100;
-      const nutsToAdd = nutFatPerGram ? fatDeficit / nutFatPerGram : 0;
-      const added = addOrIncreasePart(parts, nutProduct, nutsToAdd, PORTION_LIMITS_GRAMS.nuts);
-      if (added > 0) {
-        adjustments.push({ type: "nuts_added", product: nutProduct.name, grams: round(added) });
-        continue;
-      }
-    }
-
-    const carbAdded = addCaloriesFromCarbCandidates(parts, calorieDeficit, carbCandidates);
-    if (carbAdded) {
-      adjustments.push({ type: "carbs_added", product: carbAdded.product.name, grams: round(carbAdded.grams) });
-      continue;
-    }
-    break;
   }
 
-  adjustments.push(...capPortions(parts));
-  totals = totalsForParts(parts);
   const calorieDiffPercent = targetCalories ? Math.abs(totals.calories - targetCalories) / targetCalories * 100 : 0;
   const proteinPercent = totals.calories ? totals.protein * 4 / totals.calories * 100 : 0;
   const fatPercent = totals.calories ? totals.fat * 9 / totals.calories * 100 : 0;
@@ -752,7 +744,7 @@ function balanceMealParts(inputParts, targetCalories) {
       issues.push({ type: "portion_limit_exceeded", product: part.product.name, grams: round(part.grams), limit });
     }
   }
-  return { parts: mergeParts(parts), totals, adjustments, issues, proteinPercent: round(proteinPercent), fatPercent: round(fatPercent) };
+  return { parts, totals, adjustments, issues, proteinPercent: round(proteinPercent), fatPercent: round(fatPercent) };
 }
 
 function rebalanceMeal(meal) {
@@ -803,7 +795,40 @@ function normalizeMeal(row, index) {
     ingredients: sections.ingredients,
     recipe: sections.recipe,
     rawText: sections.text,
+    sourceSectionStats: {
+      ingredientsHeaders: sections.ingredientsHeaders,
+      recipeHeaders: sections.recipeHeaders,
+    },
   };
+}
+
+function contentConsistencyIssues(meal, ingredients = []) {
+  const title = normalizeText(meal.title);
+  const ingredientText = normalizeText(ingredients.join(" "));
+  const issues = [];
+  const requiredTitleIngredients = [
+    { title: "морепродукт", ingredients: ["морепродукт", "кревет", "кальмар", "мидии"] },
+    { title: "скумбр", ingredients: ["скумбр"] },
+    { title: "лосос", ingredients: ["лосос", "семг", "сёмг"] },
+    { title: "авокад", ingredients: ["авокад"] },
+    { title: "яй", ingredients: ["яй", "яич"] },
+  ];
+  for (const rule of requiredTitleIngredients) {
+    if (title.includes(rule.title) && !rule.ingredients.some((token) => ingredientText.includes(token))) {
+      issues.push({ type: "title_ingredient_mismatch", titleToken: rule.title });
+    }
+  }
+  if (Number(meal.sourceSectionStats?.ingredientsHeaders || 0) > 1 || Number(meal.sourceSectionStats?.recipeHeaders || 0) > 1) {
+    issues.push({
+      type: "multiple_recipe_blocks",
+      ingredientsHeaders: meal.sourceSectionStats?.ingredientsHeaders || 0,
+      recipeHeaders: meal.sourceSectionStats?.recipeHeaders || 0,
+    });
+  }
+  if (!String(meal.recipe || "").trim()) {
+    issues.push({ type: "missing_recipe" });
+  }
+  return issues;
 }
 
 function repairMealNutrition(meal) {
@@ -814,7 +839,7 @@ function repairMealNutrition(meal) {
     carbs: Number(meal.carbs || 0),
   };
   const uniqueIngredients = dedupeIngredients(meal.ingredients || []);
-  const issues = [];
+  const issues = contentConsistencyIssues(meal, uniqueIngredients);
   const matchedIngredients = [];
   const ingredientBaseGrams = new Map();
   const totals = { productCalories: 0, protein: 0, fat: 0, carbs: 0 };
@@ -903,15 +928,14 @@ function repairMealNutrition(meal) {
     carbs: recalculated.carbs,
     ingredients: scaledIngredients,
   };
-  const balanced = rebalanceMeal(repairedMeal);
-  if (balanced.status === "quarantine") {
+  const validated = rebalanceMeal(repairedMeal);
+  if (validated.status === "quarantine") {
     return {
       status: "quarantine",
       meal,
       report: {
         ...reportBase,
-        reasons: balanced.issues,
-        balanceAdjustments: balanced.adjustments || [],
+        reasons: validated.issues,
       },
     };
   }
@@ -920,15 +944,14 @@ function repairMealNutrition(meal) {
     || Math.abs(ingredientScaleFactor - 1) > 0.05
     || (oldFormulaDiffPercent !== null && oldFormulaDiffPercent > 10)
     || (oldVsRecalculatedDiffPercent !== null && oldVsRecalculatedDiffPercent > 10)
-    || balanced.status === "balanced";
+    || validated.status === "balanced";
 
   return {
     status: shouldReportCorrection ? "corrected" : "valid",
-    meal: balanced.meal,
+    meal: validated.meal,
     report: shouldReportCorrection ? {
       ...reportBase,
-      balanced: balanced.status === "balanced",
-      balanceAdjustments: balanced.adjustments || [],
+      balanceAdjustments: validated.adjustments || [],
     } : null,
   };
 }
@@ -980,6 +1003,482 @@ function dailyPlanFor(meals, { ration, caloriesTarget, day }) {
     },
     fatPercent: totals.calories ? round(totals.fat * 9 / totals.calories * 100, 1) : null,
   };
+}
+
+function dailyPlanKey(ration, caloriesTarget, day) {
+  return `${ration}|${Number(caloriesTarget)}|${day}`;
+}
+
+function planSelectionScore(meals, caloriesTarget) {
+  const totals = meals.reduce((acc, meal) => ({
+    calories: acc.calories + Number(meal.calories || 0),
+    protein: acc.protein + Number(meal.protein || 0),
+    fat: acc.fat + Number(meal.fat || 0),
+    carbs: acc.carbs + Number(meal.carbs || 0),
+  }), { calories: 0, protein: 0, fat: 0, carbs: 0 });
+  const target = Number(caloriesTarget) || totals.calories || 1;
+  const calorieDiffPercent = Math.abs(totals.calories - target) / target * 100;
+  const fatPercent = totals.calories ? totals.fat * 9 / totals.calories * 100 : 0;
+  const proteinPercent = totals.calories ? totals.protein * 4 / totals.calories * 100 : 0;
+  const score = calorieDiffPercent * 20
+    + Math.max(0, FAT_MIN_PERCENT - fatPercent) * 30
+    + Math.max(0, fatPercent - FAT_MAX_PERCENT) * 30
+    + Math.max(0, proteinPercent - 22) * 35
+    + Math.max(0, 15 - proteinPercent) * 5;
+  return {
+    score,
+    totals,
+    calorieDiffPercent,
+    fatPercent,
+    proteinPercent,
+  };
+}
+
+function minimumProteinServing(part) {
+  const text = productSearchText(part.product);
+  if (text.includes("йогурт") || text.includes("творог")) return Math.min(part.grams, 75);
+  if (text.includes("яй")) return Math.min(part.grams, 40);
+  return Math.min(part.grams, 40);
+}
+
+function minimumFatServing(part) {
+  if (isOilProduct(part.product)) return Math.min(part.grams, 3);
+  if (isNutProduct(part.product)) return Math.min(part.grams, 10);
+  if (productSearchText(part.product).includes("авокад")) return Math.min(part.grams, 30);
+  return Math.min(part.grams, 10);
+}
+
+function rebalancePlanSelection(sourceMeals, caloriesTarget, idSuffix, ration) {
+  const parsedMeals = sourceMeals.map((meal) => {
+    const parsed = ingredientPartsFromLines(meal.ingredients || []);
+    return {
+      meal,
+      parts: parsed.parts.map((part) => ({ ...part })),
+      issues: parsed.issues,
+      addedIngredients: [],
+    };
+  });
+  if (parsedMeals.some((item) => item.issues.length || !item.parts.length)) {
+    return { valid: false, reason: "plan_rebalance_parse_failed" };
+  }
+
+  const allParts = () => parsedMeals.flatMap((item) => item.parts);
+  const totals = () => totalsForParts(allParts());
+  const target = Number(caloriesTarget) || totals().calories;
+  let current = totals();
+
+  const initialScale = current.calories ? target / current.calories : 1;
+  if (Math.abs(initialScale - 1) > 0.05) {
+    for (const part of allParts()) {
+      const limit = portionLimitForProduct(part.product);
+      part.grams = Math.min(part.grams * initialScale, limit || Number.POSITIVE_INFINITY);
+    }
+    current = totals();
+  }
+
+  const maxProtein = target * 0.19 / 4;
+  if (current.protein > maxProtein) {
+    const proteinParts = allParts().filter((part) => isProteinDominantProduct(part.product));
+    const dominantProtein = proteinParts.reduce((sum, part) => sum + macrosForProductGrams(part.product, part.grams).protein, 0);
+    const otherProtein = current.protein - dominantProtein;
+    const ratio = dominantProtein ? Math.max(0, Math.min(1, (maxProtein - otherProtein) / dominantProtein)) : 1;
+    for (const part of proteinParts) {
+      part.grams = Math.max(minimumProteinServing(part), part.grams * ratio);
+    }
+    current = totals();
+  }
+
+  const fatTargetGrams = target * 0.30 / 9;
+  let fatPercent = current.calories ? current.fat * 9 / current.calories * 100 : 0;
+  if (fatPercent > FAT_MAX_PERCENT) {
+    const fatParts = allParts().filter((part) => isFatDominantProduct(part.product));
+    const ratio = Math.max(0, Math.min(1, 30 / fatPercent));
+    for (const part of fatParts) {
+      part.grams = Math.max(minimumFatServing(part), part.grams * ratio);
+    }
+    current = totals();
+    let remainingFatDeficit = fatTargetGrams - current.fat;
+    if (remainingFatDeficit > 0.5) {
+      const oilProduct = productByName("оливковое масло") || productByName("масло");
+      const nutProduct = productByName("грецкие орехи");
+      const supplementTargets = [
+        { product: oilProduct, meal: parsedMeals.find((item) => item.meal.mealType === "Обед"), limit: PORTION_LIMITS_GRAMS.oil },
+        { product: oilProduct, meal: parsedMeals.find((item) => item.meal.mealType === "Ужин"), limit: PORTION_LIMITS_GRAMS.oil },
+        { product: nutProduct, meal: parsedMeals.find((item) => item.meal.mealType === "Перекус"), limit: PORTION_LIMITS_GRAMS.nuts },
+      ];
+      for (const supplement of supplementTargets) {
+        if (remainingFatDeficit <= 0.5) break;
+        if (!supplement.product || !supplement.meal) continue;
+        const fatPerGram = Number(supplement.product.fat || 0) / 100;
+        const added = addOrIncreasePart(
+          supplement.meal.parts,
+          supplement.product,
+          fatPerGram ? remainingFatDeficit / fatPerGram : 0,
+          supplement.limit
+        );
+        if (added > 0) {
+          supplement.meal.addedIngredients.push(supplement.product.name);
+          remainingFatDeficit -= added * fatPerGram;
+        }
+      }
+      current = totals();
+    }
+  }
+
+  if (current.fat < fatTargetGrams) {
+    let fatParts = allParts()
+      .filter((part) => isFatDominantProduct(part.product))
+      .sort((a, b) => Number(b.product.fat || 0) - Number(a.product.fat || 0));
+    if (!fatParts.length) {
+      const oilProduct = productByName("оливковое масло") || productByName("масло");
+      const targetMeal = parsedMeals.find((item) => item.meal.mealType === "Обед") || parsedMeals[0];
+      if (oilProduct && targetMeal) {
+        const added = addOrIncreasePart(targetMeal.parts, oilProduct, 10, PORTION_LIMITS_GRAMS.oil);
+        if (added > 0) {
+          targetMeal.addedIngredients.push(oilProduct.name);
+          fatParts = allParts()
+            .filter((part) => isFatDominantProduct(part.product))
+            .sort((a, b) => Number(b.product.fat || 0) - Number(a.product.fat || 0));
+          current = totals();
+        }
+      }
+    }
+    let fatDeficit = fatTargetGrams - current.fat;
+    for (const part of fatParts) {
+      if (fatDeficit <= 0.5) break;
+      const fatPerGram = Number(part.product.fat || 0) / 100;
+      const limit = portionLimitForProduct(part.product) || Math.max(part.grams * 1.5, part.grams + 50);
+      const add = fatPerGram ? Math.min(limit - part.grams, fatDeficit / fatPerGram) : 0;
+      if (add <= 0) continue;
+      part.grams += add;
+      fatDeficit -= add * fatPerGram;
+    }
+    current = totals();
+  }
+
+  let calorieDelta = target - current.calories;
+  if (Math.abs(calorieDelta) > target * 0.02) {
+    const energyParts = allParts()
+      .filter((part) => !isProteinDominantProduct(part.product) && !isFatDominantProduct(part.product) && productCaloriesPerGram(part.product) > 0)
+      .sort((a, b) => Number(b.product.carbs || 0) - Number(a.product.carbs || 0));
+    if (calorieDelta > 0) {
+      for (const part of energyParts) {
+        if (calorieDelta <= target * 0.01) break;
+        const caloriesPerGram = productCaloriesPerGram(part.product);
+        const explicitLimit = portionLimitForProduct(part.product);
+        const text = productSearchText(part.product);
+        const namedLimit = text.includes("мед") ? 50
+          : text.includes("хлеб") ? 250
+            : text.includes("фрукт") || text.includes("банан") || text.includes("яблок") || text.includes("ягод") ? 400
+              : text.includes("рис") || text.includes("греч") || text.includes("киноа") || text.includes("макарон") || text.includes("паста") ? 300
+                : null;
+        const practicalLimit = explicitLimit || namedLimit || Math.max(part.grams * 3, part.grams + 350);
+        const add = Math.min(practicalLimit - part.grams, calorieDelta / caloriesPerGram);
+        if (add <= 0) continue;
+        part.grams += add;
+        calorieDelta -= add * caloriesPerGram;
+      }
+      if (calorieDelta > target * 0.02) {
+        const riceProduct = productByName("рис");
+        const targetMeal = parsedMeals.find((item) => item.meal.mealType === "Обед") || parsedMeals[0];
+        if (riceProduct && targetMeal) {
+          const added = addOrIncreasePart(
+            targetMeal.parts,
+            riceProduct,
+            calorieDelta / productCaloriesPerGram(riceProduct),
+            300
+          );
+          if (added > 0) {
+            targetMeal.addedIngredients.push(riceProduct.name);
+            calorieDelta -= added * productCaloriesPerGram(riceProduct);
+          }
+        }
+      }
+      if (calorieDelta > target * 0.02) {
+        const supplements = [
+          {
+            product: productByName("банан"),
+            targetMeal: parsedMeals.find((item) => item.meal.mealType === "Перекус") || parsedMeals[0],
+            limit: 300,
+          },
+          {
+            product: String(ration || "").toLowerCase().includes("глют")
+              ? null
+              : productByName("хлеб цельнозерновой"),
+            targetMeal: parsedMeals.find((item) => item.meal.mealType === "Завтрак") || parsedMeals[0],
+            limit: 150,
+          },
+        ];
+        for (const supplement of supplements) {
+          if (calorieDelta <= target * 0.02) break;
+          if (!supplement.product || !supplement.targetMeal) continue;
+          const added = addOrIncreasePart(
+            supplement.targetMeal.parts,
+            supplement.product,
+            calorieDelta / productCaloriesPerGram(supplement.product),
+            supplement.limit
+          );
+          if (added > 0) {
+            supplement.targetMeal.addedIngredients.push(supplement.product.name);
+            calorieDelta -= added * productCaloriesPerGram(supplement.product);
+          }
+        }
+      }
+    } else {
+      let caloriesToRemove = Math.abs(calorieDelta);
+      for (const part of energyParts) {
+        if (caloriesToRemove <= target * 0.01) break;
+        const caloriesPerGram = productCaloriesPerGram(part.product);
+        const removable = Math.max(0, part.grams - 20);
+        const remove = Math.min(removable, caloriesToRemove / caloriesPerGram);
+        part.grams -= remove;
+        caloriesToRemove -= remove * caloriesPerGram;
+      }
+    }
+  }
+
+  const mealForType = (mealType) => (
+    parsedMeals.find((item) => item.meal.mealType === mealType) || parsedMeals[0]
+  );
+  const addTrackedPart = (meal, product, grams, limit) => {
+    if (!meal || !product || grams <= 0) return 0;
+    const existed = meal.parts.some((part) => part.product.name === product.name);
+    const added = addOrIncreasePart(meal.parts, product, grams, limit);
+    if (added > 0 && !existed) meal.addedIngredients.push(product.name);
+    return added;
+  };
+  const addFatGrams = (fatGrams) => {
+    let remaining = Math.max(0, fatGrams);
+    const supplements = [
+      { product: productByName("оливковое масло") || productByName("масло"), meal: mealForType("Обед"), limit: PORTION_LIMITS_GRAMS.oil },
+      { product: productByName("оливковое масло") || productByName("масло"), meal: mealForType("Ужин"), limit: PORTION_LIMITS_GRAMS.oil },
+      { product: productByName("грецкие орехи"), meal: mealForType("Перекус"), limit: PORTION_LIMITS_GRAMS.nuts },
+      { product: productByName("авокадо"), meal: mealForType("Завтрак"), limit: 150 },
+    ];
+    for (const supplement of supplements) {
+      if (remaining <= 0.2 || !supplement.product) break;
+      const fatPerGram = Number(supplement.product.fat || 0) / 100;
+      if (fatPerGram <= 0) continue;
+      const added = addTrackedPart(
+        supplement.meal,
+        supplement.product,
+        remaining / fatPerGram,
+        supplement.limit
+      );
+      remaining -= added * fatPerGram;
+    }
+    return Math.max(0, remaining);
+  };
+  const removeCaloriesFromCarbs = (calories) => {
+    let remaining = Math.max(0, calories);
+    const candidates = allParts()
+      .filter((part) => (
+        !isProteinDominantProduct(part.product)
+        && !isFatDominantProduct(part.product)
+        && Number(part.product.carbs || 0) >= 5
+      ))
+      .sort((left, right) => Number(right.product.carbs || 0) - Number(left.product.carbs || 0));
+    for (const part of candidates) {
+      if (remaining <= target * 0.002) break;
+      const caloriesPerGram = productCaloriesPerGram(part.product);
+      const removable = Math.max(0, part.grams - 20);
+      const removed = caloriesPerGram > 0 ? Math.min(removable, remaining / caloriesPerGram) : 0;
+      part.grams -= removed;
+      remaining -= removed * caloriesPerGram;
+    }
+    return Math.max(0, remaining);
+  };
+  const addCaloriesFromCarbs = (calories) => {
+    let remaining = Math.max(0, calories);
+    const existing = allParts()
+      .filter((part) => (
+        !isProteinDominantProduct(part.product)
+        && !isFatDominantProduct(part.product)
+        && Number(part.product.carbs || 0) >= 5
+      ))
+      .sort((left, right) => Number(right.product.carbs || 0) - Number(left.product.carbs || 0));
+    for (const part of existing) {
+      if (remaining <= target * 0.002) break;
+      const caloriesPerGram = productCaloriesPerGram(part.product);
+      const text = productSearchText(part.product);
+      const limit = portionLimitForProduct(part.product)
+        || (text.includes("хлеб") ? 250 : text.includes("фрукт") || text.includes("банан") ? 400 : 350);
+      const added = caloriesPerGram > 0 ? Math.min(Math.max(0, limit - part.grams), remaining / caloriesPerGram) : 0;
+      part.grams += added;
+      remaining -= added * caloriesPerGram;
+    }
+    const supplements = [
+      { product: productByName("рис"), meal: mealForType("Обед"), limit: 300 },
+      { product: productByName("рис"), meal: mealForType("Ужин"), limit: 300 },
+      { product: productByName("картофель"), meal: mealForType("Ужин"), limit: PORTION_LIMITS_GRAMS.vegetables },
+      { product: productByName("банан"), meal: mealForType("Перекус"), limit: 300 },
+      {
+        product: String(ration || "").toLowerCase().includes("глют") ? null : productByName("хлеб цельнозерновой"),
+        meal: mealForType("Завтрак"),
+        limit: 150,
+      },
+    ];
+    for (const supplement of supplements) {
+      if (remaining <= target * 0.002 || !supplement.product) break;
+      const caloriesPerGram = productCaloriesPerGram(supplement.product);
+      const added = caloriesPerGram > 0
+        ? addTrackedPart(supplement.meal, supplement.product, remaining / caloriesPerGram, supplement.limit)
+        : 0;
+      remaining -= added * caloriesPerGram;
+    }
+    return Math.max(0, remaining);
+  };
+
+  for (let pass = 0; pass < 3; pass += 1) {
+    current = totals();
+    const currentFatPercent = current.calories ? current.fat * 9 / current.calories * 100 : 0;
+    if (currentFatPercent > FAT_MAX_PERCENT) {
+      let fatToRemove = current.fat - target * 0.30 / 9;
+      const fatParts = allParts()
+        .filter((part) => isFatDominantProduct(part.product))
+        .sort((left, right) => Number(right.product.fat || 0) - Number(left.product.fat || 0));
+      for (const part of fatParts) {
+        if (fatToRemove <= 0.2) break;
+        const fatPerGram = Number(part.product.fat || 0) / 100;
+        const removable = Math.max(0, part.grams - minimumFatServing(part));
+        const removed = fatPerGram > 0 ? Math.min(removable, fatToRemove / fatPerGram) : 0;
+        part.grams -= removed;
+        fatToRemove -= removed * fatPerGram;
+      }
+      current = totals();
+      addCaloriesFromCarbs(target - current.calories);
+    } else if (currentFatPercent < FAT_MIN_PERCENT) {
+      addFatGrams(target * 0.30 / 9 - current.fat);
+      current = totals();
+      removeCaloriesFromCarbs(current.calories - target);
+    }
+
+    current = totals();
+    const finalCalorieDelta = target - current.calories;
+    if (finalCalorieDelta > target * 0.002) addCaloriesFromCarbs(finalCalorieDelta);
+    else if (finalCalorieDelta < -target * 0.002) removeCaloriesFromCarbs(Math.abs(finalCalorieDelta));
+  }
+
+  const generatedMeals = parsedMeals.map(({ meal, parts, addedIngredients }, index) => {
+    const mealTotals = totalsForParts(parts);
+    const protein = round(mealTotals.protein);
+    const fat = round(mealTotals.fat);
+    const carbs = round(mealTotals.carbs);
+    return {
+      ...meal,
+      id: `${meal.id}-plan-${idSuffix}-${index + 1}`,
+      calories: macroCalories({ protein, fat, carbs }),
+      protein,
+      fat,
+      carbs,
+      ingredients: parts.map(generatedIngredientLine),
+      recipe: addedIngredients.length
+        ? `${meal.recipe} Дополните блюдо: ${[...new Set(addedIngredients)].join(", ")}.`
+        : meal.recipe,
+    };
+  });
+  const validation = planSelectionScore(generatedMeals, target);
+  const hasPortionIssue = generatedMeals.some((meal) => ingredientPartsFromLines(meal.ingredients || []).parts.some((part) => {
+    const limit = portionLimitForProduct(part.product);
+    return limit && part.grams > limit + 0.5;
+  }));
+  const valid = !hasPortionIssue
+    && validation.calorieDiffPercent <= 10
+    && validation.fatPercent >= FAT_MIN_PERCENT
+    && validation.fatPercent <= FAT_MAX_PERCENT
+    && validation.proteinPercent <= 30;
+  return { valid, hasPortionIssue, meals: generatedMeals, ...validation };
+}
+
+function buildDailyPlanSelections(meals, filters) {
+  const plans = {};
+  const reports = [];
+  const generatedMeals = [];
+  for (const ration of filters.rations) {
+    for (const caloriesTarget of filters.caloriesTargets) {
+      for (const day of filters.days) {
+        const candidatesByType = REQUIRED_MEAL_TYPES.map((mealType) => (
+          meals
+            .filter((meal) => (
+              meal.mealType === mealType
+              && meal.rations?.includes(ration)
+              && meal.caloriesTargets?.includes(Number(caloriesTarget))
+              && meal.day === day
+            ))
+            .sort((left, right) => (
+              Math.abs(Number(left.calories || 0) - Number(caloriesTarget) * (MEAL_TARGET_SHARE[mealType] || 0.25))
+              - Math.abs(Number(right.calories || 0) - Number(caloriesTarget) * (MEAL_TARGET_SHARE[mealType] || 0.25))
+            ))
+            .slice(0, 12)
+        ));
+        if (candidatesByType.some((items) => !items.length)) {
+          reports.push({ ration, caloriesTarget, day, reason: "plan_selection_missing_meal_type" });
+          continue;
+        }
+
+        let best = null;
+        const selected = [];
+        const visit = (typeIndex) => {
+          if (typeIndex >= candidatesByType.length) {
+            const result = planSelectionScore(selected, caloriesTarget);
+            if (!best || result.score < best.score) {
+              best = { ...result, meals: [...selected] };
+            }
+            return;
+          }
+          for (const meal of candidatesByType[typeIndex]) {
+            selected.push(meal);
+            visit(typeIndex + 1);
+            selected.pop();
+          }
+        };
+        visit(0);
+        if (!best) continue;
+
+        const idSuffix = crypto.createHash("sha1").update(`${ration}|${caloriesTarget}|${day}`).digest("hex").slice(0, 10);
+        const rebalanced = rebalancePlanSelection(best.meals, caloriesTarget, idSuffix, ration);
+        const selectedPlan = rebalanced?.valid ? rebalanced : best;
+        if (rebalanced?.valid) generatedMeals.push(...rebalanced.meals);
+        else reports.push({
+          ration,
+          caloriesTarget,
+          day,
+          reason: rebalanced?.reason || "plan_rebalance_failed_validation",
+          calorieDiffPercent: round(rebalanced?.calorieDiffPercent),
+          fatPercent: round(rebalanced?.fatPercent),
+          proteinPercent: round(rebalanced?.proteinPercent),
+          totals: rebalanced?.totals || null,
+          hasPortionIssue: Boolean(rebalanced?.hasPortionIssue),
+        });
+        const key = dailyPlanKey(ration, caloriesTarget, day);
+        plans[key] = {
+          ration,
+          caloriesTarget: Number(caloriesTarget),
+          day,
+          mealIds: selectedPlan.meals.map((meal) => meal.id),
+          totals: {
+            calories: Math.round(selectedPlan.totals.calories),
+            protein: round(selectedPlan.totals.protein),
+            fat: round(selectedPlan.totals.fat),
+            carbs: round(selectedPlan.totals.carbs),
+          },
+          calorieDiffPercent: round(selectedPlan.calorieDiffPercent),
+          fatPercent: round(selectedPlan.fatPercent),
+          proteinPercent: round(selectedPlan.proteinPercent),
+        };
+        if (selectedPlan.calorieDiffPercent > 10 || selectedPlan.fatPercent < FAT_MIN_PERCENT || selectedPlan.fatPercent > FAT_MAX_PERCENT || selectedPlan.proteinPercent > 30) {
+          reports.push({
+            ration,
+            caloriesTarget,
+            day,
+            reason: "plan_selection_warning",
+            ...plans[key],
+          });
+        }
+      }
+    }
+  }
+  return { plans, reports, generatedMeals };
 }
 
 function selectedIndexesForPlan(meals, { ration, caloriesTarget, day }) {
@@ -1136,13 +1635,19 @@ function completeDailyPlans(meals, filters) {
   return { meals: nextMeals, reports };
 }
 
-function fatValidationReport(meals, filters) {
+function fatValidationReport(meals, filters, plans = {}) {
   const issues = [];
   const ration = "Без ограничений";
+  const mealById = new Map(meals.map((meal) => [String(meal.id), meal]));
   const targets = filters.caloriesTargets.filter((target) => [2000, 2200, 2400].includes(Number(target)));
   for (const caloriesTarget of targets) {
     for (const day of filters.days) {
-      const plan = dailyPlanFor(meals, { ration, caloriesTarget, day });
+      const selectedMeals = (plans[dailyPlanKey(ration, caloriesTarget, day)]?.mealIds || [])
+        .map((id) => mealById.get(String(id)))
+        .filter(Boolean);
+      const plan = selectedMeals.length
+        ? dailyPlanFor(selectedMeals, { ration, caloriesTarget, day })
+        : dailyPlanFor(meals, { ration, caloriesTarget, day });
       if (!plan.meals.length) continue;
       if (plan.fatPercent !== null && plan.fatPercent < FAT_MIN_PERCENT) {
         issues.push({
@@ -1419,21 +1924,11 @@ let filters = buildFilters(meals);
 const dailyCompletion = completeDailyPlans(meals, filters);
 meals = dailyCompletion.meals;
 filters = buildFilters(meals);
-const dailyProteinBalance = applyDailyProteinCaps(meals, filters);
-meals = dailyProteinBalance.meals;
-filters = buildFilters(meals);
-const dailyProteinBalanceFollowup = applyDailyProteinCaps(meals, filters);
-meals = dailyProteinBalanceFollowup.meals;
-filters = buildFilters(meals);
-const seafoodNamedMealRepair = repairSeafoodNamedMeals(meals);
-meals = seafoodNamedMealRepair.meals;
-filters = buildFilters(meals);
-const dailyProteinBalanceFinal = applyDailyProteinCaps(meals, filters);
-meals = dailyProteinBalanceFinal.meals;
-filters = buildFilters(meals);
 const imageSource = localizeNutritionImages(meals);
+const dailyPlanSelections = buildDailyPlanSelections(meals, filters);
+meals = [...meals, ...dailyPlanSelections.generatedMeals];
 const afterStats = mealStats(meals);
-const dailyFatIssues = fatValidationReport(meals, filters);
+const dailyFatIssues = fatValidationReport(meals, filters, dailyPlanSelections.plans);
 const missingIngredients = new Map();
 for (const item of quarantine) {
   for (const reason of item.reasons || []) {
@@ -1443,11 +1938,26 @@ for (const item of quarantine) {
   }
 }
 
+const contentVersion = crypto
+  .createHash("sha256")
+  .update(JSON.stringify({ meals, filters, plans: dailyPlanSelections.plans }))
+  .digest("hex");
 const payload = {
+  contentVersion,
   importedAt: new Date().toISOString(),
   source: path.basename(input),
   meals,
   filters,
+  plans: dailyPlanSelections.plans,
+  imageSource,
+};
+const runtimeSummary = {
+  contentVersion,
+  importedAt: payload.importedAt,
+  source: "bundled_summary",
+  meals: [],
+  filters,
+  plans: dailyPlanSelections.plans,
   imageSource,
 };
 
@@ -1471,8 +1981,9 @@ const quarantineReport = {
     quarantine: quarantine.length,
     dailyCompletion: dailyCompletion.reports.length,
     dailyFatIssues: dailyFatIssues.length,
-    dailyProteinBalance: dailyProteinBalance.reports.length + dailyProteinBalanceFollowup.reports.length + dailyProteinBalanceFinal.reports.length,
-    seafoodNamedMealRepair: seafoodNamedMealRepair.reports.length,
+    dailyProteinBalance: 0,
+    seafoodNamedMealRepair: 0,
+    dailyPlanSelectionWarnings: dailyPlanSelections.reports.length,
   },
   topMissingIngredients: [...missingIngredients.entries()]
     .sort((a, b) => b[1] - a[1])
@@ -1481,18 +1992,19 @@ const quarantineReport = {
   corrected,
   quarantine,
   dailyCompletion: dailyCompletion.reports,
-  dailyProteinBalance: [
-    ...dailyProteinBalance.reports.map((item) => ({ ...item, pass: 1 })),
-    ...dailyProteinBalanceFollowup.reports.map((item) => ({ ...item, pass: 2 })),
-    ...dailyProteinBalanceFinal.reports.map((item) => ({ ...item, pass: 3 })),
-  ],
-  seafoodNamedMealRepair: seafoodNamedMealRepair.reports,
+  dailyProteinBalance: [],
+  seafoodNamedMealRepair: [],
+  dailyPlanSelections: dailyPlanSelections.reports,
   dailyFatIssues,
 };
 
 fs.mkdirSync(path.dirname(output), { recursive: true });
+fs.mkdirSync(path.dirname(backendOutput), { recursive: true });
+fs.mkdirSync(path.dirname(runtimeSummaryOutput), { recursive: true });
 fs.mkdirSync(path.dirname(quarantineOutput), { recursive: true });
 fs.writeFileSync(output, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+fs.writeFileSync(backendOutput, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+fs.writeFileSync(runtimeSummaryOutput, `${JSON.stringify(runtimeSummary, null, 2)}\n`, "utf8");
 fs.writeFileSync(quarantineOutput, `${JSON.stringify(quarantineReport, null, 2)}\n`, "utf8");
 console.log(JSON.stringify({
   meals: meals.length,

@@ -9,6 +9,7 @@
     "api": "node server.js",
     "db:nutrition:seed": "node scripts/seed-nutrition-db.js",
     "test:nutrition": "node scripts/test-nutrition.js",
+    "audit:nutrition": "node scripts/audit-nutrition-plans.mjs",
     "test:engagement": "node scripts/test-engagement-prompts.mjs",
     "test:program-assignment": "node scripts/test-program-assignment-client.mjs",
     "build:exercise-catalog": "node tools/import-didactic-exercises.mjs",

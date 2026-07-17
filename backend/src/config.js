@@ -16,6 +16,10 @@ export function loadEnv(filePath = path.resolve(process.cwd(), ".env")) {
 
 loadEnv();
 
+const defaultNutritionPlanPath = path.basename(process.cwd()).toLowerCase() === "backend"
+  ? path.resolve(process.cwd(), "data", "nutrition.json")
+  : path.resolve(process.cwd(), "backend", "data", "nutrition.json");
+
 function parseOrigins(value) {
   return String(value || "")
     .split(",")
@@ -80,6 +84,7 @@ export const config = {
   emailVerificationTtlMinutes: Number(process.env.EMAIL_VERIFICATION_TTL_MINUTES || 60),
   passwordResetTtlMinutes: Number(process.env.PASSWORD_RESET_TTL_MINUTES || 30),
   appVersionManifestPath: process.env.APP_VERSION_MANIFEST_PATH || path.resolve(process.cwd(), "app-version.json"),
+  nutritionPlanPath: process.env.NUTRITION_PLAN_PATH || defaultNutritionPlanPath,
   pushProvider: process.env.PUSH_PROVIDER || "fcm",
   fcmProjectId: process.env.FCM_PROJECT_ID || "",
   fcmServiceAccountJson: process.env.FCM_SERVICE_ACCOUNT_JSON || "",
