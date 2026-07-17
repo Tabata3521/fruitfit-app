@@ -31,8 +31,15 @@ function authActionFromUrl(rawUrl = window.location.href) {
 function friendlyAuthError(data = {}, fallback = "Не удалось выполнить действие") {
   const code = String(data?.code || data?.error || "").toUpperCase();
   const message = String(data?.message || data?.error?.message || "").trim();
+  if (code === "INVALID_CREDENTIALS") return "Неверный email или пароль.";
+  if (code === "INVALID_EMAIL") return "Проверьте формат email.";
+  if (code === "PASSWORD_TOO_SHORT") return "Пароль должен содержать минимум 8 символов.";
+  if (code === "PASSWORD_TOO_LONG") return "Пароль не должен быть длиннее 128 символов.";
+  if (code === "PASSWORD_CANNOT_MATCH_EMAIL") return "Пароль не должен совпадать с email.";
   if (code === "MISSING_PASSWORD_CONFIRMATION") return "Повторите пароль.";
   if (code === "PASSWORD_CONFIRMATION_MISMATCH") return "Пароли не совпадают.";
+  if (code === "RATE_LIMITED") return "Слишком много попыток. Подождите несколько минут и попробуйте снова.";
+  if (code === "SMTP_NOT_CONFIGURED") return "Почтовый сервис временно недоступен. Попробуйте позже.";
   if (code.includes("EMAIL") && code.includes("EXISTS")) return "Этот email уже занят.";
   if (code.includes("INVALID") && code.includes("PASSWORD")) return "Неверный пароль.";
   if (code.includes("EMAIL") && code.includes("NOT") && code.includes("VERIFIED")) return "Email ещё не подтверждён. Проверьте письмо.";
@@ -226,6 +233,7 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
   const [privacyPolicyOpen, setPrivacyPolicyOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [actionFailed, setActionFailed] = useState(false);
 
   async function complete(result) {
     localStorage.removeItem(SKIP_AUTH_KEY);
@@ -296,8 +304,9 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
         await complete(result);
         return;
       }
+      setActionFailed(false);
       setMode("verifySent");
-      setMessage("Письмо подтверждения отправлено. Откройте ссылку из письма, чтобы активировать аккаунт.");
+      setMessage("Если аккаунту требуется подтверждение, письмо отправлено. Если email уже подтверждён, перейдите ко входу.");
     } catch (error) {
       setMessage(error?.message || "Не удалось создать аккаунт.");
     } finally {
@@ -315,7 +324,7 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
     setMessage("");
     try {
       await request("/api/auth/email/request-password-reset", { email: cleanEmail }, "Не удалось отправить письмо.");
-      setMessage("Письмо для восстановления отправлено.");
+      setMessage("Если аккаунт найден, на почту отправлена ссылка для восстановления или подтверждения email.");
     } catch (error) {
       setMessage(error?.message || "Не удалось отправить письмо.");
     } finally {
@@ -326,6 +335,7 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
   async function submitReset() {
     if (!resetToken) {
       setMessage("Не найден код восстановления.");
+      setActionFailed(true);
       return;
     }
     if (!password || !confirmPassword) {
@@ -337,6 +347,7 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
       return;
     }
     setSubmitting(true);
+    setActionFailed(false);
     setMessage("");
     try {
       await request("/api/auth/email/reset-password", {
@@ -345,11 +356,14 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
         confirmPassword,
         confirm_password: confirmPassword,
       }, "Не удалось обновить пароль.");
+      setAuthToken(null);
+      saveAuthUser(null);
       setMode("login");
       setPassword("");
       setConfirmPassword("");
       setMessage("Пароль обновлён. Теперь можно войти.");
     } catch (error) {
+      setActionFailed(true);
       setMessage(error?.message || "Не удалось обновить пароль.");
     } finally {
       setSubmitting(false);
@@ -357,19 +371,25 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
   }
 
   async function verifyEmail(token = verifyToken) {
-    if (!token || submitting) return;
+    if (!token) {
+      setActionFailed(true);
+      setMessage("Не найден код подтверждения.");
+      return;
+    }
+    if (submitting) return;
     setSubmitting(true);
+    setActionFailed(false);
     setMessage("Проверяем ссылку...");
     try {
       const result = await request("/api/auth/email/verify", {
         token,
         device: await getDeviceRegistrationPayloadAsync(),
       }, "Не удалось подтвердить email.");
-      setAuthToken(null);
       setMode("verifySuccess");
       setMessage(result?.message || "Email подтверждён. Теперь можно войти в аккаунт.");
       window.history.replaceState(null, "", window.location.pathname.includes("/email/") ? "/" : window.location.pathname);
     } catch (error) {
+      setActionFailed(true);
       setMessage(error?.message || "Не удалось подтвердить email.");
     } finally {
       setSubmitting(false);
@@ -386,7 +406,8 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
     setMessage("");
     try {
       await request("/api/auth/email/resend-verification", { email: cleanEmail }, "Не удалось отправить письмо повторно.");
-      setMessage("Письмо отправлено повторно.");
+      setActionFailed(false);
+      setMessage("Если аккаунту требуется подтверждение, новое письмо отправлено.");
     } catch (error) {
       setMessage(error?.message || "Не удалось отправить письмо повторно.");
     } finally {
@@ -568,8 +589,71 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
           )}
 
           {mode === "verifySent" && (
-            <button type="button" onClick={resendVerification} disabled={submitting} className="h-11 rounded-full border border-appBorder bg-appCard text-[13px] font-black text-appText disabled:opacity-70">
-              Отправить письмо повторно
+            <>
+              <button type="button" onClick={resendVerification} disabled={submitting} className="h-11 rounded-full border border-appBorder bg-appCard text-[13px] font-black text-appText disabled:opacity-70">
+                Отправить письмо повторно
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActionFailed(false);
+                  setMode("login");
+                  setMessage("");
+                }}
+                className="flex h-[50px] items-center justify-center gap-2 rounded-full border border-appBorder bg-appCard px-5 text-[14px] font-black text-appText shadow-sm"
+              >
+                Перейти ко входу
+                <ArrowRight size={17} />
+              </button>
+            </>
+          )}
+
+          {actionFailed && mode === "verify" && (
+            <button
+              type="button"
+              onClick={() => {
+                setActionFailed(false);
+                setVerifyToken("");
+                setMode("verifySent");
+                setMessage("Введите email, чтобы запросить новую ссылку подтверждения.");
+              }}
+              className="flex h-[50px] items-center justify-center gap-2 rounded-full border border-appBorder bg-appCard px-5 text-[14px] font-black text-appText shadow-sm"
+            >
+              Отправить новую ссылку
+              <ArrowRight size={17} />
+            </button>
+          )}
+
+          {actionFailed && mode === "reset" && (
+            <button
+              type="button"
+              onClick={() => {
+                setActionFailed(false);
+                setResetToken("");
+                setPassword("");
+                setConfirmPassword("");
+                setMode("forgot");
+                setMessage("Введите email, чтобы запросить новую ссылку.");
+              }}
+              className="flex h-[50px] items-center justify-center gap-2 rounded-full border border-appBorder bg-appCard px-5 text-[14px] font-black text-appText shadow-sm"
+            >
+              Запросить новую ссылку
+              <ArrowRight size={17} />
+            </button>
+          )}
+
+          {["verify", "reset"].includes(mode) && (
+            <button
+              type="button"
+              onClick={() => {
+                setActionFailed(false);
+                setMode("login");
+                setMessage("");
+              }}
+              className="flex h-[50px] items-center justify-center gap-2 rounded-full border border-appBorder bg-appCard px-5 text-[14px] font-black text-appText shadow-sm"
+            >
+              <ArrowLeft size={17} />
+              Назад ко входу
             </button>
           )}
 
