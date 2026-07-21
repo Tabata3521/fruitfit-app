@@ -1,3 +1,5 @@
+import { legacyRestrictionValue, normalizeRestrictionKeys } from "./profileStore";
+
 export function buildCoachContext({
   profile,
   workout,
@@ -16,7 +18,8 @@ export function buildCoachContext({
       age: profile.age,
       height: profile.height,
       weight: profile.weight,
-      restrictions: profile.restrictions || [],
+      restrictionKeys: normalizeRestrictionKeys(profile.restrictionKeys, profile.restrictions),
+      restrictions: legacyRestrictionValue(profile.restrictionKeys ?? profile.restrictions),
     } : null,
     workout: workout ? {
       id: workout.id,

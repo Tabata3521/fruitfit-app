@@ -3,7 +3,7 @@ import { cleanTitle, decodeText } from "../utils/decodeText";
 import { didacticCatalog, resolveDidacticExercise } from "./didacticExerciseData";
 import { resolveExerciseVideoOverride } from "./exerciseVideoOverrides";
 import { assignMuscleTemplate } from "./muscleTemplates";
-import { profileDefaults } from "./profileStore";
+import { legacyRestrictionValue, normalizeRestrictionKeys, profileDefaults } from "./profileStore";
 
 const dataFiles = ["/data/courses.json", "/data/lessons.json", "/data/exercises.json"];
 
@@ -175,6 +175,17 @@ function normalizeAssignmentCourse(assignment = {}) {
     assignment.name,
     "Персональная программа"
   ));
+  const restrictionKeys = normalizeRestrictionKeys(
+    firstNonEmpty(
+      assignment.restrictionKeys,
+      assignment.restriction_keys,
+      program.restrictionKeys,
+      program.restriction_keys,
+      assignment.matchedRestrictions,
+      assignment.matched_restrictions,
+    ),
+    firstNonEmpty(program.restrictions, assignment.restrictions, "none"),
+  );
   return {
     ...program,
     course_id: id,
@@ -184,7 +195,8 @@ function normalizeAssignmentCourse(assignment = {}) {
     gender: decodeText(firstNonEmpty(program.gender, assignment.gender, "")),
     goal: decodeText(firstNonEmpty(program.goal, assignment.goal, "")),
     level: decodeText(firstNonEmpty(program.level, assignment.level, "")),
-    restrictions: decodeText(firstNonEmpty(program.restrictions, assignment.restrictions, "")),
+    restrictionKeys,
+    restrictions: legacyRestrictionValue(restrictionKeys),
   };
 }
 
@@ -488,7 +500,7 @@ function courseMeta(course) {
 
 function profileSelection(profile) {
   const goalText = String(profile.goal || "").toLowerCase();
-  const restrictionText = String(profile.restrictions || "").toLowerCase();
+  const restrictionKeys = normalizeRestrictionKeys(profile.restrictionKeys, profile.restrictions);
   const experienceText = String(profile.experience || "").toLowerCase();
   return {
     gender: profile.gender === "male" ? "male" : "female",
@@ -498,15 +510,8 @@ function profileSelection(profile) {
         ? "muscle_gain"
         : "maintain",
     workoutsPerWeek: String(profile.trainingFrequency || "").startsWith("3") ? 3 : 2,
-    limitation: restrictionText.includes("колен")
-      ? "knees"
-      : restrictionText.includes("спин") || restrictionText.includes("пояс")
-        ? "back"
-        : restrictionText.includes("плеч")
-          ? "shoulders"
-          : restrictionText.includes("тбс") || restrictionText.includes("таз")
-            ? "hips"
-            : "none",
+    limitation: restrictionKeys.find((key) => key !== "none") || "none",
+    restrictionKeys,
     level: experienceText.includes("нов") || experienceText.includes("нет") ? "beginner" : "experienced",
   };
 }
@@ -522,21 +527,24 @@ function frequencyTerm(trainingFrequency) {
   return String(trainingFrequency || "").startsWith("2") ? "две тренировки" : "три тренировки";
 }
 
-function restrictionTerms(restrictions) {
-  const text = String(restrictions || "").toLowerCase();
-  if (text.includes("нет") || text.includes("без")) return ["без ограничений"];
-  if (text.includes("колен")) return ["колен"];
-  if (text.includes("спин") || text.includes("пояс")) return ["спин", "пояс"];
-  if (text.includes("таз") || text.includes("тбс")) return ["таз", "тбс", "бедр"];
-  if (text.includes("плеч")) return ["плеч"];
-  return [];
+function restrictionTerms(value, legacyValue = null) {
+  const keys = normalizeRestrictionKeys(value, legacyValue);
+  const terms = {
+    none: ["без ограничений"],
+    knees: ["колен"],
+    back: ["спин", "пояс"],
+    shoulders: ["плеч"],
+    hips: ["таз", "тбс", "бедр"],
+  };
+  return keys.flatMap((key) => terms[key] || []);
 }
 
 function scoreCourse(course, profile) {
   const title = lowerTitle(course);
   const genderTerm = profile.gender === "male" ? "мужская" : "женская";
   const oppositeGender = profile.gender === "male" ? "женская" : "мужская";
-  const terms = restrictionTerms(profile.restrictions);
+  const restrictionKeys = normalizeRestrictionKeys(profile.restrictionKeys, profile.restrictions);
+  const terms = restrictionTerms(restrictionKeys);
   let score = 0;
 
   if (title.includes(genderTerm)) score += 120;
@@ -544,7 +552,7 @@ function scoreCourse(course, profile) {
   if (title.includes(goalTerm(profile.goal))) score += 44;
   if (title.includes(frequencyTerm(profile.trainingFrequency))) score += 34;
   if (terms.length && terms.some((term) => title.includes(term))) score += 18;
-  if (!String(profile.restrictions || "").toLowerCase().includes("нет") && title.includes("без ограничений")) score -= 5;
+  if (!restrictionKeys.includes("none") && title.includes("без ограничений")) score -= 5;
   if (title.includes("программа")) score += 3;
 
   return score;
@@ -655,7 +663,13 @@ export function buildWorkoutView(data, courseIndex = 0, lessonIndex = 0) {
 export function buildProgramView(data, lessonIndex = 0, profile = profileDefaults, assignedProgramId = "") {
   if (!data) return null;
 
-  const course = selectCourse(data, profile, assignedProgramId);
+  const restrictionKeys = normalizeRestrictionKeys(profile.restrictionKeys, profile.restrictions);
+  const baseCourse = selectCourse(data, profile, assignedProgramId);
+  const course = {
+    ...baseCourse,
+    restrictionKeys,
+    restrictions: legacyRestrictionValue(restrictionKeys),
+  };
   const lessons = data.lessons
     .filter((lesson) => lesson.course_id === course.course_id)
     .sort((a, b) => Number(a.lesson_number) - Number(b.lesson_number));
@@ -663,6 +677,14 @@ export function buildProgramView(data, lessonIndex = 0, profile = profileDefault
   const workouts = lessons.map((lesson, index) => {
     const exercises = data.exercises
       .filter((exercise) => exercise.course_id === course.course_id && exercise.lesson_id === lesson.lesson_id)
+      .filter((exercise) => {
+        if (restrictionKeys.includes("none")) return true;
+        const blockedFor = normalizeRestrictionKeys(
+          exercise.exercise_table_meta?.restrictions ?? exercise.restrictions,
+          exercise.exercise_table_meta?.restrictions_raw,
+        ).filter((key) => key !== "none");
+        return !blockedFor.some((key) => restrictionKeys.includes(key));
+      })
       .sort((a, b) => Number(a.exercise_order) - Number(b.exercise_order));
     const grouped = exercises.reduce((acc, exercise) => {
       if (!exercise.group_id) return acc;

@@ -17,10 +17,11 @@ export function saveAppIconId(iconId) {
 
 export async function applyNativeAppIcon(icon) {
   if (!Capacitor.isNativePlatform()) {
-    return { status: "web_only", message: "В web/PWA выбор сохранён локально." };
+    return { status: "web_only", message: "Выбор сохранён." };
   }
-  if (Capacitor.getPlatform() !== "ios") {
-    return { status: "unsupported", message: "Смена ярлыка сейчас подключена для iOS." };
+  const platform = Capacitor.getPlatform();
+  if (platform !== "ios" && platform !== "android") {
+    return { status: "unsupported", message: "Смена ярлыка недоступна на этом устройстве." };
   }
   return FruitFitAppIcon.setAlternateIcon({
     androidAlias: icon.androidAlias,

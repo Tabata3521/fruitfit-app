@@ -1,4 +1,4 @@
-import { Bot, Send } from "lucide-react";
+import { Bot, Send, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import BottomNavigation from "../components/BottomNavigation";
 import { coachMessagesForContext, createCoachChatMessage, loadCoachChatHistory, saveCoachChatHistory } from "../data/coachChatStore";
@@ -9,12 +9,20 @@ import { profileFirstNameForGreeting } from "../data/profileStore";
 import { currentUserId } from "../data/userScopedCache";
 import { answerDirectNutritionQuestion } from "../services/nutritionCoach";
 import { askFruitFitCoach } from "../services/openai";
+import { submitAiFeedback } from "../services/aiFeedback";
 
 const starters = [
   "Какой вес поставить в следующем подходе?",
   "Что делать, если плохо восстановился?",
   "Чем заменить упражнение без тренажёра?",
   "Как собрать приём пищи на сегодня?",
+];
+
+const feedbackReasons = [
+  { id: "incorrect", label: "Неверный ответ" },
+  { id: "not_helpful", label: "Ответ не помог" },
+  { id: "unsafe", label: "Опасная рекомендация" },
+  { id: "other", label: "Другое" },
 ];
 
 const AI_CONSENT_VERSION = "2026-06-openai-context";
@@ -83,7 +91,7 @@ function AiConsentModal({ onAccept, onCancel }) {
           <div className="min-w-0">
             <h2 className="text-[18px] font-black text-appText">AI Coach использует OpenAI</h2>
             <p className="mt-2 text-[13px] leading-5 text-appMuted">
-              Чтобы ответить точнее, FruitFit может передавать в OpenAI ваш вопрос, последние сообщения чата, профиль и анкету, текущую программу, выбранную тренировку, цель питания и краткую сводку активности, если трекер подключён.
+              Чтобы ответить точнее, FruitFit может передавать в OpenAI твой вопрос, последние сообщения чата, профиль и анкету, текущую программу, выбранную тренировку, цель питания и краткую сводку активности, если трекер подключён.
             </p>
             <p className="mt-2 text-[12px] leading-5 text-appMuted">
               Данные входа и приватные ключи не отправляются. Без согласия запрос к AI Coach не будет выполнен.
@@ -265,9 +273,13 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
   const [aiConsentState, setAiConsentState] = useState(() => ({ userId: currentUserId(), accepted: loadAiCoachConsent() }));
   const [aiConsentOpen, setAiConsentOpen] = useState(false);
   const [pendingConsentText, setPendingConsentText] = useState("");
+  const [feedbackMessage, setFeedbackMessage] = useState(null);
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
+  const [feedbackToast, setFeedbackToast] = useState("");
   const listRef = useRef(null);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const consentActionRef = useRef(false);
   const displayMessages = messages.length ? messages : [welcomeMessage];
   const aiConsentAccepted = Boolean(aiConsentState.accepted);
   const lastMessageKey = displayMessages.length
@@ -319,6 +331,8 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
   }, [input]);
 
   function acceptAiConsent() {
+    if (consentActionRef.current) return;
+    consentActionRef.current = true;
     const userId = currentUserId();
     saveAiCoachConsent(userId);
     setAiConsentState({ userId, accepted: true });
@@ -329,14 +343,44 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
   }
 
   function cancelAiConsent() {
+    if (consentActionRef.current) return;
+    consentActionRef.current = true;
     setAiConsentOpen(false);
     setPendingConsentText("");
+  }
+
+  async function rateMessage(message, rating, reason = null) {
+    if (!message?.messageId || !message?.conversationId || message?.feedback || feedbackBusy) return;
+    setFeedbackBusy(true);
+    setFeedbackToast("");
+    try {
+      await submitAiFeedback({
+        messageId: message.messageId,
+        conversationId: message.conversationId,
+        rating,
+        reason,
+      });
+      const userId = currentUserId();
+      const nextMessages = messages.map((item) => item.id === message.id ? {
+        ...item,
+        feedback: { rating, reason, submittedAt: new Date().toISOString() },
+      } : item);
+      setMessages(saveCoachChatHistory(nextMessages, userId));
+      setFeedbackMessage(null);
+      setFeedbackToast("Спасибо! Это поможет сделать AI Coach лучше.");
+      window.setTimeout(() => setFeedbackToast(""), 3200);
+    } catch (error) {
+      setFeedbackToast(error?.message || "Не удалось отправить оценку. Попробуй позже.");
+    } finally {
+      setFeedbackBusy(false);
+    }
   }
 
   async function send(text = input, options = {}) {
     const content = String(text || "").trim();
     if (!content || loading) return;
     if (!options.skipConsent && !aiConsentAccepted) {
+      consentActionRef.current = false;
       setPendingConsentText(content);
       setAiConsentOpen(true);
       return;
@@ -355,7 +399,7 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
           id: "auth-required",
           userId: "",
           role: "assistant",
-          content: error.message || "Войдите в аккаунт, чтобы пользоваться AI Coach.",
+          content: error.message || "Войди в аккаунт, чтобы пользоваться AI Coach.",
           createdAt: new Date().toISOString(),
         }]);
       } finally {
@@ -426,13 +470,17 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
         hasServerWorkout: Boolean(currentWorkout),
         sentMessages: payloadMessages.length,
       });
-      const answer = await askFruitFitCoach(content, {
+      const coachResult = await askFruitFitCoach(content, {
         messages: payloadMessages,
         context,
         selectedWorkoutId: activeSelectedWorkoutId,
         selectedWorkoutTitle: activeSelectedWorkoutTitle,
       });
-      const assistantMessage = createCoachChatMessage("assistant", answer, userId);
+      const assistantMessage = createCoachChatMessage("assistant", coachResult.answer, userId, {
+        id: coachResult.messageId || undefined,
+        messageId: coachResult.messageId,
+        conversationId: coachResult.conversationId,
+      });
       setMessages(saveCoachChatHistory([...next, assistantMessage], userId));
     } catch (error) {
       const assistantMessage = createCoachChatMessage("assistant", error.message || "AI Coach временно недоступен.", userId);
@@ -470,7 +518,23 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
       <section ref={listRef} className="mt-2 min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-[calc(138px+env(safe-area-inset-bottom))]">
         {displayMessages.map((message, index) => (
           <div key={message.id || index} className={`max-w-[86%] rounded-[20px] px-4 py-3 text-[13px] leading-5 shadow-sm ${message.role === "user" ? "ml-auto bg-appGreen text-[#181F19]" : "bg-appCard text-appText"}`}>
-            {message.content}
+            <div>{message.content}</div>
+            {message.role === "assistant" && message.messageId && message.conversationId && (
+              <div className="mt-2 flex items-center justify-end gap-1 border-t border-appBorder/60 pt-1.5">
+                {message.feedback ? (
+                  <span className="text-[10px] font-semibold text-appMuted">Спасибо за оценку</span>
+                ) : (
+                  <>
+                    <button type="button" onClick={() => rateMessage(message, "up")} disabled={feedbackBusy} aria-label="Ответ помог" className="grid h-7 w-7 place-items-center rounded-full text-appMuted transition hover:bg-appBg hover:text-appText disabled:opacity-50">
+                      <ThumbsUp size={14} />
+                    </button>
+                    <button type="button" onClick={() => setFeedbackMessage(message)} disabled={feedbackBusy} aria-label="Ответ не помог" className="grid h-7 w-7 place-items-center rounded-full text-appMuted transition hover:bg-appBg hover:text-appText disabled:opacity-50">
+                      <ThumbsDown size={14} />
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         ))}
         {loading && <ThinkingDots />}
@@ -500,6 +564,24 @@ export default function CoachScreen({ program, workout, selectedWorkout = null, 
         </form>
       </div>
       {aiConsentOpen && <AiConsentModal onAccept={acceptAiConsent} onCancel={cancelAiConsent} />}
+      {feedbackToast && <div className="fixed-shell fixed bottom-[calc(132px+env(safe-area-inset-bottom))] left-1/2 z-[100] -translate-x-1/2 px-4"><p className="rounded-full bg-appDark px-4 py-2.5 text-center text-[12px] font-bold text-white shadow-card">{feedbackToast}</p></div>}
+      {feedbackMessage && (
+        <div className="fixed inset-0 z-[110] grid place-items-center bg-black/55 px-4 backdrop-blur-sm" onClick={() => !feedbackBusy && setFeedbackMessage(null)}>
+          <section className="w-full max-w-[360px] rounded-[24px] border border-appBorder bg-appCard p-4 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-[17px] font-black text-appText">Что было не так?</h2>
+              <button type="button" onClick={() => setFeedbackMessage(null)} disabled={feedbackBusy} aria-label="Закрыть" className="grid h-8 w-8 place-items-center rounded-full text-appMuted"><X size={17} /></button>
+            </div>
+            <div className="mt-3 grid gap-2">
+              {feedbackReasons.map((reason) => (
+                <button key={reason.id} type="button" onClick={() => rateMessage(feedbackMessage, "down", reason.id)} disabled={feedbackBusy} className="h-11 rounded-[16px] border border-appBorder bg-appBg px-3 text-left text-[13px] font-bold text-appText disabled:opacity-55">
+                  {reason.label}
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
       <BottomNavigation active="coach" onNavigate={onNavigate} />
     </main>
   );

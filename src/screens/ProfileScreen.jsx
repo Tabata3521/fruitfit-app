@@ -4,15 +4,15 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Camera, CheckCircle2, ChevronDown, Settings, Watch, X } from "lucide-react";
 import BottomNavigation from "../components/BottomNavigation";
 import CustomSelect from "../components/CustomSelect";
+import RestrictionMultiSelect from "../components/RestrictionMultiSelect";
 import { useHealth } from "../data/healthStore";
-import { PROFILE_FIRST_NAME_PLACEHOLDER, PROFILE_LAST_NAME_PLACEHOLDER, normalizeProfile, profileOptions, profileSummary, saveProfile, validateProfile } from "../data/profileStore";
+import { PROFILE_FIRST_NAME_PLACEHOLDER, PROFILE_LAST_NAME_PLACEHOLDER, legacyRestrictionValue, normalizeProfile, profileOptions, profileSummary, saveProfile, validateProfile } from "../data/profileStore";
 import { fetchMeasurements, getAuthToken, loadAuthUser, saveMeasurement, saveServerProfile } from "../data/authStore";
 import { accessTier } from "../data/accessRules";
 import { readUserCoreField, writeUserCoreField } from "../data/dataContainers";
 import { currentUserId } from "../data/userScopedCache";
 import { healthProviderStates } from "../services/health/healthProvider";
 import { getFirebaseMessagingPermissionStatus, openFirebaseMessagingSettings, registerFirebaseMessagingPush } from "../services/notifications/firebaseMessagingPush";
-import { openProfileProgramAction } from "#fruitfit/programAction";
 import { cancelProgramRenewal, fetchProgramRenewal, fetchProgramRenewalCancelInfo } from "#fruitfit/programRenewal";
 import { APP_STORE_REVIEW } from "../config/appStoreReview";
 
@@ -24,6 +24,7 @@ const IS_IOS_PLATFORM = CAPACITOR_PLATFORM === "ios";
 const HEALTH_PROVIDER_NAME = IS_IOS_PLATFORM ? "Apple Health" : "Google Health Connect";
 const HEALTH_PROVIDER_SETTINGS_NAME = IS_IOS_PLATFORM ? "Apple Health" : "Health Connect";
 const HEALTH_PROVIDER_DEVICE_COPY = IS_IOS_PLATFORM ? "iPhone" : "Android";
+const PLATFORM_SETTINGS_DEVICE = IS_IOS_PLATFORM ? "iPhone" : "Android";
 const ACCESS_INFINITY_LABEL = "∞";
 
 const permissionItems = [
@@ -143,17 +144,17 @@ function notificationRegistrationMessage(result) {
     }
     return "Уведомления включены.";
   }
-  if (result.status === "UNAUTHENTICATED") return "Войдите в аккаунт, чтобы включить уведомления.";
+  if (result.status === "UNAUTHENTICATED") return "Войди в аккаунт, чтобы включить уведомления.";
   if (result.status === "native_push_unavailable") return "Уведомления доступны только в приложении на телефоне.";
-  if (result.status === "NO_FCM_TOKEN") return "Не удалось включить уведомления. Попробуйте ещё раз.";
-  if (result.status === "permission_denied") return "Уведомления выключены в настройках iPhone.";
+  if (result.status === "NO_FCM_TOKEN") return "Не удалось включить уведомления. Попробуй ещё раз.";
+  if (result.status === "permission_denied") return `Уведомления выключены в настройках ${PLATFORM_SETTINGS_DEVICE}.`;
   if (result.status === "permission_missing") {
     if (result.permissions?.receive === "denied") {
-      return "Откройте Настройки > FruitFit > Уведомления и включите разрешение.";
+      return "Открой Настройки > FruitFit > Уведомления и включи разрешение.";
     }
-    return "Разрешение не выдано. Нажмите ещё раз и выберите «Разрешить».";
+    return "Разрешение не выдано. Нажми ещё раз и выбери «Разрешить».";
   }
-  return "Не удалось включить уведомления. Попробуйте позже.";
+  return "Не удалось включить уведомления. Попробуй позже.";
 }
 
 function healthConnectionHint(availability, syncing) {
@@ -161,9 +162,9 @@ function healthConnectionHint(availability, syncing) {
   const state = availability?.state || healthProviderStates.NOT_SUPPORTED;
   if (state === healthProviderStates.CONNECTED) return "FruitFit использует активность, сон и пульс, чтобы точнее подбирать нагрузку.";
   if (state === healthProviderStates.PARTIALLY_GRANTED) return "Часть данных уже подключена. Сон и пульс сделают восстановление точнее.";
-  if (state === healthProviderStates.PERMISSIONS_REQUIRED) return "Разрешите доступ к активности, сну и пульсу. Данные не передаются третьим лицам.";
-  if (state === healthProviderStates.NOT_INSTALLED) return `Откройте ${HEALTH_PROVIDER_NAME} и проверьте, что часы синхронизируют данные.`;
-  return `Подключите ${HEALTH_PROVIDER_NAME}, чтобы FruitFit мог учитывать вашу активность и восстановление.`;
+  if (state === healthProviderStates.PERMISSIONS_REQUIRED) return "Разреши доступ к активности, сну и пульсу. Данные не передаются третьим лицам.";
+  if (state === healthProviderStates.NOT_INSTALLED) return `Открой ${HEALTH_PROVIDER_NAME} и проверь, что часы синхронизируют данные.`;
+  return `Подключи ${HEALTH_PROVIDER_NAME}, чтобы FruitFit мог учитывать твою активность и восстановление.`;
 }
 
 function formatHealthSyncTime(value) {
@@ -504,7 +505,7 @@ function MeasurementsSection() {
     setItems((current) => mergeMeasurements([next, ...current.filter((item) => item.date !== next.date)]));
     setDraft({ date: today, weight: "", chest: "", waist: "", hips: "" });
     if (!getAuthToken() && !loadAuthUser()) {
-      setSyncStatus("Замер сохранён на устройстве. Войдите в аккаунт, чтобы синхронизировать историю.");
+      setSyncStatus("Замер сохранён на устройстве. Войди в аккаунт, чтобы синхронизировать историю.");
       return;
     }
     try {
@@ -785,7 +786,24 @@ function renewalExpiryDate(renewal = null) {
   );
 }
 
-function accessCardInfo(access = {}, user = {}, renewal = null) {
+function previewWorkoutCount(access = {}, programAssignment = null) {
+  const values = [
+    programAssignment?.accessRules?.visibleWorkoutLimit,
+    programAssignment?.accessRules?.visibleWorkoutCount,
+    programAssignment?.visibleWorkoutCount,
+    access?.accessRules?.visibleWorkoutLimit,
+    access?.accessRules?.visibleWorkoutCount,
+    access?.limits?.visibleWorkoutCount,
+    access?.features?.visibleWorkoutCount,
+    access?.visibleWorkoutCount,
+  ];
+  const count = values
+    .map((value) => Number(value))
+    .find((value) => Number.isFinite(value) && value > 0 && value <= 3);
+  return count || 3;
+}
+
+function accessCardInfo(access = {}, user = {}, renewal = null, programAssignment = null) {
   if (APP_STORE_REVIEW) {
     if (hasServerProgramAccess(access, user)) {
       return {
@@ -802,8 +820,8 @@ function accessCardInfo(access = {}, user = {}, renewal = null) {
     return {
       kind: "review",
       title: "Ознакомительная программа",
-      subtitle: "Можно отправить анкету тренеру",
-      meta: "Тренер рассмотрит заявку и свяжется с вами по электронной почте.",
+      subtitle: `${previewWorkoutCount(access, programAssignment)} тренировки для знакомства с FruitFit`,
+      meta: "Отправь анкету мне: я составлю полноценную программу и буду сопровождать тебя до результата.",
       ringLabel: ACCESS_INFINITY_LABEL,
       ringCaption: "",
       ringFull: true,
@@ -864,8 +882,8 @@ function accessCardInfo(access = {}, user = {}, renewal = null) {
   return {
     kind: "free",
     title: "Ознакомительная программа",
-    subtitle: "Заявка тренеру",
-    meta: "Программа в работе",
+    subtitle: `${previewWorkoutCount(access, programAssignment)} тренировки для знакомства с FruitFit`,
+    meta: "Отправь анкету мне: я составлю полноценную программу и буду сопровождать тебя до результата.",
     ringLabel: ACCESS_INFINITY_LABEL,
     ringCaption: "",
     ringFull: true,
@@ -875,6 +893,7 @@ function accessCardInfo(access = {}, user = {}, renewal = null) {
 
 function AccessMembershipCard({
   access,
+  programAssignment,
   authUser,
   hasAuth,
   requestLoading,
@@ -887,10 +906,11 @@ function AccessMembershipCard({
   onOpenProgramAction,
   onChangeRenewal,
 }) {
-  const info = accessCardInfo(access, authUser, renewal);
+  const info = accessCardInfo(access, authUser, renewal, programAssignment);
   const assigned = assignedStatus();
   const priority = priorityStatus();
   const isFreeAccess = info.kind === "free";
+  const isPreviewAccess = isFreeAccess || info.kind === "review";
   const isProgramAssignedKind = info.kind === assigned;
   const hasActiveProgramAccess = [assigned, priority, "admin"].includes(info.kind);
   const showRenewalBlock = Boolean(!APP_STORE_REVIEW && hasAuth && info.kind !== "free" && !IS_IOS_PLATFORM);
@@ -898,7 +918,7 @@ function AccessMembershipCard({
   const showProgramActionButton = APP_STORE_REVIEW
     ? !hasServerProgramAccess(access, authUser)
     : isFreeAccess || renewalAvailable || (!isProgramAssignedKind && !isFreeAccess);
-  const actionButtonText = "Оставить заявку тренеру";
+  const actionButtonText = isPreviewAccess ? "Подать заявку" : "Связаться со мной";
   const ringDegrees = info.ringFull ? 360 : Math.round(Math.max(0, Math.min(1, info.ringProgress ?? 1)) * 360);
   const ringLabelClass = info.ringCaption ? "text-[20px] tabular-nums tracking-normal" : "text-[26px]";
 
@@ -906,7 +926,7 @@ function AccessMembershipCard({
     <div className="mt-4 rounded-[24px] border border-appBorder bg-appBg p-3">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-appMuted">{APP_STORE_REVIEW ? "Заявка тренеру" : "Статус программы"}</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-appMuted">{isPreviewAccess ? "Ознакомительный доступ" : "Статус программы"}</p>
           <h3 className="mt-1 text-[20px] font-black leading-tight text-appText">{info.title}</h3>
           <p className="mt-1 text-[13px] font-bold text-appMuted">{info.subtitle}</p>
           <p className="mt-1 text-[12px] font-semibold text-appMuted">{info.meta}</p>
@@ -954,7 +974,7 @@ function AccessMembershipCard({
   );
 }
 
-export default function ProfileScreen({ profile, access, onProfileChange, theme, onThemeChange, onNavigate, onRestartQuiz, onRequireAuth }) {
+export default function ProfileScreen({ profile, access, programAssignment, onProfileChange, theme, onThemeChange, onNavigate, onRestartQuiz, onRequireAuth }) {
   const { health, availability, syncing, requestConnection, syncNativeHealth } = useHealth();
   const [avatar, setAvatar] = useState(() => loadAvatar(profile, loadAuthUser()));
   const [draft, setDraft] = useState(() => normalizeProfile(profile));
@@ -1030,7 +1050,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
         const granted = result.permissions?.receive === "granted";
         setPermissions((current) => ({ ...current, notifications: granted && current.notifications }));
         if (!granted && result.permissions?.receive === "denied") {
-          setNotificationStatus("Уведомления выключены в настройках iPhone.");
+          setNotificationStatus(`Уведомления выключены в настройках ${PLATFORM_SETTINGS_DEVICE}.`);
         }
       })
       .catch(() => {});
@@ -1065,6 +1085,16 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
+  function updateRestrictions(restrictionKeys) {
+    setSaved(false);
+    setDraftDirty(true);
+    setDraft((current) => ({
+      ...current,
+      restrictionKeys,
+      restrictions: legacyRestrictionValue(restrictionKeys),
+    }));
+  }
+
   async function submit() {
     const nextErrors = validateProfile(draft);
     setErrors(nextErrors);
@@ -1078,7 +1108,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
 
   async function openProgramAction() {
     if (!getAuthToken()) {
-      setRequestStatus("Войдите или создайте аккаунт, затем продолжите.");
+      setRequestStatus("Войди или создай аккаунт, затем продолжи.");
       onRequireAuth?.({ reason: "trainer-request" });
       return;
     }
@@ -1090,14 +1120,9 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
       setDraftDirty(false);
       onProfileChange?.(savedProfile);
       await saveServerProfile(savedProfile);
-      const result = await openProfileProgramAction({
-        profile: savedProfile,
-        source: APP_STORE_REVIEW ? "ios-profile" : "profile",
-        openExternalUrl,
-      });
-      if (result?.message) setRequestStatus(result.message);
+      onNavigate?.("trainerRequest", { source: "profile-program-card" });
     } catch (error) {
-      setRequestStatus(error?.message || "Не удалось отправить заявку. Попробуйте позже.");
+      setRequestStatus(error?.message || "Не удалось отправить заявку. Попробуй позже.");
     } finally {
       setRequestLoading(false);
     }
@@ -1105,11 +1130,11 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
 
   async function updateProgramState() {
     if (APP_STORE_REVIEW) {
-      setRenewalStatus("Статус программы можно уточнить у тренера.");
+      setRenewalStatus("Статус программы можно уточнить у меня.");
       return;
     }
     if (!getAuthToken()) {
-      setRenewalStatus("Войдите в аккаунт, чтобы изменить статус.");
+      setRenewalStatus("Войди в аккаунт, чтобы изменить статус.");
       onRequireAuth?.({ reason: "program-status-change" });
       return;
     }
@@ -1142,11 +1167,11 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
 
   async function handleRenewalChange() {
     if (APP_STORE_REVIEW) {
-      setRenewalStatus("Статус программы можно уточнить у тренера.");
+      setRenewalStatus("Статус программы можно уточнить у меня.");
       return;
     }
     if (!getAuthToken()) {
-      setRenewalStatus("Войдите в аккаунт, чтобы изменить статус.");
+      setRenewalStatus("Войди в аккаунт, чтобы изменить статус.");
       onRequireAuth?.({ reason: "program-status-change" });
       return;
     }
@@ -1225,7 +1250,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
     if (item.id === "notifications") {
       if (!shouldEnable) {
         setPermissions((current) => ({ ...current, notifications: false }));
-        setNotificationStatus("Уведомления выключены в FruitFit. Системное разрешение можно изменить в настройках iPhone.");
+        setNotificationStatus(`Уведомления выключены в FruitFit. Системное разрешение можно изменить в настройках ${PLATFORM_SETTINGS_DEVICE}.`);
         return;
       }
       setNotificationStatus("Запрашиваем разрешение на уведомления...");
@@ -1238,7 +1263,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
       setPermissions((current) => ({ ...current, notifications: connected }));
       setNotificationStatus(notificationRegistrationMessage(result));
       if (!connected && (result?.status === "permission_denied" || result?.permissions?.receive === "denied")) {
-        const shouldOpenSettings = window.confirm("Уведомления выключены в настройках iPhone. Открыть настройки FruitFit?");
+        const shouldOpenSettings = window.confirm(`Уведомления выключены в настройках ${PLATFORM_SETTINGS_DEVICE}. Открыть настройки FruitFit?`);
         if (shouldOpenSettings) await openFirebaseMessagingSettings().catch(() => {});
       }
       return;
@@ -1278,6 +1303,7 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
           </div>
           <AccessMembershipCard
             access={access}
+            programAssignment={programAssignment}
             authUser={authUser}
             hasAuth={hasAuth}
             requestLoading={requestLoading}
@@ -1301,11 +1327,14 @@ export default function ProfileScreen({ profile, access, onProfileChange, theme,
             <SelectField label="Цель" value={draft.goal} options={profileOptions.goal} error={errors.goal} onChange={(value) => updateDraft("goal", value)} />
             <SelectField label="Опыт тренировок" value={draft.experience} options={profileOptions.experience} error={errors.experience} onChange={(value) => updateDraft("experience", value)} />
             <SelectField label="Частота" value={draft.trainingFrequency} options={profileOptions.trainingFrequency} error={errors.trainingFrequency} onChange={(value) => updateDraft("trainingFrequency", value)} />
-            <SelectField label="Ограничения" value={draft.restrictions} options={profileOptions.restrictions} error={errors.restrictions} onChange={(value) => updateDraft("restrictions", value)} />
             <SelectField label="Тип питания" value={draft.dietType} options={profileOptions.dietType} error={errors.dietType} onChange={(value) => updateDraft("dietType", value)} />
             <NumberField label="Возраст" value={draft.age} suffix="лет" error={errors.age} onChange={(value) => updateDraft("age", value)} />
             <NumberField label="Рост" value={draft.height} suffix="см" error={errors.height} onChange={(value) => updateDraft("height", value)} />
             <NumberField label="Вес" value={draft.weight} suffix="кг" error={errors.weight} onChange={(value) => updateDraft("weight", value)} />
+          </div>
+          <div className="mt-4 rounded-[22px] border border-appBorder bg-appBg p-3">
+            <p className="mb-2 text-[11px] font-black uppercase tracking-[0.1em] text-appMuted">Ограничения</p>
+            <RestrictionMultiSelect value={draft.restrictionKeys} onChange={updateRestrictions} error={errors.restrictionKeys} compact />
           </div>
           <button type="button" onClick={submit} className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-appDark text-[14px] font-black text-appGreen">
             <CheckCircle2 size={17} /> Сохранить профиль

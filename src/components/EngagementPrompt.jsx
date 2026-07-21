@@ -1,7 +1,7 @@
 import { Capacitor } from "@capacitor/core";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Sparkles, Star, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { APP_STORE_REVIEW } from "../config/appStoreReview";
 import {
   engagementPromptTypes,
@@ -9,7 +9,6 @@ import {
   ratingStoreUrl,
   recordEngagementPromptOutcome,
 } from "../data/engagementPrompts";
-import { openProfileProgramAction } from "#fruitfit/programAction";
 
 const PLATFORM = Capacitor.getPlatform?.() || "web";
 
@@ -30,10 +29,11 @@ async function openExternalUrl(url) {
   return true;
 }
 
-export default function EngagementPrompt({ user, access, profile }) {
+export default function EngagementPrompt({ user, access, onNavigate }) {
   const [type, setType] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const actionInFlightRef = useRef(false);
 
   useEffect(() => {
     setType(null);
@@ -52,7 +52,8 @@ export default function EngagementPrompt({ user, access, profile }) {
   }
 
   async function runPrimaryAction() {
-    if (!type || loading) return;
+    if (!type || loading || actionInFlightRef.current) return;
+    actionInFlightRef.current = true;
     setLoading(true);
     setError("");
     try {
@@ -61,17 +62,16 @@ export default function EngagementPrompt({ user, access, profile }) {
         if (!opened) throw new Error("Не удалось открыть страницу приложения.");
         recordEngagementPromptOutcome({ user, type, outcome: "completed" });
       } else {
-        await openProfileProgramAction({
-          profile,
-          source: APP_STORE_REVIEW ? `${PLATFORM}-home-program-prompt` : "home-program-prompt",
-          openExternalUrl,
-        });
         recordEngagementPromptOutcome({ user, type, outcome: "action" });
+        onNavigate?.("trainerRequest", {
+          source: APP_STORE_REVIEW ? `${PLATFORM}-home-program-prompt` : "home-program-prompt",
+        });
       }
       setType(null);
     } catch (actionError) {
-      setError(actionError?.message || "Не удалось выполнить действие. Попробуйте позже.");
+      setError(actionError?.message || "Не удалось выполнить действие. Попробуй позже.");
     } finally {
+      actionInFlightRef.current = false;
       setLoading(false);
     }
   }

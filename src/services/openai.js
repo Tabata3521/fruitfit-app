@@ -104,7 +104,11 @@ export async function askFruitFitCoach(message, options = {}) {
     throw new Error(AI_UNAVAILABLE_MESSAGE);
   }
 
-  return answer;
+  return {
+    answer,
+    messageId: String(data?.message_id || data?.messageId || "").trim(),
+    conversationId: String(data?.conversation_id || data?.conversationId || "").trim(),
+  };
 }
 
 function withSelectedWorkoutHint(content = "", context = {}, selectedWorkoutId = "", selectedWorkoutTitle = "") {

@@ -8,3 +8,12 @@ export function programGender(course) {
   if (title.includes("\u043c\u0443\u0436")) return "male";
   return "";
 }
+
+export function programSummaryTitle(profile = {}, course = {}) {
+  const gender = programGender(course) || profile.gender;
+  const genderLabel = gender === "male" ? "Мужская программа" : gender === "female" ? "Женская программа" : "Персональная программа";
+  const goal = String(profile.goal || course.goal || "").trim();
+  const rawFrequency = String(profile.trainingFrequency || course.trainingFrequency || course.training_frequency || "").trim();
+  const frequency = /^[23]$/.test(rawFrequency) ? `${rawFrequency} раза в неделю` : rawFrequency;
+  return [genderLabel, goal, frequency].filter(Boolean).join(" · ");
+}

@@ -30,8 +30,6 @@ import { lectureTextFor } from "../data/lectureTexts";
 import { dietTypeToRation } from "../data/profileStore";
 import { getMealPlan, useNutritionData } from "../data/useNutritionData";
 import { accessTier } from "../data/accessRules";
-import { getAuthToken } from "../data/authStore";
-import { openLectureProgramAction } from "#fruitfit/programAction";
 import { APP_STORE_REVIEW } from "../config/appStoreReview";
 
 const widgetStorageKey = "fruitfit.widgets";
@@ -40,11 +38,11 @@ const IS_ANDROID_PLATFORM = CAPACITOR_PLATFORM === "android";
 const HEALTH_PROVIDER_NAME = IS_ANDROID_PLATFORM ? "Google Health Connect" : "Apple Health";
 const HEALTH_SOURCE_NAME = IS_ANDROID_PLATFORM ? "Health Connect" : "Apple Health";
 const HEALTH_WATCH_SYNC_HINT = IS_ANDROID_PLATFORM
-  ? "Откройте Mi Fitness/Samsung Health и дождитесь синхронизации с Health Connect."
-  : "Откройте приложение часов или Mi Fitness/Samsung Health и дождитесь синхронизации с Apple Health.";
+  ? "Открой Mi Fitness/Samsung Health и дождись синхронизации с Health Connect."
+  : "Открой приложение часов или Mi Fitness/Samsung Health и дождись синхронизации с Apple Health.";
 const HEART_PERMISSION_HINT = IS_ANDROID_PLATFORM
-  ? "Разрешите пульс в Health Connect и синхронизируйте часы."
-  : "Разрешите пульс в Apple Health и синхронизируйте часы.";
+  ? "Разреши пульс в Health Connect и синхронизируй часы."
+  : "Разреши пульс в Apple Health и синхронизируй часы.";
 
 const lecture = lectures[0];
 
@@ -778,7 +776,7 @@ function sleepDaySourceLabel(day = {}, sleep = {}) {
 }
 
 function sleepDuplicateWarning(totalMinutes) {
-  return Number(totalMinutes || 0) > 14 * 60 ? "Проверьте запись сна: возможный дубль данных" : "";
+  return Number(totalMinutes || 0) > 14 * 60 ? "Проверь запись сна: возможный дубль данных" : "";
 }
 
 function formatAxisValue(value, suffix = "") {
@@ -1198,7 +1196,7 @@ function friendlyHeartHint(heart = {}) {
   if (isRateLimitedUiStatus(heart.status) || isRateLimitedUiStatus(heart.widgetState) || heart.freshness === "rate_limited") {
     return heart.dataSource || heart.latestBpm
       ? `${HEALTH_PROVIDER_NAME} временно ограничил запросы, показываем сохранённые данные.`
-      : `${HEALTH_PROVIDER_NAME} пока не ответил. Повторите обновление позже.`;
+      : `${HEALTH_PROVIDER_NAME} пока не ответил. Повтори обновление позже.`;
   }
   const rangeInfo = heartRangeInfo(heart);
   if (rangeInfo.hasRange) {
@@ -1215,7 +1213,7 @@ function friendlySourceHint(metric = {}, type = "metric") {
   if (isRateLimitedUiStatus(metric.status) || isRateLimitedUiStatus(metric.widgetState)) {
     return metric.dataSource
       ? `${HEALTH_PROVIDER_NAME} ограничил частоту запросов, показываем сохранённые данные.`
-      : `${HEALTH_PROVIDER_NAME} временно недоступен. Повторите обновление позже.`;
+      : `${HEALTH_PROVIDER_NAME} временно недоступен. Повтори обновление позже.`;
   }
   if (metric.isEstimated || metric.status === "estimated") {
     return "Значение рассчитано приблизительно.";
@@ -1746,14 +1744,12 @@ function HeartSparkline({ values = [], color = "#EF4444" }) {
   );
 }
 
-export function LectureDetailScreen({ onBack, access }) {
+export function LectureDetailScreen({ onBack, onNavigate, access }) {
   const [progress, setProgress] = useLectureProgress();
   const safeProgress = normalizeLectureProgress(progress);
   const [index, setIndex] = useState(safeProgress.currentIndex || 0);
   const [textOpen, setTextOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
-  const [courseActionLoading, setCourseActionLoading] = useState(false);
-  const [courseActionStatus, setCourseActionStatus] = useState("");
   const [accessPolicy, setAccessPolicy] = useState(loadLectureAccessPolicy);
   const visibleLectures = visibleLecturesForAccess(lectures, access, accessPolicy);
   const safeIndex = Math.max(0, Math.min(index, Math.max(visibleLectures.length - 1, 0)));
@@ -1773,25 +1769,10 @@ export function LectureDetailScreen({ onBack, access }) {
     openExternalVideo(lecturePlaybackUrl(activeLecture));
   }
 
-  async function openLectureCourseAction() {
-    if (courseActionLoading) return;
-    if (!getAuthToken()) {
-      setCourseActionStatus("Войдите в аккаунт, чтобы отправить заявку тренеру.");
-      return;
-    }
-    setCourseActionLoading(true);
-    setCourseActionStatus("");
-    try {
-      const result = await openLectureProgramAction({
-        source: APP_STORE_REVIEW ? "ios-lecture-6" : "lecture-6",
-        openExternalUrl,
-      });
-      if (result?.message) setCourseActionStatus(result.message);
-    } catch (error) {
-      setCourseActionStatus(error?.message || "Не удалось открыть страницу.");
-    } finally {
-      setCourseActionLoading(false);
-    }
+  function openLectureCourseAction() {
+    onNavigate?.("trainerRequest", {
+      source: APP_STORE_REVIEW ? "ios-lecture-6" : "lecture-6",
+    });
   }
 
   function move(direction) {
@@ -1906,7 +1887,7 @@ export function LectureDetailScreen({ onBack, access }) {
               </div>
               <div>
                 <p className="text-[15px] font-black text-appText">Материал пока недоступен</p>
-                <p className="mt-1 text-[12px] font-semibold leading-5 text-appMuted">Тренер подскажет дальнейший маршрут после заявки.</p>
+                <p className="mt-1 text-[12px] font-semibold leading-5 text-appMuted">После заявки я подскажу дальнейший маршрут.</p>
               </div>
             </div>
           ) : (
@@ -1922,7 +1903,7 @@ export function LectureDetailScreen({ onBack, access }) {
           <p className="mt-2 text-[13px] font-semibold leading-5 text-appMuted">{activeLecture.subtitle}</p>
           {lectureLocked && !APP_STORE_REVIEW ? (
             <p className="mt-3 rounded-2xl bg-appBg px-3 py-3 text-[12px] leading-5 text-appMuted">
-              Материал пока недоступен. Тренер подскажет дальнейший маршрут после заявки.
+              Материал пока недоступен. После заявки я подскажу дальнейший маршрут.
             </p>
           ) : showLectureCourseCta ? (
             <div className="mt-3 rounded-2xl bg-appBg px-3 py-3">
@@ -1930,12 +1911,10 @@ export function LectureDetailScreen({ onBack, access }) {
               <button
                 type="button"
                 onClick={openLectureCourseAction}
-                disabled={courseActionLoading}
-                className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-appGreen px-4 text-[14px] font-black text-[#181F19] disabled:opacity-70"
+                className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-appGreen px-4 text-[14px] font-black text-[#181F19]"
               >
-                {courseActionLoading ? "Отправляем заявку..." : "Оставить заявку тренеру"}
+                Подать заявку
               </button>
-              {courseActionStatus && <p className="mt-2 text-[12px] font-semibold leading-5 text-appMuted">{courseActionStatus}</p>}
             </div>
           ) : null}
           <div className="mt-4 grid grid-cols-2 gap-2">
@@ -2055,7 +2034,7 @@ function MetricDetail({ type, health }) {
     : formatPercent(value, target);
 
   if (!sourceAvailable) {
-    return <p className="rounded-[22px] bg-appBg p-4 text-[13px] text-appMuted">{isSteps ? "Шаги" : "Калории"} пока не найдены. Проверьте подключение {HEALTH_PROVIDER_NAME}.</p>;
+    return <p className="rounded-[22px] bg-appBg p-4 text-[13px] text-appMuted">{isSteps ? "Шаги" : "Калории"} пока не найдены. Проверь подключение {HEALTH_PROVIDER_NAME}.</p>;
   }
 
   return (
@@ -2912,7 +2891,7 @@ export function HealthDetailScreen({ type, onBack }) {
           Синхронизация: {health.lastFruitFitRefreshAt ? new Date(health.lastFruitFitRefreshAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }) : "данные скоро появятся"}
           {refreshNote ? ` · ${refreshNote}` : ""}
         </p>
-        {syncError && <p className="mb-3 rounded-2xl border border-appBorder bg-appBg/80 px-3 py-2 text-[11px] font-bold text-appMuted">Данные скоро обновятся. Проверьте, что трекер синхронизировался с {HEALTH_PROVIDER_NAME}.</p>}
+        {syncError && <p className="mb-3 rounded-2xl border border-appBorder bg-appBg/80 px-3 py-2 text-[11px] font-bold text-appMuted">Данные скоро обновятся. Проверь, что трекер синхронизировался с {HEALTH_PROVIDER_NAME}.</p>}
         {type === "heart" && <HeartDetailV2 health={health} setHeartCondition={setHeartCondition} />}
         {type === "steps" && <MetricDetail type="steps" health={health} />}
         {type === "calories" && <MetricDetail type="calories" health={health} />}

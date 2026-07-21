@@ -31,6 +31,9 @@ function normalizeMessage(message = {}, userId = currentUserId()) {
     role: normalizeRole(message.role),
     content,
     createdAt: message.createdAt || message.created_at || new Date().toISOString(),
+    messageId: String(message.messageId || message.message_id || "").trim(),
+    conversationId: String(message.conversationId || message.conversation_id || "").trim(),
+    feedback: message.feedback && typeof message.feedback === "object" ? message.feedback : null,
   };
 }
 
@@ -72,8 +75,8 @@ export function saveCoachChatHistory(messages = [], userId = currentUserId()) {
   return pruned;
 }
 
-export function createCoachChatMessage(role, content, userId = currentUserId()) {
-  return normalizeMessage({ role, content }, userId);
+export function createCoachChatMessage(role, content, userId = currentUserId(), metadata = {}) {
+  return normalizeMessage({ role, content, ...metadata }, userId);
 }
 
 export function coachMessagesForContext(messages = [], userId = currentUserId(), limit = COACH_CONTEXT_MESSAGE_LIMIT) {

@@ -1,6 +1,6 @@
 import { createTrainerRequest, fetchProfile, trainerRequestPageUrl } from "../data/authStore";
 
-const TRAINER_REQUEST_MESSAGE = "Тренер рассмотрит заявку и свяжется с вами по электронной почте.";
+const TRAINER_REQUEST_MESSAGE = "Заявка отправлена. Я изучу твою анкету и свяжусь с тобой по электронной почте.";
 
 export async function openProfileProgramAction({ profile = {}, source = "ios-profile", openExternalUrl } = {}) {
   const request = await createTrainerRequest({ profile, source });

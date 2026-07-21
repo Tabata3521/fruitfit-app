@@ -4,22 +4,23 @@ import {
   ArrowLeft,
   AtSign,
   Bell,
+  ChevronDown,
+  ChevronUp,
   CreditCard,
   Download,
   ImagePlus,
   Link2,
   Loader2,
   LogOut,
+  KeyRound,
   MessageCircle,
   Moon,
   Phone,
-  RefreshCcw,
   Save,
   ShieldCheck,
   SlidersHorizontal,
   Sun,
   Trash2,
-  Unlink,
   Wallet,
 } from "lucide-react";
 import BottomNavigation from "../components/BottomNavigation";
@@ -27,41 +28,31 @@ import AppIconSettings from "../components/AppIconSettings";
 import { buildClientReportScores, ClientReportSliders, normalizeClientReportScores } from "../components/ClientReportSliders";
 import {
   apiUrl,
+  clearLocalAuthSession,
   deleteAccount,
   deleteProgressPhoto,
-  fetchAuthIdentities,
   fetchMeasurements,
   fetchProgressPhotos,
   fetchTrainerReports,
   getAuthToken,
-  linkAuthProvider,
   loadAccessState,
   loadAuthUser,
   logoutUser,
+  logoutAllDevices,
+  requestPasswordResetEmail,
   saveServerProfile,
   saveProgressPhoto,
   submitTrainerReport,
-  unlinkAuthProvider,
 } from "../data/authStore";
-import { deviceQueryStringAsync, getDeviceRegistrationPayloadAsync } from "../data/deviceStore";
-import { AUTH_RETURN_TO, providerAuthUrl, sanitizeTelegramBot } from "../services/authDeepLinks";
 import { checkAndroidAppUpdate, openApkDownload } from "../services/appUpdate";
 import { getAppInfo } from "../services/appInfo";
-import { getJson } from "../services/nativeHttp";
-import { canUseTelegramNativeLogin, startTelegramNativeLogin } from "../services/telegramNativeLogin";
 import { useHealth } from "../data/healthStore";
 import { readHealthContainer, readUserCoreField } from "../data/dataContainers";
 import { loadProfile, saveProfile } from "../data/profileStore";
 import { currentUserId } from "../data/userScopedCache";
 import { APP_STORE_REVIEW } from "../config/appStoreReview";
-import { PRIVACY_POLICY_TEXT, PRIVACY_POLICY_URL } from "../data/privacyPolicyText";
-
-const PROVIDER_META = {
-  telegram: { label: "Telegram", color: "text-[#229ED9]", dot: "bg-[#229ED9]" },
-  yandex: { label: "Яндекс", color: "text-[#FC3F1D]", dot: "bg-[#FC3F1D]" },
-  google: { label: "Google", color: "text-[#4285F4]", dot: "bg-[#4285F4]" },
-  apple: { label: "Apple", color: "text-appText", dot: "bg-appText" },
-};
+import { loadPrivacyPolicyTextWithFallback } from "../services/privacyPolicy";
+import { formatRetryDuration } from "../services/authFlow";
 
 const PHOTO_TYPES = [
   { id: "front", label: "Спереди" },
@@ -264,44 +255,166 @@ function FeedbackSettingsSection() {
 }
 
 function PrivacySettingsSection() {
+  const [expanded, setExpanded] = useState(false);
   const [policyOpen, setPolicyOpen] = useState(false);
-  const policyLines = useMemo(() => PRIVACY_POLICY_TEXT.split("\n").map((line) => line.trim()).filter(Boolean), []);
+  const [policyLoading, setPolicyLoading] = useState(false);
+  const [policyText, setPolicyText] = useState("");
+  const policyLines = useMemo(() => policyText.split("\n").map((line) => line.trim()).filter(Boolean), [policyText]);
+
+  async function togglePolicy() {
+    if (policyOpen) {
+      setPolicyOpen(false);
+      return;
+    }
+    setPolicyOpen(true);
+    if (policyText) return;
+    setPolicyLoading(true);
+    setPolicyText(await loadPrivacyPolicyTextWithFallback());
+    setPolicyLoading(false);
+  }
 
   return (
     <section className="rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">
-      <div className="flex items-start gap-3">
+      <button
+        type="button"
+        onClick={() => setExpanded((value) => !value)}
+        aria-expanded={expanded}
+        className="flex w-full items-start gap-3 text-left"
+      >
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-appGreen/15 text-appGreen">
           <ShieldCheck size={18} />
         </span>
-        <div className="min-w-0">
-          <h2 className="text-[16px] font-black text-appText">Конфиденциальность</h2>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[16px] font-black text-appText">Политика конфиденциальности</h2>
           <p className="mt-1 text-[12px] leading-5 text-appMuted">
-            FruitFit использует данные аккаунта, анкету, программу, питание, замеры, отчёты, активность и историю чата только для работы приложения, рекомендаций и поддержки пользователя.
+            Тот же документ, с которым пользователь соглашается при регистрации.
           </p>
         </div>
-      </div>
-
-      <div className="mt-3 space-y-2 rounded-[18px] border border-appBorder bg-appBg p-3 text-[12px] font-semibold leading-5 text-appMuted">
-        <p>AI Coach работает с использованием OpenAI. Перед первым запросом приложение отдельно попросит согласие.</p>
-        <p>В AI могут передаваться вопрос, последние сообщения, профиль, текущая программа, выбранная тренировка, цель питания и краткая сводка активности, если трекер подключён.</p>
-        <p>Данные входа и приватные ключи не передаются в AI. Используется только информация, нужная для работы приложения и рекомендаций.</p>
-        <p>Аккаунт можно удалить в настройках: профиль, замеры, прогресс и health-данные будут удалены по запросу.</p>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => (APP_STORE_REVIEW ? setPolicyOpen((value) => !value) : openSettingsExternalUrl(PRIVACY_POLICY_URL))}
-        className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full border border-appBorder bg-appBg text-[14px] font-black text-appText"
-      >
-        <Link2 size={17} />
-        {APP_STORE_REVIEW ? (policyOpen ? "Скрыть политику" : "Показать политику") : "Открыть политику"}
+        <span className="mt-2 text-appMuted">
+          {expanded ? <ChevronUp size={19} /> : <ChevronDown size={19} />}
+        </span>
       </button>
 
-      {APP_STORE_REVIEW && policyOpen && (
-        <div className="mt-3 max-h-[52vh] space-y-2 overflow-y-auto rounded-[18px] border border-appBorder bg-appBg p-3 text-[12px] font-semibold leading-5 text-appMuted">
-          {policyLines.map((line, index) => (
-            <p key={`${index}-${line.slice(0, 20)}`}>{line}</p>
-          ))}
+      {expanded && (
+        <div className="mt-3">
+          <div className="space-y-2 rounded-[18px] border border-appBorder bg-appBg p-3 text-[12px] font-semibold leading-5 text-appMuted">
+            <p>AI Coach работает с использованием OpenAI. Перед первым запросом приложение отдельно попросит согласие.</p>
+            <p>В AI могут передаваться вопрос, последние сообщения, профиль, текущая программа, выбранная тренировка, цель питания и краткая сводка активности, если трекер подключён.</p>
+            <p>Данные входа и приватные ключи не передаются в AI. Используется только информация, нужная для работы приложения и рекомендаций.</p>
+            <p>Аккаунт можно удалить в настройках: профиль, замеры, прогресс и health-данные будут удалены по запросу.</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={togglePolicy}
+            className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full border border-appBorder bg-appBg text-[14px] font-black text-appText"
+          >
+            {policyLoading ? <Loader2 size={17} className="animate-spin" /> : <ShieldCheck size={17} />}
+            {policyOpen ? "Скрыть полный текст" : "Показать полный текст"}
+          </button>
+
+          {policyOpen && (
+            <div className="mt-3 max-h-[52vh] space-y-2 overflow-y-auto rounded-[18px] border border-appBorder bg-appBg p-3 text-[12px] font-semibold leading-5 text-appMuted">
+              {policyLoading && <p>Загружаем политику...</p>}
+              {!policyLoading && policyLines.map((line, index) => (
+                <p key={`${index}-${line.slice(0, 20)}`}>{line}</p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function AccountSecuritySection({ hasAuth, email }) {
+  const [expanded, setExpanded] = useState(false);
+  const [status, setStatus] = useState({ loading: false, message: "", error: false });
+  const [now, setNow] = useState(Date.now());
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const retrySeconds = status.retryUntil ? Math.max(0, Math.ceil((status.retryUntil - now) / 1000)) : 0;
+
+  useEffect(() => {
+    if (!status.retryUntil) return undefined;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [status.retryUntil]);
+
+  async function sendPasswordReset() {
+    if (!hasAuth) {
+      setStatus({ loading: false, message: "Сначала войдите в аккаунт.", error: true });
+      return;
+    }
+    if (!normalizedEmail) {
+      setStatus({ loading: false, message: "Не удалось определить email аккаунта.", error: true });
+      return;
+    }
+
+    setStatus({ loading: true, message: "", error: false });
+    try {
+      await requestPasswordResetEmail(normalizedEmail);
+      setStatus({
+        loading: false,
+        message: `Ссылка для смены пароля отправлена на ${normalizedEmail}.`,
+        error: false,
+      });
+    } catch (error) {
+      setStatus({
+        loading: false,
+        message: error?.code === "RATE_LIMITED"
+          ? "Слишком много запросов."
+          : error?.message || "Не удалось отправить письмо.",
+        error: true,
+        retryUntil: error?.retryUntil || 0,
+      });
+    }
+  }
+
+  return (
+    <section className="rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">
+      <button
+        type="button"
+        onClick={() => setExpanded((value) => !value)}
+        aria-expanded={expanded}
+        className="flex w-full items-start gap-3 text-left"
+      >
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-appGreen/15 text-appGreen">
+          <KeyRound size={18} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[16px] font-black text-appText">Безопасность аккаунта</h2>
+          <p className="mt-1 text-[12px] leading-5 text-appMuted">
+            Смена пароля через подтверждённый email.
+          </p>
+        </div>
+        <span className="mt-2 text-appMuted">
+          {expanded ? <ChevronUp size={19} /> : <ChevronDown size={19} />}
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="mt-3">
+          <div className="rounded-[18px] border border-appBorder bg-appBg p-3">
+            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-appMuted">Email аккаунта</p>
+            <p className="mt-1 break-all text-[13px] font-black text-appText">
+              {normalizedEmail || "Email недоступен"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={sendPasswordReset}
+            disabled={!hasAuth || status.loading || retrySeconds > 0}
+            className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-appGreen text-[14px] font-black text-[#181F19] disabled:opacity-50"
+          >
+            {status.loading ? <Loader2 size={17} className="animate-spin" /> : <KeyRound size={17} />}
+            Отправить ссылку для смены пароля
+          </button>
+          {status.message && (
+            <p className={`mt-3 rounded-2xl px-3 py-2 text-[12px] font-bold leading-5 ${status.error ? "bg-red-500/10 text-red-500" : "bg-appGreen/10 text-appText"}`}>
+              {status.message}
+              {retrySeconds > 0 ? ` Повтори через ${formatRetryDuration(retrySeconds)}.` : ""}
+            </p>
+          )}
         </div>
       )}
     </section>
@@ -318,7 +431,7 @@ function ContactSettingsSection({ hasAuth, form, status, onChange, onSave }) {
         <div className="min-w-0">
           <h2 className="text-[16px] font-black text-appText">Контакты</h2>
           <p className="mt-1 text-[12px] leading-5 text-appMuted">
-            Телефон и Telegram нужны только для связи с тренером.
+            Телефон и Telegram нужны только для связи со мной.
           </p>
         </div>
       </div>
@@ -363,7 +476,7 @@ function ContactSettingsSection({ hasAuth, form, status, onChange, onSave }) {
         {status.loading ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}
         Сохранить контакты
       </button>
-      {!hasAuth && <p className="mt-2 rounded-2xl bg-appBg px-3 py-2 text-[11px] font-bold text-appMuted">Войдите в аккаунт, чтобы сохранить контакты.</p>}
+      {!hasAuth && <p className="mt-2 rounded-2xl bg-appBg px-3 py-2 text-[11px] font-bold text-appMuted">Войди в аккаунт, чтобы сохранить контакты.</p>}
       {status.message && <p className="mt-2 rounded-2xl bg-appBg px-3 py-2 text-[11px] font-bold text-appMuted">{status.message}</p>}
     </section>
   );
@@ -386,7 +499,7 @@ function StepSourceSettingsSection({ health, preferredSourcePackage, onPreferred
         <div className="min-w-0">
           <h2 className="text-[16px] font-black text-appText">Расширенные настройки активности</h2>
           <p className="mt-1 text-[12px] leading-5 text-appMuted">
-            Выберите более точный источник шагов, если часы, браслет или приложение дублируют данные. Обычно можно оставить Auto.
+            Выбери более точный источник шагов, если часы, браслет или приложение дублируют данные. Обычно можно оставить Auto.
           </p>
         </div>
       </div>
@@ -438,7 +551,7 @@ function DeleteAccountModal({ loading, error, onCancel, onConfirm }) {
             <Trash2 size={20} />
           </span>
           <div>
-            <h2 className="text-[18px] font-black text-appText">Вы уверены?</h2>
+            <h2 className="text-[18px] font-black text-appText">Удалить аккаунт?</h2>
             <p className="mt-2 text-[13px] leading-5 text-appMuted">
               Профиль, замеры, прогресс и health-данные будут удалены. Это действие нельзя отменить.
             </p>
@@ -476,32 +589,6 @@ function PlaceholderCard({ icon: Icon, title, text, badge = "готовится"
       </div>
     </div>
   );
-}
-
-function normalizeProvider(item) {
-  if (typeof item === "string") {
-    const provider = item.toLowerCase();
-    return { provider, label: PROVIDER_META[provider]?.label || item, enabled: true, status: "ready" };
-  }
-  const provider = String(item?.provider || item?.id || item?.name || "").toLowerCase();
-  return {
-    ...item,
-    provider,
-    label: item?.label || PROVIDER_META[provider]?.label || provider,
-    enabled: item?.enabled !== false,
-  };
-}
-
-function identityProvider(identity) {
-  return String(identity?.provider || identity?.provider_name || "").toLowerCase();
-}
-
-function identityProviderUserId(identity) {
-  return String(identity?.providerUserId || identity?.provider_user_id || identity?.id || "");
-}
-
-function providerDisplay(provider) {
-  return PROVIDER_META[provider]?.label || provider;
 }
 
 function canUseProgressPhotos(user, access) {
@@ -821,11 +908,9 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
   const [appInfo, setAppInfo] = useState({ versionName: "1.6", buildNumber: "7" });
   const [authUser, setAuthUser] = useState(loadAuthUser);
   const [accessState, setAccessState] = useState(loadAccessState);
-  const [providers, setProviders] = useState(null);
-  const [identities, setIdentities] = useState([]);
   const [photos, setPhotos] = useState([]);
   const [reports, setReports] = useState([]);
-  const [accountStatus, setAccountStatus] = useState({ loading: false, message: "" });
+  const [logoutStatus, setLogoutStatus] = useState({ loading: false, message: "", canClearLocal: false });
   const [photoStatus, setPhotoStatus] = useState({ loadingType: "", message: "" });
   const [localPhotoPreviews, setLocalPhotoPreviews] = useState(loadPhotoPreviewCache);
   const [brokenPhotoUrls, setBrokenPhotoUrls] = useState(() => new Set());
@@ -834,7 +919,6 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
   const [contactStatus, setContactStatus] = useState({ loading: false, message: "" });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteStatus, setDeleteStatus] = useState({ loading: false, message: "" });
-  const [telegramWidgetOpen, setTelegramWidgetOpen] = useState(false);
   const [reportForm, setReportForm] = useState({
     selfFeeling: 7,
     strength: 7,
@@ -843,40 +927,9 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
     comment: "",
   });
   const [preferredSourcePackage, setPreferredSourcePackage] = useState(() => (typeof window === "undefined" ? "" : localStorage.getItem(STEP_SOURCE_STORAGE_KEY) || ""));
-  const telegramWidgetRef = useRef(null);
   const preferredSourceMountedRef = useRef(false);
-  const telegramBot = sanitizeTelegramBot(import.meta.env.VITE_TELEGRAM_BOT_USERNAME || "fruitfit_auth_bot");
   const hasAuth = Boolean(getAuthToken() || authUser);
   const progressPhotosEnabled = canUseProgressPhotos(authUser, accessState);
-  const telegramNativeAvailable = canUseTelegramNativeLogin();
-
-  const providerList = useMemo(
-    () => (Array.isArray(providers) ? providers.map(normalizeProvider).filter((item) => item.provider) : []),
-    [providers]
-  );
-  const integrationProviderList = useMemo(() => {
-    const map = new Map(providerList.map((item) => [item.provider, item]));
-    ["telegram"].forEach((provider) => {
-      if (!map.has(provider)) {
-        map.set(provider, {
-          provider,
-          label: PROVIDER_META[provider]?.label || provider,
-          enabled: true,
-          configured: true,
-          status: "ready",
-        });
-      }
-    });
-    return ["telegram"].map((provider) => map.get(provider)).filter(Boolean);
-  }, [providerList]);
-  const linkedByProvider = useMemo(() => {
-    const map = new Map();
-    identities.forEach((identity) => {
-      const provider = identityProvider(identity);
-      if (provider && !map.has(provider)) map.set(provider, identity);
-    });
-    return map;
-  }, [identities]);
   const latestPhotosByType = useMemo(() => {
     const map = new Map();
     photos.forEach((photo) => {
@@ -928,25 +981,12 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
       getAppInfo().then((info) => {
         if (!cancelled) setAppInfo(info);
       });
-      try {
-        const query = await deviceQueryStringAsync();
-        const response = await getJson(apiUrl(`/api/auth/providers/available?${query}`), {
-          credentials: "include",
-          cache: "no-store",
-        });
-        if (!cancelled) setProviders(response.ok && Array.isArray(response.data?.providers) ? response.data.providers : []);
-      } catch (error) {
-        console.error("[FruitFit Settings] providers failed", error);
-        if (!cancelled) setProviders([]);
-      }
       if (getAuthToken() || loadAuthUser()) {
-        const [nextIdentities, nextPhotos, nextReports] = await Promise.all([
-          fetchAuthIdentities(),
+        const [nextPhotos, nextReports] = await Promise.all([
           progressPhotosEnabled ? fetchProgressPhotos() : Promise.resolve([]),
           progressPhotosEnabled ? fetchTrainerReports() : Promise.resolve([]),
         ]);
         if (!cancelled) {
-          setIdentities(nextIdentities);
           setPhotos(nextPhotos);
           setReports(nextReports);
           setAuthUser(loadAuthUser());
@@ -976,137 +1016,6 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
     return () => window.removeEventListener("fruitfit:trainer-report-submitted", refreshReportsAfterSubmit);
   }, [progressPhotosEnabled]);
 
-  async function refreshAccounts() {
-    if (!hasAuth) return;
-    setAccountStatus({ loading: true, message: "" });
-    try {
-      setAuthUser(loadAuthUser());
-      setAccessState(loadAccessState());
-      setIdentities(await fetchAuthIdentities());
-      setAccountStatus({ loading: false, message: "Статусы аккаунтов обновлены" });
-    } catch (error) {
-      setAccountStatus({ loading: false, message: error?.message || "Не удалось обновить аккаунты" });
-    }
-  }
-
-  useEffect(() => {
-    async function refreshAfterAuthReturn(event) {
-      const provider = String(event?.detail?.provider || sessionStorage.getItem("fruitfit.pendingProviderLink") || "").toLowerCase();
-      sessionStorage.removeItem("fruitfit.pendingProviderLink");
-      if (!provider || !hasAuth) return;
-      setAccountStatus({ loading: true, message: "" });
-      const nextIdentities = await fetchAuthIdentities();
-      setIdentities(nextIdentities);
-      const linked = nextIdentities.some((identity) => identityProvider(identity) === provider);
-      setAccountStatus({
-        loading: false,
-        message: linked ? `${providerDisplay(provider)} привязан` : `Не удалось подтвердить привязку ${providerDisplay(provider)}`,
-      });
-    }
-    window.addEventListener("fruitfit:auth-link-returned", refreshAfterAuthReturn);
-    return () => window.removeEventListener("fruitfit:auth-link-returned", refreshAfterAuthReturn);
-  }, [hasAuth]);
-
-  async function authQueryString() {
-    const params = new URLSearchParams(await deviceQueryStringAsync());
-    params.set("returnTo", AUTH_RETURN_TO);
-    return params.toString();
-  }
-
-  async function linkProvider(provider) {
-    if (!hasAuth) {
-      setAccountStatus({ loading: false, message: "Сначала войдите в FruitFit, затем привяжите дополнительные сервисы." });
-      return;
-    }
-    if (provider === "telegram") {
-      if (telegramNativeAvailable) {
-        await linkTelegramNative();
-        return;
-      }
-      setTelegramWidgetOpen(true);
-      setAccountStatus({ loading: false, message: "Подтвердите Telegram в блоке ниже. Если Telegram не установлен, подключение можно повторить позже." });
-      return;
-    }
-    if (provider === "apple") {
-      setAccountStatus({ loading: false, message: "Этот способ входа сейчас недоступен." });
-      return;
-    }
-    sessionStorage.setItem("fruitfit.pendingProviderLink", provider);
-    setAccountStatus({ loading: true, message: `Открываем ${providerDisplay(provider)}...` });
-    window.location.href = providerAuthUrl(apiUrl, provider, await authQueryString());
-  }
-
-  async function linkTelegramNative() {
-    setTelegramWidgetOpen(false);
-    setAccountStatus({ loading: true, message: "Открываем Telegram для подтверждения..." });
-    try {
-      const nativeResult = await startTelegramNativeLogin();
-      setAccountStatus({ loading: true, message: "Проверяем Telegram..." });
-      const updated = await linkAuthProvider("telegram", {
-        telegramOidc: { idToken: nativeResult.idToken },
-        device: await getDeviceRegistrationPayloadAsync(),
-      });
-      const nextIdentities = updated || await fetchAuthIdentities();
-      setIdentities(nextIdentities);
-      setAccountStatus({ loading: false, message: "Telegram привязан" });
-    } catch (error) {
-      setAccountStatus({ loading: false, message: "Подтвердите Telegram в блоке ниже. Если Telegram не установлен, подключение можно повторить позже." });
-    }
-  }
-
-  useEffect(() => {
-    const container = telegramWidgetRef.current;
-    if (telegramNativeAvailable || !telegramWidgetOpen || !container) return undefined;
-    container.innerHTML = "";
-
-    window.onTelegramSettingsAuth = async (user) => {
-      if (!user) {
-        setAccountStatus({ loading: false, message: "Telegram не передал данные пользователя." });
-        return;
-      }
-      setAccountStatus({ loading: true, message: "Проверяем Telegram..." });
-      try {
-        const updated = await linkAuthProvider("telegram", {
-          telegram: user,
-          device: await getDeviceRegistrationPayloadAsync(),
-        });
-        const nextIdentities = updated || await fetchAuthIdentities();
-        setIdentities(nextIdentities);
-        setTelegramWidgetOpen(false);
-        setAccountStatus({ loading: false, message: "Telegram привязан" });
-      } catch (error) {
-        setAccountStatus({ loading: false, message: error?.message || "Не удалось привязать Telegram" });
-      }
-    };
-
-    const script = document.createElement("script");
-    script.src = "https://telegram.org/js/telegram-widget.js?22";
-    script.setAttribute("data-telegram-login", telegramBot);
-    script.setAttribute("data-size", "large");
-    script.setAttribute("data-onauth", "onTelegramSettingsAuth(user)");
-    script.async = true;
-    container.appendChild(script);
-
-    return () => {
-      container.innerHTML = "";
-      delete window.onTelegramSettingsAuth;
-    };
-  }, [telegramBot, telegramWidgetOpen, telegramNativeAvailable]);
-
-  async function unlinkProvider(identity) {
-    const provider = identityProvider(identity);
-    const label = providerDisplay(provider);
-    if (!window.confirm(`Отвязать ${label}?`)) return;
-    setAccountStatus({ loading: true, message: "" });
-    try {
-      const updated = await unlinkAuthProvider(provider, identityProviderUserId(identity));
-      setIdentities(updated || await fetchAuthIdentities());
-      setAccountStatus({ loading: false, message: `${label} отвязан` });
-    } catch (error) {
-      setAccountStatus({ loading: false, message: error?.message || `Не удалось отвязать ${label}` });
-    }
-  }
-
   function updateContactField(field, value) {
     setContactStatus((current) => ({ ...current, message: "" }));
     setContactForm((current) => ({ ...current, [field]: value }));
@@ -1114,7 +1023,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
 
   async function saveContacts() {
     if (!hasAuth) {
-      setContactStatus({ loading: false, message: "Войдите в аккаунт, чтобы сохранить контакты." });
+      setContactStatus({ loading: false, message: "Войди в аккаунт, чтобы сохранить контакты." });
       return;
     }
     setContactStatus({ loading: true, message: "" });
@@ -1243,9 +1152,9 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
       });
       const nextReports = await fetchTrainerReports();
       setReports(nextReports);
-      setReportStatus({ loading: false, message: item ? "Отчёт отправлен тренеру" : "Отчёт отправлен" });
+      setReportStatus({ loading: false, message: "Отчёт отправлен" });
     } catch (error) {
-      setReportStatus({ loading: false, message: error?.message || "Не удалось отправить отчёт тренеру" });
+      setReportStatus({ loading: false, message: error?.message || "Не удалось отправить отчёт" });
     }
   }
 
@@ -1254,7 +1163,39 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
   }
 
   async function logout() {
-    await logoutUser();
+    setLogoutStatus({ loading: true, message: "", canClearLocal: false });
+    try {
+      await logoutUser();
+      window.location.reload();
+    } catch (error) {
+      setLogoutStatus({
+        loading: false,
+        message: "Не удалось подтвердить выход на сервере. Проверь интернет и повтори попытку.",
+        canClearLocal: true,
+      });
+    }
+  }
+
+  async function logoutEverywhere() {
+    const confirmed = window.confirm("Все активные сессии, включая эту, будут завершены. Для входа потребуется авторизация заново.");
+    if (!confirmed) return;
+    setLogoutStatus({ loading: true, message: "", canClearLocal: false });
+    try {
+      await logoutAllDevices();
+      window.location.reload();
+    } catch (error) {
+      setLogoutStatus({
+        loading: false,
+        message: error?.message || "Не удалось завершить сессии на всех устройствах.",
+        canClearLocal: false,
+      });
+    }
+  }
+
+  function clearOnlyThisDevice() {
+    const confirmed = window.confirm("Данные входа будут удалены только с этого устройства. Серверную сессию подтвердить не удалось.");
+    if (!confirmed) return;
+    clearLocalAuthSession();
     window.location.reload();
   }
 
@@ -1315,16 +1256,17 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
             onSave={saveContacts}
           />
           <FeedbackSettingsSection />
+          <AccountSecuritySection hasAuth={hasAuth} email={authUser?.email || loadProfile()?.email} />
           <PrivacySettingsSection />
 
           {progressPhotosEnabled && (
             <section className="rounded-[26px] border border-appBorder bg-appCard p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.14em] text-appGreen">Связь с тренером</p>
-                  <h2 className="text-[16px] font-black text-appText">Отчёт тренеру</h2>
+                  <p className="text-[11px] font-black uppercase tracking-[0.14em] text-appGreen">Связь со мной</p>
+                  <h2 className="text-[16px] font-black text-appText">Отчёт о прогрессе</h2>
                   <p className="mt-1 text-[12px] leading-5 text-appMuted">
-                    Фото, самочувствие и последние замеры будут отправлены тренеру.
+                    Фото, самочувствие и последние замеры будут отправлены мне.
                   </p>
                 </div>
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-appGreen/15 text-appGreen">
@@ -1382,7 +1324,7 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
                 <textarea
                   value={reportForm.comment}
                   onChange={(event) => updateReportField("comment", event.target.value)}
-                  placeholder="Комментарий тренеру"
+                  placeholder="Комментарий для меня"
                   className="mt-3 min-h-[88px] w-full resize-none rounded-[16px] border border-appBorder bg-appCard px-3 py-2 text-[12px] font-semibold text-appText outline-none placeholder:text-appMuted"
                 />
               </div>
@@ -1459,12 +1401,32 @@ export default function SettingsScreen({ theme, onThemeChange, onNavigate, onBac
             <button
               type="button"
               onClick={logout}
-              disabled={!hasAuth}
+              disabled={!hasAuth || logoutStatus.loading}
               className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full border border-appBorder bg-appBg text-[14px] font-black text-appText disabled:opacity-50"
             >
-              <LogOut size={17} />
+              {logoutStatus.loading ? <Loader2 size={17} className="animate-spin" /> : <LogOut size={17} />}
               Выйти из аккаунта
             </button>
+            <button
+              type="button"
+              onClick={logoutEverywhere}
+              disabled={!hasAuth || logoutStatus.loading}
+              className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 text-[14px] font-black text-red-500 disabled:opacity-50"
+            >
+              <ShieldCheck size={17} />
+              Выйти на всех устройствах
+            </button>
+            {logoutStatus.message && (
+              <div className="mt-3 rounded-[18px] border border-appBorder bg-appBg p-3">
+                <p className="text-[12px] font-semibold leading-5 text-appMuted">{logoutStatus.message}</p>
+                <div className="mt-2 grid gap-2">
+                  <button type="button" onClick={logout} disabled={logoutStatus.loading} className="h-10 rounded-full bg-appGreen text-[12px] font-black text-[#181F19]">Повторить безопасный выход</button>
+                  {logoutStatus.canClearLocal && (
+                    <button type="button" onClick={clearOnlyThisDevice} className="h-10 rounded-full border border-appBorder bg-appCard text-[12px] font-black text-appText">Удалить данные только с этого устройства</button>
+                  )}
+                </div>
+              </div>
+            )}
           </section>
 
           <section className="rounded-[26px] border border-red-500/30 bg-red-500/10 p-4 shadow-sm">

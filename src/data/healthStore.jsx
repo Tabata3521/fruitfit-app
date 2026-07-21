@@ -3369,17 +3369,23 @@ export function HealthProvider({ children }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetchMenstrualCycle().then((cycle) => {
-      if (cancelled || !cycle?.lastPeriodStartDate) return;
-      const computed = calculateMenstrualCycle(cycle);
-      setHealth((current) => {
-        const localDate = current.cycle?.lastPeriodStartDate || "";
-        if (localDate && localDate >= computed.lastPeriodStartDate) return current;
-        return { ...current, cycle: computed };
-      });
-    }).catch(() => {});
+    function syncServerCycleForCurrentUser() {
+      if (!currentUserId()) return;
+      fetchMenstrualCycle().then((cycle) => {
+        if (cancelled || !cycle?.lastPeriodStartDate) return;
+        const computed = calculateMenstrualCycle(cycle);
+        setHealth((current) => {
+          const localDate = current.cycle?.lastPeriodStartDate || "";
+          if (localDate && localDate >= computed.lastPeriodStartDate) return current;
+          return { ...current, cycle: computed };
+        });
+      }).catch(() => {});
+    }
+    syncServerCycleForCurrentUser();
+    window.addEventListener("fruitfit:auth-updated", syncServerCycleForCurrentUser);
     return () => {
       cancelled = true;
+      window.removeEventListener("fruitfit:auth-updated", syncServerCycleForCurrentUser);
     };
   }, []);
 

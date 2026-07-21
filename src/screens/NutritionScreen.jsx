@@ -239,7 +239,7 @@ export default function NutritionScreen({ onNavigate, profile, access, user, sho
             <Salad size={20} />
           </div>
           <h1 className="mt-4 text-[26px] font-black text-appText">Питание</h1>
-          <p className="mt-2 text-[13px] text-appMuted">Рацион на день, калорийность, КБЖУ и блюда под вашу цель.</p>
+          <p className="mt-2 text-[13px] text-appMuted">Рацион на день, калорийность, КБЖУ и блюда под твою цель.</p>
         </header>
 
         <section className="mt-4 rounded-[24px] border border-black/5 bg-[#FFF0E0] p-4 text-[#181F19] shadow-card">

@@ -1,20 +1,23 @@
 $ErrorActionPreference = "Stop"
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..")
-$jdk = Resolve-Path (Join-Path $root ".tools\jdk-21.0.11+10")
-$sdk = Resolve-Path (Join-Path $root ".tools\android-sdk")
+$toolchain = & (Join-Path $PSScriptRoot "resolve-android-toolchain.ps1") -Root $root.Path
+$jdk = $toolchain.Jdk
+$sdk = $toolchain.Sdk
 
-$env:JAVA_HOME = $jdk.Path
-$env:ANDROID_HOME = $sdk.Path
-$env:ANDROID_SDK_ROOT = $sdk.Path
-$env:Path = "$($jdk.Path)\bin;$($sdk.Path)\platform-tools;$env:Path"
+$env:JAVA_HOME = $jdk
+$env:ANDROID_HOME = $sdk
+$env:ANDROID_SDK_ROOT = $sdk
+$env:Path = "$jdk\bin;$sdk\platform-tools;$env:Path"
 
 Push-Location $root
 try {
   powershell -ExecutionPolicy Bypass -File (Join-Path $root "scripts\sync-android.ps1")
+  if ($LASTEXITCODE -ne 0) { throw "Android sync failed with exit code $LASTEXITCODE." }
   Push-Location (Join-Path $root "android")
   try {
     .\gradlew.bat assembleDebug
+    if ($LASTEXITCODE -ne 0) { throw "Gradle assembleDebug failed with exit code $LASTEXITCODE." }
   } finally {
     Pop-Location
   }

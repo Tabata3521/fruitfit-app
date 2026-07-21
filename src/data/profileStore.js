@@ -1,5 +1,17 @@
 import { readUserCoreField, writeUserCoreField } from "./dataContainers";
 import { currentUserId } from "./userScopedCache";
+import { legacyRestrictionValue, normalizeRestrictionKeys, restrictionOptions } from "./restrictionModel";
+
+export {
+  RESTRICTION_KEYS,
+  PHYSICAL_RESTRICTION_KEYS,
+  legacyRestrictionValue,
+  normalizeRestrictionKeys,
+  restrictionLabel,
+  restrictionLabels,
+  restrictionOptions,
+  toggleRestrictionKey,
+} from "./restrictionModel";
 
 export const PROFILE_STORAGE_KEY = "fruitfit.profile";
 export const PROFILE_DRAFT_STORAGE_KEY = "fruitfit.profile.draft";
@@ -17,7 +29,8 @@ export const profileDefaults = {
   goal: "Набор мышечной массы",
   experience: "Новичок",
   trainingFrequency: "2 раза в неделю",
-  restrictions: "Нет ограничений",
+  restrictionKeys: ["none"],
+  restrictions: "none",
   dietType: "Обычное питание",
   calculatedCalories: 1800,
   recommendedCaloriesTarget: 1800,
@@ -34,6 +47,7 @@ const QUESTIONNAIRE_PROFILE_FIELDS = [
   "goal",
   "experience",
   "trainingFrequency",
+  "restrictionKeys",
   "restrictions",
   "dietType",
   "calculatedCalories",
@@ -152,7 +166,10 @@ export function calculateMifflinCalories(profile = {}) {
 export function normalizeProfile(raw = {}) {
   const legacyGoal = normalizeLegacyValue(raw.goal, "goal");
   const legacyExperience = normalizeLegacyValue(raw.experience || raw.level, "experience");
-  const legacyRestrictions = normalizeLegacyValue(raw.restrictions, "restrictions");
+  const restrictionKeys = normalizeRestrictionKeys(
+    raw.restrictionKeys ?? raw.restriction_keys,
+    raw.restrictions ?? raw.limitation ?? raw.limitations,
+  );
   const legacyDietType = normalizeLegacyValue(raw.dietType, "dietType");
   const legacyFrequency = String(raw.trainingFrequency || "").startsWith("3") ? "3 раза в неделю" : "2 раза в неделю";
 
@@ -167,7 +184,8 @@ export function normalizeProfile(raw = {}) {
     goal: profileOptions.goal.includes(legacyGoal) ? legacyGoal : profileDefaults.goal,
     experience: profileOptions.experience.includes(legacyExperience) ? legacyExperience : profileDefaults.experience,
     trainingFrequency: profileOptions.trainingFrequency.includes(raw.trainingFrequency) ? raw.trainingFrequency : legacyFrequency,
-    restrictions: profileOptions.restrictions.includes(legacyRestrictions) ? legacyRestrictions : profileDefaults.restrictions,
+    restrictionKeys,
+    restrictions: legacyRestrictionValue(restrictionKeys),
     dietType: profileOptions.dietType.includes(legacyDietType) ? legacyDietType : profileDefaults.dietType,
     calculatedCalories: Number(raw.calculatedCalories) || calories.calculatedCalories,
     recommendedCaloriesTarget: Number(raw.recommendedCaloriesTarget) || calories.recommendedCaloriesTarget,
@@ -191,6 +209,7 @@ function meaningfulProfileValue(value) {
   if (value === null || value === undefined) return false;
   if (typeof value === "string") return value.trim().length > 0;
   if (typeof value === "number") return Number.isFinite(value);
+  if (Array.isArray(value)) return value.length > 0;
   return Boolean(value);
 }
 
@@ -199,7 +218,15 @@ export function readPreAuthProfileDraft() {
   try {
     const parsed = JSON.parse(localStorage.getItem(PROFILE_DRAFT_STORAGE_KEY) || "null");
     if (!parsed || typeof parsed !== "object") return null;
-    return normalizeProfile(parsed);
+    const normalized = normalizeProfile(parsed);
+    if (!Array.isArray(parsed.restrictionKeys) || parsed.restrictions !== normalized.restrictions) {
+      localStorage.setItem(PROFILE_DRAFT_STORAGE_KEY, JSON.stringify({
+        ...parsed,
+        ...pickQuestionnaireProfile(normalized),
+        savedAt: parsed.savedAt || new Date().toISOString(),
+      }));
+    }
+    return normalized;
   } catch (_) {
     return null;
   }
@@ -237,8 +264,15 @@ export function mergeProfileDraftWithServer(serverProfile = {}, draftProfile = {
   const draft = normalizeProfile(draftProfile || {});
   const serverCompleted = Boolean(serverProfile?.onboardingCompleted || serverProfile?.onboarding_completed);
   const merged = { ...server };
+  const serverHasRestrictions = ["restrictionKeys", "restriction_keys", "restrictions", "limitation", "limitations"]
+    .some((field) => serverFieldIsFilled(serverProfile, field));
+  const restrictionSource = serverHasRestrictions ? server.restrictionKeys : draft.restrictionKeys;
+
+  merged.restrictionKeys = normalizeRestrictionKeys(restrictionSource);
+  merged.restrictions = legacyRestrictionValue(merged.restrictionKeys);
 
   QUESTIONNAIRE_PROFILE_FIELDS.forEach((field) => {
+    if (field === "restrictionKeys" || field === "restrictions") return;
     if (field === "onboardingCompleted") {
       merged.onboardingCompleted = serverCompleted || Boolean(draft.onboardingCompleted);
       return;
@@ -257,7 +291,11 @@ export function loadProfile() {
     const id = profileUserId();
     if (!id) return normalizeProfile(readPreAuthProfileDraft() || {});
     const cached = readUserCoreField("profile", id, null);
-    return normalizeProfile(cached || {});
+    const normalized = normalizeProfile(cached || {});
+    if (cached && (!Array.isArray(cached.restrictionKeys) || cached.restrictions !== normalized.restrictions)) {
+      writeUserCoreField("profile", normalized, id);
+    }
+    return normalized;
   } catch (_) {
     return profileDefaults;
   }
@@ -285,7 +323,7 @@ export function validateProfile(profile) {
   if (!profile.goal) errors.goal = "Выберите цель.";
   if (!profile.experience) errors.experience = "Выберите опыт тренировок.";
   if (!profile.trainingFrequency) errors.trainingFrequency = "Выберите частоту тренировок.";
-  if (!profile.restrictions) errors.restrictions = "Выберите ограничения.";
+  if (!normalizeRestrictionKeys(profile.restrictionKeys, profile.restrictions).length) errors.restrictionKeys = "Выберите ограничения.";
   if (!profile.dietType) errors.dietType = "Выберите тип питания.";
 
   if (!profile.age || Number.isNaN(age) || age < 12 || age > 90) errors.age = "Возраст: 12–90 лет.";

@@ -1,8 +1,10 @@
 import { ArrowRight } from "lucide-react";
+import ProgramRestrictions from "./ProgramRestrictions";
 import femaleProgramImage from "../assets/program-female.png";
 import maleProgramImage from "../assets/program-male.png";
 import { visibleWorkoutsForAccess } from "../data/accessRules";
-import { programGender } from "../data/programPresentation";
+import { programGender, programSummaryTitle } from "../data/programPresentation";
+import { programRestrictionState } from "../data/programRestrictions";
 
 function programImage(course) {
   return programGender(course) === "male" ? maleProgramImage : femaleProgramImage;
@@ -19,7 +21,7 @@ function compactTitle(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
 }
 
-export default function HeroWorkoutCard({ program, workout, access, profile, programAssignment, onStart }) {
+export default function HeroWorkoutCard({ program, workout, access, profile, programAssignment, isPreview = false, onStart }) {
   const exerciseCount = workout?.exercises?.length || 0;
   const lessonNumber = workout?.lesson?.lesson_number || 1;
   const visibleWorkouts = visibleWorkoutsForAccess(program?.workouts || workout?.lessons || [], access, profile, programAssignment);
@@ -27,7 +29,8 @@ export default function HeroWorkoutCard({ program, workout, access, profile, pro
   const progress = workout?.progress || 0;
   const supersetCount = workout?.superset?.length > 1 ? 1 : 0;
   const title = compactTitle(workout?.lesson?.lesson_title);
-  const subtitle = compactTitle(workout?.course?.display_name);
+  const subtitle = compactTitle(programSummaryTitle(profile, workout?.course) || workout?.course?.display_name);
+  const restrictionState = programRestrictionState({ profile, course: workout?.course, programAssignment });
 
   return (
     <section className="relative min-h-[244px] overflow-hidden rounded-[26px] bg-[#050805] p-4 text-white shadow-card">
@@ -51,13 +54,21 @@ export default function HeroWorkoutCard({ program, workout, access, profile, pro
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[25] h-20 bg-gradient-to-t from-[#050805] via-[#050805]/48 to-transparent" />
 
       <div className="relative z-30 flex min-h-[212px] max-w-[78%] flex-col pb-[62px]">
-        <span className="w-fit rounded-full bg-appGreen/15 px-2.5 py-1 text-[11px] font-bold text-appGreen">
-          Тренировка {lessonNumber}/{totalLessons}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {isPreview && (
+            <span className="w-fit rounded-full bg-appGreen px-2.5 py-1 text-[10px] font-black uppercase text-[#181F19]">
+              Ознакомительная программа
+            </span>
+          )}
+          <span className="w-fit rounded-full bg-appGreen/15 px-2.5 py-1 text-[11px] font-bold text-appGreen">
+            Тренировка {lessonNumber}/{totalLessons}
+          </span>
+        </div>
         <h2 className="mt-3 line-clamp-2 text-[25px] font-black leading-[1.06]">{title}</h2>
         <div className="mt-2 flex flex-col items-start gap-2">
           <span className="program-card-kicker">{programTypeLabel(workout?.course)}</span>
           <p className="line-clamp-4 text-[12px] leading-[1.35] text-white/82">{subtitle}</p>
+          <ProgramRestrictions profile={profile} course={workout?.course} programAssignment={programAssignment} dark compact />
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-white/76">
           <span>{exerciseCount} упражнений</span>
@@ -80,10 +91,11 @@ export default function HeroWorkoutCard({ program, workout, access, profile, pro
       </div>
       <button
         type="button"
-        onClick={onStart}
-        className="absolute bottom-4 left-4 z-50 flex h-12 w-[72%] max-w-[260px] items-center justify-between rounded-full bg-appGreen px-4 text-[13px] font-black text-[#181F19] shadow-glow"
+        onClick={restrictionState.requiresAdaptation ? undefined : onStart}
+        disabled={restrictionState.requiresAdaptation}
+        className="absolute bottom-4 left-4 z-50 flex h-12 w-[72%] max-w-[260px] items-center justify-between rounded-full bg-appGreen px-4 text-[13px] font-black text-[#181F19] shadow-glow disabled:cursor-not-allowed disabled:opacity-55"
       >
-        <span className="truncate">Начать тренировку</span>
+        <span className="truncate">{restrictionState.requiresAdaptation ? "Нужна адаптация" : isPreview ? "Открыть тренировку" : "Начать тренировку"}</span>
         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#181F19] text-appGreen">
           <ArrowRight size={17} />
         </span>

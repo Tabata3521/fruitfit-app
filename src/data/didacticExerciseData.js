@@ -1,6 +1,7 @@
 import rawDidacticCatalog from "./didacticExerciseCatalog.json";
 import { normalizeExerciseKey, resolveExerciseAlias } from "./exerciseAliases.js";
 import { runtimeExerciseFallbacks } from "./exerciseRuntimeFallbacks.js";
+import { normalizeRestrictionKeys } from "./profileStore.js";
 
 const didacticCatalog = [...rawDidacticCatalog, ...runtimeExerciseFallbacks];
 
@@ -32,18 +33,14 @@ export function profileGender(profile = {}) {
 }
 
 export function restrictionKeysFromText(value) {
-  const text = normalizeMetaText(value);
-  const keys = [];
-  if (text.includes("колен")) keys.push("knees");
-  if (text.includes("спин") || text.includes("пояс")) keys.push("back");
-  if (text.includes("плеч")) keys.push("shoulders");
-  if (text.includes("локт")) keys.push("elbows");
-  if (text.includes("таз") || text.includes("тбс")) keys.push("hips");
-  return [...new Set(keys)];
+  return normalizeRestrictionKeys(value).filter((key) => key !== "none");
 }
 
 export function userRestrictionKeys(profile = {}) {
-  return restrictionKeysFromText(profile.restrictions || profile.limitation || profile.limitations || "");
+  return normalizeRestrictionKeys(
+    profile.restrictionKeys ?? profile.restriction_keys,
+    profile.restrictions ?? profile.limitation ?? profile.limitations,
+  ).filter((key) => key !== "none");
 }
 
 export function isAllowedForProfileGender(exercise, profile = {}) {

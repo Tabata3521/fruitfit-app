@@ -33,22 +33,13 @@ public class MainActivity extends BridgeActivity {
         }
         registerPlugin(FruitFitAppIconPlugin.class);
         registerPlugin(FruitFitOrientationPlugin.class);
-        registerPlugin(FruitFitTelegramPlugin.class);
         super.onCreate(savedInstanceState);
-        FruitFitTelegramPlugin.handleIntent(getIntent());
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
                 dispatchFruitFitBack();
             }
         });
-    }
-
-    @Override
-    protected void onNewIntent(android.content.Intent intent) {
-        super.onNewIntent(intent);
-        setIntent(intent);
-        FruitFitTelegramPlugin.handleIntent(intent);
     }
 
     private void dispatchFruitFitBack() {

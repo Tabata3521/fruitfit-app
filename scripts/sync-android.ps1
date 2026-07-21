@@ -5,7 +5,9 @@ $root = Resolve-Path (Join-Path $PSScriptRoot "..")
 Push-Location $root
 try {
   npm.cmd run build
+  if ($LASTEXITCODE -ne 0) { throw "Web build failed with exit code $LASTEXITCODE." }
   npx cap sync android
+  if ($LASTEXITCODE -ne 0) { throw "Capacitor Android sync failed with exit code $LASTEXITCODE." }
 
   $settingsPath = Join-Path $root "android\capacitor.settings.gradle"
   $buildPath = Join-Path $root "android\app\capacitor.build.gradle"

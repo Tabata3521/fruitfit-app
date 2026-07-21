@@ -29,7 +29,7 @@ export default function AppIconSettings({ compact = false }) {
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-appBorder">
             <div className="p-4 pt-3">
               <p className="mb-3 text-[12px] leading-5 text-appMuted">
-                Выберите фруктовый ярлык. На iPhone иконка меняется системно, в web/PWA выбор сохраняется локально.
+                Выбери фруктовый ярлык.
               </p>
               <div className="grid grid-cols-2 gap-3">
                 {appIcons.map((item) => {

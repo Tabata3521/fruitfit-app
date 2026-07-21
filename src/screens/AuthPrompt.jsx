@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Browser } from "@capacitor/browser";
-import { Capacitor, CapacitorHttp } from "@capacitor/core";
 import { ArrowLeft, ArrowRight, ExternalLink, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import {
   apiUrl,
+  clearLocalAuthSession,
   fetchAccess,
   saveAuthUser,
   setAuthToken,
@@ -14,104 +14,45 @@ import { registerFirebaseMessagingPush } from "../services/notifications/firebas
 import { postJson } from "../services/nativeHttp";
 import { PRIVACY_POLICY_TEXT, PRIVACY_POLICY_URL } from "../data/privacyPolicyText";
 import { APP_STORE_REVIEW } from "../config/appStoreReview";
+import { loadPrivacyPolicyText } from "../services/privacyPolicy";
+import {
+  AUTH_FLOW_STATES,
+  AuthApiError,
+  authApiErrorFromResponse,
+  authApiErrorFromThrown,
+  authFlowReducer,
+  authMessageForCode,
+  createAuthFlowState,
+  formatRetryDuration,
+} from "../services/authFlow";
+import {
+  parseAuthDeepLink,
+} from "../services/authDeepLinks";
 
 const SKIP_AUTH_KEY = "fruitfit.authSkipped";
+const SUPPORT_URL = "https://forms.gle/MygV9mU445St16ez5";
 
-function authActionFromUrl(rawUrl = window.location.href) {
-  try {
-    const url = new URL(rawUrl);
-    const token = url.searchParams.get("token") || new URLSearchParams(url.hash.replace(/^#/, "")).get("token") || "";
-    const text = `${url.pathname} ${url.hash}`.toLowerCase();
-    if (text.includes("/email/verify")) return { mode: "verify", token };
-    if (text.includes("/email/reset-password")) return { mode: "reset", token };
-  } catch (_) {}
-  return { mode: "login", token: "" };
-}
-
-function friendlyAuthError(data = {}, fallback = "Не удалось выполнить действие") {
-  const code = String(data?.code || data?.error || "").toUpperCase();
-  const message = String(data?.message || data?.error?.message || "").trim();
-  if (code === "INVALID_CREDENTIALS") return "Неверный email или пароль.";
-  if (code === "INVALID_EMAIL") return "Проверьте формат email.";
-  if (code === "PASSWORD_TOO_SHORT") return "Пароль должен содержать минимум 8 символов.";
-  if (code === "PASSWORD_TOO_LONG") return "Пароль не должен быть длиннее 128 символов.";
-  if (code === "PASSWORD_CANNOT_MATCH_EMAIL") return "Пароль не должен совпадать с email.";
-  if (code === "MISSING_PASSWORD_CONFIRMATION") return "Повторите пароль.";
-  if (code === "PASSWORD_CONFIRMATION_MISMATCH") return "Пароли не совпадают.";
-  if (code === "RATE_LIMITED") return "Слишком много попыток. Подождите несколько минут и попробуйте снова.";
-  if (code === "SMTP_NOT_CONFIGURED") return "Почтовый сервис временно недоступен. Попробуйте позже.";
-  if (code.includes("EMAIL") && code.includes("EXISTS")) return "Этот email уже занят.";
-  if (code.includes("INVALID") && code.includes("PASSWORD")) return "Неверный пароль.";
-  if (code.includes("EMAIL") && code.includes("NOT") && code.includes("VERIFIED")) return "Email ещё не подтверждён. Проверьте письмо.";
-  if (code.includes("TOKEN") && (code.includes("EXPIRED") || code.includes("INVALID"))) return "Ссылка устарела или уже использована.";
-  return message || fallback;
-}
-
-function Field({ label, children }) {
+function Field({ label, error, children }) {
   return (
     <label className="grid gap-1 text-[11px] font-black uppercase tracking-[0.12em] text-appMuted">
       {label}
       {children}
+      {error ? <span className="normal-case tracking-normal text-red-500">{error}</span> : null}
     </label>
   );
 }
 
 function normalizePolicyText(value = "") {
-  return String(value || "")
-    .replace(/\u00a0/g, " ")
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
-function policyTextFromHtml(html = "") {
-  if (typeof DOMParser === "undefined") return "";
-  const document = new DOMParser().parseFromString(String(html || ""), "text/html");
-  const content = document.querySelector("[field='text']") || document.querySelector(".t-text") || document.body;
-  return normalizePolicyText(content?.innerText || "");
-}
-
-async function fetchOfficialPrivacyPolicyText() {
-  if (APP_STORE_REVIEW) return PRIVACY_POLICY_TEXT;
-  if (Capacitor?.isNativePlatform?.()) {
-    const response = await CapacitorHttp.get({
-      url: PRIVACY_POLICY_URL,
-      responseType: "text",
-      headers: { Accept: "text/html,text/plain" },
-    });
-    if (response.status < 200 || response.status >= 300) throw new Error("privacy-policy-request-failed");
-    const text = policyTextFromHtml(response.data) || normalizePolicyText(response.data);
-    if (text.length < 400) throw new Error("privacy-policy-empty");
-    return text;
-  }
-
-  const response = await fetch(PRIVACY_POLICY_URL, {
-    cache: "no-store",
-    credentials: "omit",
-    mode: "cors",
-  });
-  if (!response.ok) throw new Error("privacy-policy-request-failed");
-  const html = await response.text();
-  const text = policyTextFromHtml(html) || normalizePolicyText(html);
-  if (text.length < 400) throw new Error("privacy-policy-empty");
-  return text;
+  return String(value || "").replace(/\r\n?/g, "\n").trim();
 }
 
 function PolicyLine({ line }) {
   const trimmed = line.trim();
   if (!trimmed) return null;
-  const isTitle = trimmed === "ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ";
+  const isTitle = trimmed.toUpperCase().includes("ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ");
   const isSection = /^\d+\.\s/.test(trimmed) || trimmed === "Реквизиты Исполнителя / Оператора";
-  const isMeta = /^и обработки/.test(trimmed) || /^Редакция/.test(trimmed);
-  if (isTitle) {
-    return <h2 className="text-[22px] font-black leading-tight text-appText">{trimmed}</h2>;
-  }
-  if (isSection) {
-    return <h3 className="mt-5 text-[16px] font-black leading-snug text-appText">{trimmed}</h3>;
-  }
-  if (isMeta) {
-    return <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-appMuted">{trimmed}</p>;
-  }
+  if (isTitle) return <h2 className="text-[22px] font-black leading-tight text-appText">{trimmed}</h2>;
+  if (isSection) return <h3 className="mt-5 text-[16px] font-black leading-snug text-appText">{trimmed}</h3>;
   return <p className="text-[13px] font-semibold leading-6 text-appMuted">{trimmed}</p>;
 }
 
@@ -122,7 +63,7 @@ function PrivacyPolicyScreen({ onBack }) {
   useEffect(() => {
     if (APP_STORE_REVIEW) return undefined;
     let alive = true;
-    fetchOfficialPrivacyPolicyText()
+    loadPrivacyPolicyText()
       .then((text) => {
         if (!alive) return;
         setPolicyText(text);
@@ -145,95 +86,107 @@ function PrivacyPolicyScreen({ onBack }) {
   }
 
   const lines = normalizePolicyText(policyText).split("\n").filter((line) => line.trim());
-
   return (
     <main className="phone-shell flex h-screen max-h-screen flex-col bg-appBg text-appText">
       <header className="shrink-0 border-b border-appBorder bg-appBg/95 px-4 pb-3 pt-[var(--app-safe-top)] backdrop-blur">
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onBack}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-appBorder bg-appCard text-appText shadow-sm"
-            aria-label="Вернуться к регистрации"
-          >
+          <button type="button" onClick={onBack} className="grid h-11 w-11 place-items-center rounded-full border border-appBorder bg-appCard" aria-label="Вернуться к регистрации">
             <ArrowLeft size={22} />
           </button>
-          <div className="min-w-0">
+          <div>
             <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#6FA62F]">FruitFit</p>
-            <h1 className="truncate text-[18px] font-black leading-tight text-appText">Политика конфиденциальности</h1>
+            <h1 className="text-[18px] font-black">Политика конфиденциальности</h1>
           </div>
         </div>
       </header>
-
       <article className="allow-select min-h-0 flex-1 overflow-y-auto px-4 py-4">
         <div className="rounded-[22px] border border-appBorder bg-appCard p-4 shadow-sm">
-          <div className="mb-4 flex items-start gap-3 rounded-[18px] border border-appBorder bg-appBg p-3">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-appGreen/15 text-appGreen">
-              <ShieldCheck size={18} />
-            </span>
-            <div className="min-w-0">
-              <p className="text-[13px] font-black text-appText">
-                {loadedFromSite ? "Загружено с официального сайта" : "Официальный текст доступен внутри приложения"}
-              </p>
-              <p className="mt-1 text-[12px] font-semibold leading-5 text-appMuted">
-                Можно вернуться к регистрации по стрелке сверху.
-              </p>
-            </div>
+          <div className="mb-4 flex gap-3 rounded-[18px] border border-appBorder bg-appBg p-3">
+            <ShieldCheck size={20} className="mt-1 shrink-0 text-appGreen" />
+            <p className="text-[12px] font-semibold leading-5 text-appMuted">
+              {loadedFromSite ? "Текст загружен с официального сайта FruitFit." : "Официальный текст сохранён внутри приложения."}
+            </p>
           </div>
-
           <div className="space-y-2">
-            {lines.map((line, index) => (
-              <PolicyLine key={`${index}-${line.slice(0, 24)}`} line={line} />
-            ))}
+            {lines.map((line, index) => <PolicyLine key={`${index}-${line.slice(0, 24)}`} line={line} />)}
           </div>
         </div>
       </article>
-
-      <footer className="shrink-0 border-t border-appBorder bg-appBg/95 px-4 pb-[var(--app-safe-bottom)] pt-3 backdrop-blur">
-        {!APP_STORE_REVIEW && (
-          <button
-            type="button"
-            onClick={openOfficialPolicy}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-appBorder bg-appCard px-4 text-[13px] font-black text-appText shadow-sm"
-          >
-            Открыть на сайте
-            <ExternalLink size={16} />
+      {!APP_STORE_REVIEW && (
+        <footer className="shrink-0 border-t border-appBorder bg-appBg/95 px-4 pb-[var(--app-safe-bottom)] pt-3">
+          <button type="button" onClick={openOfficialPolicy} className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-appBorder bg-appCard text-[13px] font-black">
+            Открыть на сайте <ExternalLink size={16} />
           </button>
-        )}
-      </footer>
+        </footer>
+      )}
     </main>
   );
 }
 
-function stopPrivacyLinkClick(event) {
-  event?.preventDefault?.();
-  event?.stopPropagation?.();
+function screenFromInitial({ initialRoute, initialUrl, initialMode }) {
+  const route = initialRoute?.recognized ? initialRoute : parseAuthDeepLink(initialUrl);
+  if (route?.recognized) return { route, screen: route.screen };
+  return {
+    route: null,
+    screen: initialMode === "register" ? AUTH_FLOW_STATES.REGISTER : AUTH_FLOW_STATES.LOGIN,
+  };
 }
 
-async function openPrivacyPolicyExternal(event) {
-  stopPrivacyLinkClick(event);
-  if (APP_STORE_REVIEW) return;
-  try {
-    await Browser.open({ url: PRIVACY_POLICY_URL, presentationStyle: "popover" });
-  } catch (_) {
-    window.open(PRIVACY_POLICY_URL, "_blank", "noopener,noreferrer");
-  }
-}
-
-export default function AuthPrompt({ onComplete, initialUrl = window.location.href }) {
-  const initialAction = useMemo(() => authActionFromUrl(initialUrl), [initialUrl]);
-  const [mode, setMode] = useState(initialAction.mode);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [resetToken, setResetToken] = useState(initialAction.mode === "reset" ? initialAction.token : "");
-  const [verifyToken, setVerifyToken] = useState(initialAction.mode === "verify" ? initialAction.token : "");
+export default function AuthPrompt({
+  onComplete,
+  onRouteConsumed,
+  initialUrl = window.location.href,
+  initialMode = "login",
+  initialRoute = null,
+}) {
+  const initial = useMemo(
+    () => screenFromInitial({ initialRoute, initialUrl, initialMode }),
+    [initialRoute, initialUrl, initialMode]
+  );
+  const initialMissingToken = [
+    AUTH_FLOW_STATES.VERIFICATION_LINK,
+    AUTH_FLOW_STATES.RESET_PASSWORD_LINK,
+  ].includes(initial.screen) && !initial.route?.token;
+  const [flow, dispatch] = useReducer(authFlowReducer, createAuthFlowState({
+    screen: initial.screen,
+    email: initial.route?.email || "",
+    token: initial.route?.token || "",
+    code: initialMissingToken ? "MISSING_TOKEN" : initial.route?.code || "",
+    message: initialMissingToken
+      ? authMessageForCode("MISSING_TOKEN", initial.screen === AUTH_FLOW_STATES.VERIFICATION_LINK ? "verification" : "reset")
+      : initial.route?.message || (initial.screen === AUTH_FLOW_STATES.SESSION_REVOKED
+      ? authMessageForCode("SESSION_REVOKED")
+      : initial.screen === AUTH_FLOW_STATES.ACCOUNT_DELETED
+        ? authMessageForCode("ACCOUNT_DELETED")
+        : ""),
+  }));
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [privacyPolicyOpen, setPrivacyPolicyOpen] = useState(false);
-  const [message, setMessage] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [actionFailed, setActionFailed] = useState(false);
+  const [now, setNow] = useState(Date.now());
+  const autoActionRef = useRef(new Set());
+  const actionInFlightRef = useRef(false);
+
+  const retrySeconds = flow.retryUntil ? Math.max(0, Math.ceil((flow.retryUntil - now) / 1000)) : 0;
+  const actionBlocked = flow.submitting || retrySeconds > 0;
+
+  useEffect(() => {
+    if (!flow.retryUntil) return undefined;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [flow.retryUntil]);
+
+  useEffect(() => {
+    if (!initial.route?.recognized) return;
+    dispatch({
+      type: "NAVIGATE",
+      screen: initial.route.screen,
+      email: initial.route.email || flow.email,
+      token: initial.route.token || "",
+    });
+    // Route delivery is intentionally keyed by a secret-free digest.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial.route?.deliveryKey]);
 
   async function complete(result) {
     localStorage.removeItem(SKIP_AUTH_KEY);
@@ -246,440 +199,440 @@ export default function AuthPrompt({ onComplete, initialUrl = window.location.hr
     onComplete?.(result?.user || null);
   }
 
-  async function request(path, body, fallback) {
-    const response = await postJson(apiUrl(path), body, { credentials: "include" });
-    const result = response.data || {};
-    if (!response.ok) throw new Error(friendlyAuthError(result, fallback));
-    return result;
+  async function request(path, body, fallbackCode = "AUTH_UNAVAILABLE") {
+    let response;
+    try {
+      response = await postJson(apiUrl(path), body, { credentials: "include", cache: "no-store" });
+    } catch (error) {
+      throw authApiErrorFromThrown(error);
+    }
+    if (!response.ok) throw authApiErrorFromResponse(response, fallbackCode);
+    return { result: response.data || {}, response };
+  }
+
+  function navigate(screen, options = {}) {
+    dispatch({ type: "NAVIGATE", screen, ...options });
+  }
+
+  function setField(field, value) {
+    dispatch({ type: "SET_FIELD", field, value });
+  }
+
+  function applyError(error, context = "generic") {
+    const normalized = error instanceof AuthApiError ? error : authApiErrorFromThrown(error);
+    dispatch({
+      type: "SUBMIT_ERROR",
+      error: normalized,
+      message: authMessageForCode(normalized.code, context),
+    });
+    return normalized;
+  }
+
+  function beginAuthAction() {
+    if (actionInFlightRef.current) return false;
+    actionInFlightRef.current = true;
+    return true;
+  }
+
+  function finishAuthAction() {
+    actionInFlightRef.current = false;
   }
 
   async function submitLogin() {
-    const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail || !password) {
-      setMessage("Введите email и пароль.");
+    const email = flow.email.trim().toLowerCase();
+    if (!email || !flow.password) {
+      applyError(new AuthApiError({ code: !email ? "INVALID_EMAIL" : "INVALID_CREDENTIALS" }));
       return;
     }
-    setSubmitting(true);
-    setMessage("");
+    if (!beginAuthAction()) return;
+    dispatch({ type: "SUBMIT_START" });
     try {
-      const result = await request("/api/auth/email/login", {
-        email: cleanEmail,
-        password,
+      const { result } = await request("/api/auth/email/login", {
+        email,
+        password: flow.password,
         device: await getDeviceRegistrationPayloadAsync(),
-      }, "Не удалось войти.");
-      if (!result.token) throw new Error("Сервер не вернул сессию.");
+      }, "INVALID_CREDENTIALS");
+      if (!result.token) throw new AuthApiError({ code: "AUTH_UNAVAILABLE" });
       await complete(result);
     } catch (error) {
-      setMessage(error?.message || "Не удалось войти.");
+      const normalized = error instanceof AuthApiError ? error : authApiErrorFromThrown(error);
+      if (normalized.code === "EMAIL_NOT_VERIFIED") {
+        navigate(AUTH_FLOW_STATES.VERIFICATION_PENDING, {
+          email,
+          code: normalized.code,
+          message: "Email нужно подтвердить. Проверь почту или запроси новую ссылку.",
+        });
+        return;
+      }
+      applyError(normalized);
     } finally {
-      setSubmitting(false);
+      finishAuthAction();
     }
   }
 
   async function submitRegister() {
-    const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail || !password || !confirmPassword) {
-      setMessage("Введите email, пароль и повтор пароля.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setMessage("Пароли не совпадают.");
-      return;
-    }
+    const email = flow.email.trim().toLowerCase();
+    if (!email) return applyError(new AuthApiError({ code: "INVALID_EMAIL" }));
+    if (!flow.password) return applyError(new AuthApiError({ code: "PASSWORD_TOO_SHORT" }));
+    if (!flow.confirmPassword) return applyError(new AuthApiError({ code: "MISSING_PASSWORD_CONFIRMATION" }));
+    if (flow.password !== flow.confirmPassword) return applyError(new AuthApiError({ code: "PASSWORD_CONFIRMATION_MISMATCH" }));
     if (!privacyAccepted) {
-      setMessage("Для регистрации нужно согласиться с политикой конфиденциальности и обработкой персональных данных.");
+      dispatch({
+        type: "SUBMIT_ERROR",
+        error: new AuthApiError({ code: "AUTH_UNAVAILABLE", message: "Для регистрации нужно принять политику конфиденциальности и обработки персональных данных." }),
+        message: "Для регистрации нужно принять политику конфиденциальности и обработки персональных данных.",
+      });
       return;
     }
-    setSubmitting(true);
-    setMessage("");
+    if (!beginAuthAction()) return;
+    dispatch({ type: "SUBMIT_START" });
     try {
-      const result = await request("/api/auth/email/register", {
-        email: cleanEmail,
-        password,
-        confirmPassword,
-        confirm_password: confirmPassword,
+      const { result } = await request("/api/auth/email/register", {
+        email,
+        password: flow.password,
+        confirmPassword: flow.confirmPassword,
+        confirm_password: flow.confirmPassword,
         device: await getDeviceRegistrationPayloadAsync(),
-      }, "Не удалось создать аккаунт.");
+      });
       if (result.token && result.user) {
         await complete(result);
         return;
       }
-      setActionFailed(false);
-      setMode("verifySent");
-      setMessage("Если аккаунту требуется подтверждение, письмо отправлено. Если email уже подтверждён, перейдите ко входу.");
+      navigate(AUTH_FLOW_STATES.VERIFICATION_PENDING, {
+        email,
+        message: "Проверь почту. Если аккаунту требуется подтверждение, письмо будет отправлено.",
+      });
     } catch (error) {
-      setMessage(error?.message || "Не удалось создать аккаунт.");
+      applyError(error);
     } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function submitForgot() {
-    const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail) {
-      setMessage("Введите email.");
-      return;
-    }
-    setSubmitting(true);
-    setMessage("");
-    try {
-      await request("/api/auth/email/request-password-reset", { email: cleanEmail }, "Не удалось отправить письмо.");
-      setMessage("Если аккаунт найден, на почту отправлена ссылка для восстановления или подтверждения email.");
-    } catch (error) {
-      setMessage(error?.message || "Не удалось отправить письмо.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function submitReset() {
-    if (!resetToken) {
-      setMessage("Не найден код восстановления.");
-      setActionFailed(true);
-      return;
-    }
-    if (!password || !confirmPassword) {
-      setMessage("Введите новый пароль и повтор.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setMessage("Пароли не совпадают.");
-      return;
-    }
-    setSubmitting(true);
-    setActionFailed(false);
-    setMessage("");
-    try {
-      await request("/api/auth/email/reset-password", {
-        token: resetToken,
-        password,
-        confirmPassword,
-        confirm_password: confirmPassword,
-      }, "Не удалось обновить пароль.");
-      setAuthToken(null);
-      saveAuthUser(null);
-      setMode("login");
-      setPassword("");
-      setConfirmPassword("");
-      setMessage("Пароль обновлён. Теперь можно войти.");
-    } catch (error) {
-      setActionFailed(true);
-      setMessage(error?.message || "Не удалось обновить пароль.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function verifyEmail(token = verifyToken) {
-    if (!token) {
-      setActionFailed(true);
-      setMessage("Не найден код подтверждения.");
-      return;
-    }
-    if (submitting) return;
-    setSubmitting(true);
-    setActionFailed(false);
-    setMessage("Проверяем ссылку...");
-    try {
-      const result = await request("/api/auth/email/verify", {
-        token,
-        device: await getDeviceRegistrationPayloadAsync(),
-      }, "Не удалось подтвердить email.");
-      setMode("verifySuccess");
-      setMessage(result?.message || "Email подтверждён. Теперь можно войти в аккаунт.");
-      window.history.replaceState(null, "", window.location.pathname.includes("/email/") ? "/" : window.location.pathname);
-    } catch (error) {
-      setActionFailed(true);
-      setMessage(error?.message || "Не удалось подтвердить email.");
-    } finally {
-      setSubmitting(false);
+      finishAuthAction();
     }
   }
 
   async function resendVerification() {
-    const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail) {
-      setMessage("Введите email для повторной отправки.");
-      return;
-    }
-    setSubmitting(true);
-    setMessage("");
+    const email = flow.email.trim().toLowerCase();
+    if (!email) return applyError(new AuthApiError({ code: "INVALID_EMAIL" }));
+    if (!beginAuthAction()) return;
+    dispatch({ type: "SUBMIT_START" });
     try {
-      await request("/api/auth/email/resend-verification", { email: cleanEmail }, "Не удалось отправить письмо повторно.");
-      setActionFailed(false);
-      setMessage("Если аккаунту требуется подтверждение, новое письмо отправлено.");
+      await request("/api/auth/email/resend-verification", { email }, "EMAIL_DELIVERY_UNAVAILABLE");
+      dispatch({
+        type: "SUBMIT_SUCCESS",
+        message: "Если аккаунту требуется подтверждение, письмо будет отправлено.",
+      });
     } catch (error) {
-      setMessage(error?.message || "Не удалось отправить письмо повторно.");
+      applyError(error);
     } finally {
-      setSubmitting(false);
+      finishAuthAction();
     }
   }
 
-  async function submit(event) {
-    event?.preventDefault?.();
-    if (mode === "login") return submitLogin();
-    if (mode === "register") return submitRegister();
-    if (mode === "forgot") return submitForgot();
-    if (mode === "reset") return submitReset();
-    if (mode === "verify") return verifyEmail();
-    return null;
+  async function submitForgot() {
+    const email = flow.email.trim().toLowerCase();
+    if (!email) return applyError(new AuthApiError({ code: "INVALID_EMAIL" }));
+    if (!beginAuthAction()) return;
+    dispatch({ type: "SUBMIT_START" });
+    try {
+      await request("/api/auth/email/request-password-reset", { email }, "EMAIL_DELIVERY_UNAVAILABLE");
+      dispatch({
+        type: "SUBMIT_SUCCESS",
+        message: "Проверь почту. Если аккаунт существует, мы отправили ссылку для смены пароля. Если аккаунт ещё не создан, на почту придёт инструкция по регистрации.",
+      });
+    } catch (error) {
+      applyError(error);
+    } finally {
+      finishAuthAction();
+    }
+  }
+
+  async function submitReset() {
+    if (!flow.token) {
+      applyError(new AuthApiError({ code: "MISSING_TOKEN" }), "reset");
+      return;
+    }
+    if (!flow.password) return applyError(new AuthApiError({ code: "PASSWORD_TOO_SHORT" }));
+    if (!flow.confirmPassword) return applyError(new AuthApiError({ code: "MISSING_PASSWORD_CONFIRMATION" }));
+    if (flow.password !== flow.confirmPassword) return applyError(new AuthApiError({ code: "PASSWORD_CONFIRMATION_MISMATCH" }));
+    if (!beginAuthAction()) return;
+    dispatch({ type: "SUBMIT_START" });
+    try {
+      await request("/api/auth/email/reset-password", {
+        token: flow.token,
+        password: flow.password,
+        confirmPassword: flow.confirmPassword,
+        confirm_password: flow.confirmPassword,
+      });
+      clearLocalAuthSession();
+      onRouteConsumed?.();
+      navigate(AUTH_FLOW_STATES.RESET_PASSWORD_SUCCESS, {
+        email: flow.email,
+        message: "Пароль изменён. Войди с новым паролем.",
+      });
+    } catch (error) {
+      applyError(error, "reset");
+    } finally {
+      finishAuthAction();
+    }
+  }
+
+  async function verifyEmail() {
+    if (!flow.token) {
+      applyError(new AuthApiError({ code: "MISSING_TOKEN" }), "verification");
+      return;
+    }
+    if (!beginAuthAction()) return;
+    dispatch({ type: "SUBMIT_START" });
+    try {
+      const { result } = await request("/api/auth/email/verify", {
+        token: flow.token,
+        device: await getDeviceRegistrationPayloadAsync(),
+      });
+      if (result?.token && result?.user) {
+        dispatch({ type: "CLEAR_SECRET" });
+        onRouteConsumed?.();
+        await complete(result);
+        return;
+      }
+      const alreadyUsed = result?.alreadyVerified || String(result?.code || "").toUpperCase() === "TOKEN_ALREADY_USED";
+      onRouteConsumed?.();
+      navigate(AUTH_FLOW_STATES.VERIFICATION_SUCCESS, {
+        email: flow.email,
+        message: alreadyUsed
+          ? "Email уже подтверждён. Теперь можно войти."
+          : "Email подтверждён. Теперь можно войти.",
+      });
+    } catch (error) {
+      const normalized = error instanceof AuthApiError ? error : authApiErrorFromThrown(error);
+      if (normalized.code === "TOKEN_ALREADY_USED") {
+        onRouteConsumed?.();
+        navigate(AUTH_FLOW_STATES.VERIFICATION_SUCCESS, {
+          email: flow.email,
+          message: "Email уже подтверждён. Теперь можно войти.",
+        });
+        return;
+      }
+      applyError(normalized, "verification");
+    } finally {
+      finishAuthAction();
+    }
   }
 
   useEffect(() => {
-    if (mode === "verify" && verifyToken) verifyEmail(verifyToken);
+    if (flow.screen !== AUTH_FLOW_STATES.VERIFICATION_LINK || !flow.token) return;
+    const key = initial.route?.deliveryKey || `verify:${flow.token.length}`;
+    if (autoActionRef.current.has(key)) return;
+    autoActionRef.current.add(key);
+    verifyEmail();
+    // Deliberately do not repeat a secret-bearing action after network errors.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [flow.screen, initial.route?.deliveryKey]);
 
-  const title = {
-    login: "Войти в аккаунт",
-    register: "Создать аккаунт",
-    forgot: "Восстановить пароль",
-    reset: "Новый пароль",
-    verify: "Подтверждение email",
-    verifySuccess: "Email подтверждён",
-    verifySent: "Проверьте почту",
-  }[mode] || "Войти";
-
-  if (privacyPolicyOpen) {
-    return <PrivacyPolicyScreen onBack={() => setPrivacyPolicyOpen(false)} />;
+  function submit(event) {
+    event?.preventDefault?.();
+    if (actionBlocked) return;
+    if (flow.screen === AUTH_FLOW_STATES.LOGIN) return submitLogin();
+    if (flow.screen === AUTH_FLOW_STATES.REGISTER) return submitRegister();
+    if (flow.screen === AUTH_FLOW_STATES.FORGOT_PASSWORD) return submitForgot();
+    if (flow.screen === AUTH_FLOW_STATES.RESET_PASSWORD_LINK) return submitReset();
+    if (flow.screen === AUTH_FLOW_STATES.VERIFICATION_LINK) return verifyEmail();
+    return null;
   }
 
+  const title = {
+    [AUTH_FLOW_STATES.LOGIN]: "Войти в аккаунт",
+    [AUTH_FLOW_STATES.REGISTER]: "Создать аккаунт",
+    [AUTH_FLOW_STATES.VERIFICATION_PENDING]: "Проверь почту",
+    [AUTH_FLOW_STATES.VERIFICATION_LINK]: "Подтверждение email",
+    [AUTH_FLOW_STATES.VERIFICATION_SUCCESS]: "Email подтверждён",
+    [AUTH_FLOW_STATES.FORGOT_PASSWORD]: "Восстановить пароль",
+    [AUTH_FLOW_STATES.RESET_PASSWORD_LINK]: "Новый пароль",
+    [AUTH_FLOW_STATES.RESET_PASSWORD_SUCCESS]: "Пароль изменён",
+    [AUTH_FLOW_STATES.SESSION_REVOKED]: "Нужно войти снова",
+    [AUTH_FLOW_STATES.ACCOUNT_DELETED]: "Аккаунт удалён",
+    [AUTH_FLOW_STATES.AUTH_UNAVAILABLE]: "Вход не завершён",
+  }[flow.screen] || "Войти в FruitFit";
+
+  const showEmail = [
+    AUTH_FLOW_STATES.LOGIN,
+    AUTH_FLOW_STATES.REGISTER,
+    AUTH_FLOW_STATES.VERIFICATION_PENDING,
+    AUTH_FLOW_STATES.FORGOT_PASSWORD,
+  ].includes(flow.screen);
+  const showPassword = [AUTH_FLOW_STATES.LOGIN, AUTH_FLOW_STATES.REGISTER, AUTH_FLOW_STATES.RESET_PASSWORD_LINK].includes(flow.screen);
+  const showConfirmation = [AUTH_FLOW_STATES.REGISTER, AUTH_FLOW_STATES.RESET_PASSWORD_LINK].includes(flow.screen);
+  const showSubmit = [
+    AUTH_FLOW_STATES.LOGIN,
+    AUTH_FLOW_STATES.REGISTER,
+    AUTH_FLOW_STATES.FORGOT_PASSWORD,
+    AUTH_FLOW_STATES.RESET_PASSWORD_LINK,
+  ].includes(flow.screen)
+    || (flow.screen === AUTH_FLOW_STATES.VERIFICATION_LINK && Boolean(flow.token) && flow.code);
+  const resetNeedsNewLink = flow.screen === AUTH_FLOW_STATES.RESET_PASSWORD_LINK
+    && (!flow.token || ["TOKEN_EXPIRED", "TOKEN_INVALID", "TOKEN_ALREADY_USED", "INVALID_OR_EXPIRED_TOKEN", "MISSING_TOKEN"].includes(flow.code));
+
+  if (privacyPolicyOpen) return <PrivacyPolicyScreen onBack={() => setPrivacyPolicyOpen(false)} />;
+
   return (
-    <main className="phone-shell flex min-h-screen flex-col justify-between bg-appBg px-4 pb-[var(--app-safe-bottom)] pt-[var(--app-safe-top)]">
-      <section>
+    <main className="phone-shell flex min-h-screen flex-col bg-appBg px-4 pb-[var(--app-safe-bottom)] pt-[var(--app-safe-top)]">
+      <section className="mx-auto w-full max-w-md">
         <p className="text-[12px] font-black uppercase tracking-[0.16em] text-[#6FA62F]">fruitfit</p>
         <h1 className="mt-4 text-[30px] font-black leading-tight text-appText">{title}</h1>
         <p className="mt-3 text-[14px] leading-6 text-appMuted">
-          Используйте email и пароль, чтобы войти или создать аккаунт FruitFit.
+          Аккаунт сохраняет анкету, программу и прогресс и позволяет безопасно восстановить доступ.
         </p>
 
         <form className="mt-6 grid gap-3" onSubmit={submit}>
-          {mode !== "reset" && mode !== "verify" && (
-            <Field label="Email">
+          {showEmail && (
+            <Field label="Email" error={flow.fieldErrors.email}>
               <input
                 type="email"
                 inputMode="email"
                 autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                value={flow.email}
+                onChange={(event) => setField("email", event.target.value)}
                 placeholder="you@example.com"
                 className="h-12 rounded-2xl border border-appBorder bg-appCard px-4 text-[14px] font-bold normal-case tracking-normal text-appText outline-none placeholder:text-appMuted focus:border-appGreen"
               />
             </Field>
           )}
 
-          {["login", "register", "reset"].includes(mode) && (
-            <Field label={mode === "reset" ? "Новый пароль" : "Пароль"}>
+          {showPassword && (
+            <Field label={flow.screen === AUTH_FLOW_STATES.RESET_PASSWORD_LINK ? "Новый пароль" : "Пароль"} error={flow.fieldErrors.password}>
               <span className="relative">
                 <input
                   type={passwordVisible ? "text" : "password"}
-                  autoComplete={mode === "login" ? "current-password" : "new-password"}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  autoComplete={flow.screen === AUTH_FLOW_STATES.LOGIN ? "current-password" : "new-password"}
+                  value={flow.password}
+                  onChange={(event) => setField("password", event.target.value)}
                   placeholder="Минимум 8 символов"
                   className="h-12 w-full rounded-2xl border border-appBorder bg-appCard px-4 pr-12 text-[14px] font-bold normal-case tracking-normal text-appText outline-none placeholder:text-appMuted focus:border-appGreen"
                 />
-                <button
-                  type="button"
-                  onClick={() => setPasswordVisible((value) => !value)}
-                  className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-appMuted"
-                  aria-label={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
-                >
+                <button type="button" onClick={() => setPasswordVisible((value) => !value)} className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-appMuted" aria-label={passwordVisible ? "Скрыть пароль" : "Показать пароль"}>
                   {passwordVisible ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </span>
             </Field>
           )}
 
-          {["register", "reset"].includes(mode) && (
-            <Field label="Повтор пароля">
+          {showConfirmation && (
+            <Field label="Повтор пароля" error={flow.fieldErrors.confirmPassword}>
               <input
                 type={passwordVisible ? "text" : "password"}
                 autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="Повторите пароль"
+                value={flow.confirmPassword}
+                onChange={(event) => setField("confirmPassword", event.target.value)}
+                placeholder="Повтори пароль"
                 className="h-12 rounded-2xl border border-appBorder bg-appCard px-4 text-[14px] font-bold normal-case tracking-normal text-appText outline-none placeholder:text-appMuted focus:border-appGreen"
               />
             </Field>
           )}
 
-          {mode === "register" && (
+          {flow.screen === AUTH_FLOW_STATES.REGISTER && (
             <label className="flex items-start gap-3 rounded-[18px] border border-appBorder bg-appCard p-3 text-[12px] leading-5 text-appMuted">
-              <input
-                type="checkbox"
-                checked={privacyAccepted}
-                onChange={(event) => setPrivacyAccepted(event.target.checked)}
-                className="mt-1 h-5 w-5 shrink-0 accent-appGreen"
-                required
-              />
+              <input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-appGreen" />
               <span>
                 Я согласен с{" "}
-                <button
-                  type="button"
-                  className="border-0 bg-transparent p-0 text-left font-black text-appText underline decoration-appGreen decoration-2 underline-offset-4"
-                  onClick={(event) => {
-                    stopPrivacyLinkClick(event);
-                    setPrivacyPolicyOpen(true);
-                  }}
-                  onAuxClick={openPrivacyPolicyExternal}
-                >
-                  политикой конфиденциальности и политикой обработки персональных данных
-                </button>
-                .
+                <button type="button" className="font-black text-appText underline decoration-appGreen decoration-2 underline-offset-4" onClick={() => setPrivacyPolicyOpen(true)}>
+                  политикой конфиденциальности и обработки персональных данных
+                </button>.
               </span>
             </label>
           )}
 
-          {mode === "reset" && !resetToken && (
-            <Field label="Код из письма">
-              <input
-                value={resetToken}
-                onChange={(event) => setResetToken(event.target.value.trim())}
-                placeholder="Код восстановления"
-                className="h-12 rounded-2xl border border-appBorder bg-appCard px-4 text-[14px] font-bold normal-case tracking-normal text-appText outline-none placeholder:text-appMuted focus:border-appGreen"
-              />
-            </Field>
-          )}
-
-          {mode === "verify" && !verifyToken && (
-            <Field label="Код из письма">
-              <input
-                value={verifyToken}
-                onChange={(event) => setVerifyToken(event.target.value.trim())}
-                placeholder="Код подтверждения"
-                className="h-12 rounded-2xl border border-appBorder bg-appCard px-4 text-[14px] font-bold normal-case tracking-normal text-appText outline-none placeholder:text-appMuted focus:border-appGreen"
-              />
-            </Field>
-          )}
-
-          {!["verifySent", "verifySuccess"].includes(mode) && (
-            <button
-              type="submit"
-              disabled={submitting || (mode === "register" && !privacyAccepted)}
-              className="mt-1 flex h-[54px] items-center justify-center gap-2 rounded-full bg-appGreen px-5 text-[15px] font-black text-[#181F19] shadow-card disabled:opacity-70"
-            >
-              {submitting ? <Loader2 size={18} className="animate-spin" /> : null}
-              {mode === "login" && "Войти"}
-              {mode === "register" && "Создать аккаунт"}
-              {mode === "forgot" && "Отправить письмо"}
-              {mode === "reset" && "Сохранить пароль"}
-              {mode === "verify" && "Подтвердить email"}
+          {showSubmit && (
+            <button type="submit" disabled={actionBlocked || (flow.screen === AUTH_FLOW_STATES.REGISTER && !privacyAccepted)} className="mt-1 flex h-[54px] items-center justify-center gap-2 rounded-full bg-appGreen px-5 text-[15px] font-black text-[#181F19] shadow-card disabled:opacity-60">
+              {flow.submitting ? <Loader2 size={18} className="animate-spin" /> : null}
+              {flow.screen === AUTH_FLOW_STATES.LOGIN && "Войти"}
+              {flow.screen === AUTH_FLOW_STATES.REGISTER && "Создать аккаунт"}
+              {flow.screen === AUTH_FLOW_STATES.FORGOT_PASSWORD && "Отправить письмо"}
+              {flow.screen === AUTH_FLOW_STATES.RESET_PASSWORD_LINK && "Сохранить пароль"}
+              {flow.screen === AUTH_FLOW_STATES.VERIFICATION_LINK && "Повторить проверку"}
             </button>
           )}
 
-          {mode === "verifySuccess" && (
-            <button
-              type="button"
-              onClick={() => {
-                setMode("login");
-                setMessage("");
-              }}
-              className="mt-1 flex h-[54px] items-center justify-center gap-2 rounded-full bg-appGreen px-5 text-[15px] font-black text-[#181F19] shadow-card"
-            >
-              Перейти ко входу
-              <ArrowRight size={17} />
-            </button>
+          {retrySeconds > 0 && (
+            <p className="rounded-2xl border border-appBorder bg-appCard px-3 py-2 text-center text-[12px] font-bold text-appMuted">
+              Слишком много попыток. Повтори через {formatRetryDuration(retrySeconds)}.
+            </p>
           )}
 
-          {mode === "login" && (
-            <button type="button" onClick={() => { setMode("forgot"); setMessage(""); }} className="h-10 rounded-full text-[13px] font-black text-appMuted">
-              Забыли пароль?
-            </button>
-          )}
-
-          {mode === "verifySent" && (
+          {flow.screen === AUTH_FLOW_STATES.LOGIN && (
             <>
-              <button type="button" onClick={resendVerification} disabled={submitting} className="h-11 rounded-full border border-appBorder bg-appCard text-[13px] font-black text-appText disabled:opacity-70">
-                Отправить письмо повторно
+              <button type="button" onClick={() => navigate(AUTH_FLOW_STATES.FORGOT_PASSWORD, { email: flow.email })} className="h-10 rounded-full text-[13px] font-black text-appMuted">
+                Забыли пароль?
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActionFailed(false);
-                  setMode("login");
-                  setMessage("");
-                }}
-                className="flex h-[50px] items-center justify-center gap-2 rounded-full border border-appBorder bg-appCard px-5 text-[14px] font-black text-appText shadow-sm"
-              >
-                Перейти ко входу
-                <ArrowRight size={17} />
+              <button type="button" onClick={() => navigate(AUTH_FLOW_STATES.REGISTER, { email: flow.email })} className="flex h-[50px] items-center justify-center gap-2 rounded-full border border-appBorder bg-appCard text-[14px] font-black text-appText">
+                Создать аккаунт <ArrowRight size={17} />
               </button>
             </>
           )}
 
-          {actionFailed && mode === "verify" && (
-            <button
-              type="button"
-              onClick={() => {
-                setActionFailed(false);
-                setVerifyToken("");
-                setMode("verifySent");
-                setMessage("Введите email, чтобы запросить новую ссылку подтверждения.");
-              }}
-              className="flex h-[50px] items-center justify-center gap-2 rounded-full border border-appBorder bg-appCard px-5 text-[14px] font-black text-appText shadow-sm"
-            >
-              Отправить новую ссылку
-              <ArrowRight size={17} />
+          {flow.screen === AUTH_FLOW_STATES.REGISTER && (
+            <button type="button" onClick={() => navigate(AUTH_FLOW_STATES.LOGIN, { email: flow.email })} className="flex h-[50px] items-center justify-center gap-2 rounded-full border border-appBorder bg-appCard text-[14px] font-black text-appText">
+              Уже есть аккаунт — войти <ArrowRight size={17} />
             </button>
           )}
 
-          {actionFailed && mode === "reset" && (
-            <button
-              type="button"
-              onClick={() => {
-                setActionFailed(false);
-                setResetToken("");
-                setPassword("");
-                setConfirmPassword("");
-                setMode("forgot");
-                setMessage("Введите email, чтобы запросить новую ссылку.");
-              }}
-              className="flex h-[50px] items-center justify-center gap-2 rounded-full border border-appBorder bg-appCard px-5 text-[14px] font-black text-appText shadow-sm"
-            >
-              Запросить новую ссылку
-              <ArrowRight size={17} />
-            </button>
+          {flow.screen === AUTH_FLOW_STATES.VERIFICATION_PENDING && (
+            <>
+              <button type="button" onClick={resendVerification} disabled={actionBlocked} className="h-12 rounded-full bg-appGreen text-[14px] font-black text-[#181F19] disabled:opacity-60">Отправить письмо повторно</button>
+              <button type="button" onClick={() => navigate(AUTH_FLOW_STATES.LOGIN, { email: flow.email })} className="h-12 rounded-full border border-appBorder bg-appCard text-[14px] font-black">Уже есть аккаунт — войти</button>
+              <button type="button" onClick={() => navigate(AUTH_FLOW_STATES.FORGOT_PASSWORD, { email: flow.email })} className="h-11 rounded-full text-[13px] font-black text-appMuted">Забыли пароль?</button>
+              <button type="button" onClick={() => navigate(AUTH_FLOW_STATES.REGISTER, { email: "" })} className="h-11 rounded-full text-[13px] font-black text-appMuted">Изменить email</button>
+            </>
           )}
 
-          {["verify", "reset"].includes(mode) && (
-            <button
-              type="button"
-              onClick={() => {
-                setActionFailed(false);
-                setMode("login");
-                setMessage("");
-              }}
-              className="flex h-[50px] items-center justify-center gap-2 rounded-full border border-appBorder bg-appCard px-5 text-[14px] font-black text-appText shadow-sm"
-            >
-              <ArrowLeft size={17} />
-              Назад ко входу
-            </button>
+          {[AUTH_FLOW_STATES.VERIFICATION_LINK, AUTH_FLOW_STATES.VERIFICATION_SUCCESS].includes(flow.screen) && (
+            <>
+              {flow.screen === AUTH_FLOW_STATES.VERIFICATION_LINK && (
+                <button type="button" onClick={() => navigate(AUTH_FLOW_STATES.VERIFICATION_PENDING, { email: flow.email, message: "Введите email, чтобы запросить новую ссылку." })} className="h-12 rounded-full border border-appBorder bg-appCard text-[14px] font-black">
+                  Отправить новую ссылку
+                </button>
+              )}
+              <button type="button" onClick={() => navigate(AUTH_FLOW_STATES.LOGIN, { email: flow.email })} className="h-12 rounded-full bg-appGreen text-[14px] font-black text-[#181F19]">Перейти ко входу</button>
+              {flow.screen === AUTH_FLOW_STATES.VERIFICATION_LINK && (
+                <button type="button" onClick={() => navigate(AUTH_FLOW_STATES.REGISTER, { email: flow.email })} className="h-11 rounded-full text-[13px] font-black text-appMuted">Создать аккаунт</button>
+              )}
+            </>
           )}
 
-          {!["verify", "reset", "verifySent", "verifySuccess"].includes(mode) && (
-            <button
-              type="button"
-              onClick={() => {
-                setMode((value) => (value === "register" ? "login" : value === "login" ? "register" : "login"));
-                setMessage("");
-              }}
-              className="flex h-[50px] items-center justify-center gap-2 rounded-full border border-appBorder bg-appCard px-5 text-[14px] font-black text-appText shadow-sm"
-            >
-              {mode === "login" ? "Создать аккаунт" : "Уже есть аккаунт"}
-              <ArrowRight size={17} />
-            </button>
+          {flow.screen === AUTH_FLOW_STATES.FORGOT_PASSWORD && (
+            <>
+              <button type="button" onClick={() => navigate(AUTH_FLOW_STATES.REGISTER, { email: flow.email })} className="h-12 rounded-full border border-appBorder bg-appCard text-[14px] font-black">Нет аккаунта — создать</button>
+              <button type="button" onClick={() => navigate(AUTH_FLOW_STATES.LOGIN, { email: flow.email })} className="h-11 rounded-full text-[13px] font-black text-appMuted">Вернуться ко входу</button>
+            </>
           )}
 
+          {flow.screen === AUTH_FLOW_STATES.RESET_PASSWORD_LINK && (
+            <>
+              {resetNeedsNewLink && (
+                <button type="button" onClick={() => navigate(AUTH_FLOW_STATES.FORGOT_PASSWORD, { email: flow.email, message: "Запросите новую ссылку восстановления." })} className="h-12 rounded-full border border-appBorder bg-appCard text-[14px] font-black">Запросить новую ссылку</button>
+              )}
+              <button type="button" onClick={() => navigate(AUTH_FLOW_STATES.LOGIN, { email: flow.email })} className="h-11 rounded-full text-[13px] font-black text-appMuted">Вернуться ко входу</button>
+              {resetNeedsNewLink && <button type="button" onClick={() => navigate(AUTH_FLOW_STATES.REGISTER, { email: flow.email })} className="h-11 rounded-full text-[13px] font-black text-appMuted">Создать аккаунт</button>}
+            </>
+          )}
+
+          {flow.screen === AUTH_FLOW_STATES.RESET_PASSWORD_SUCCESS && (
+            <button type="button" onClick={() => navigate(AUTH_FLOW_STATES.LOGIN, { email: flow.email, message: "Введите новый пароль." })} className="h-12 rounded-full bg-appGreen text-[14px] font-black text-[#181F19]">Войти с новым паролем</button>
+          )}
+
+          {[AUTH_FLOW_STATES.SESSION_REVOKED, AUTH_FLOW_STATES.ACCOUNT_DELETED, AUTH_FLOW_STATES.AUTH_UNAVAILABLE].includes(flow.screen) && (
+            <>
+              <button type="button" onClick={() => navigate(AUTH_FLOW_STATES.LOGIN, { email: flow.email })} className="h-12 rounded-full bg-appGreen text-[14px] font-black text-[#181F19]">Перейти ко входу</button>
+              <button type="button" onClick={() => navigate(AUTH_FLOW_STATES.REGISTER, { email: flow.email })} className="h-12 rounded-full border border-appBorder bg-appCard text-[14px] font-black">Создать аккаунт</button>
+              {flow.screen === AUTH_FLOW_STATES.ACCOUNT_DELETED && (
+                <button type="button" onClick={() => Browser.open({ url: SUPPORT_URL, presentationStyle: "popover" }).catch(() => window.open(SUPPORT_URL, "_blank", "noopener,noreferrer"))} className="h-11 rounded-full text-[13px] font-black text-appMuted">Обратиться в поддержку</button>
+              )}
+            </>
+          )}
         </form>
 
-        {message && (
-          <p className="mt-4 rounded-[18px] border border-appBorder bg-appCard p-3 text-[12px] leading-5 text-appMuted">
-            {message}
-          </p>
+        {flow.message && (
+          <p className="mt-4 rounded-[18px] border border-appBorder bg-appCard p-3 text-[12px] leading-5 text-appMuted">{flow.message}</p>
         )}
-      </section>
 
+      </section>
     </main>
   );
 }

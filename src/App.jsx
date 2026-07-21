@@ -3,7 +3,7 @@ import { App as CapacitorApp } from "@capacitor/app";
 import { registerPlugin } from "@capacitor/core";
 import { Dumbbell } from "lucide-react";
 import { HealthProvider } from "./data/healthStore";
-import { fetchAccess, fetchMe, fetchProfile, fetchProgramAssignment, fetchReferralInfo, loadAccessState, loadAuthUser, loadProgramAssignment, setAuthToken, transferPreAuthProfileDraft } from "./data/authStore";
+import { clearLocalAuthSession, fetchAccess, fetchMe, fetchProfile, fetchProgramAssignment, fetchReferralInfo, loadAccessState, loadAuthUser, loadProgramAssignment, transferPreAuthProfileDraft } from "./data/authStore";
 import { registerDevice } from "./data/deviceStore";
 import { loadProfile, profileDefaults, saveProfile } from "./data/profileStore";
 import { accessTier, isWorkoutUnlocked, LOCKED_WORKOUT_MESSAGE, originalWorkoutIndex, unlockedWorkoutCount, visibleWorkoutsForAccess } from "./data/accessRules";
@@ -18,11 +18,13 @@ import NutritionScreen from "./screens/NutritionScreen";
 import OnboardingQuiz from "./screens/OnboardingQuiz";
 import ProfileScreen from "./screens/ProfileScreen";
 import SettingsScreen from "./screens/SettingsScreen";
+import TrainerRequestScreen from "./screens/TrainerRequestScreen";
 import WorkoutScreen from "./screens/WorkoutScreen";
 import WorkoutsScreen from "./screens/WorkoutsScreen";
 import { HealthDetailScreen, LectureDetailScreen } from "./components/WidgetGrid";
 import { registerFirebaseMessagingPush } from "./services/notifications/firebaseMessagingPush";
 import { APP_STORE_REVIEW } from "./config/appStoreReview";
+import { parseAuthDeepLink, stripAuthSecretsFromBrowserUrl } from "./services/authDeepLinks";
 
 const FruitFitOrientation = registerPlugin("FruitFitOrientation");
 const SKIP_AUTH_KEY = "fruitfit.authSkipped";
@@ -52,6 +54,7 @@ const appRoutes = {
   workout: "#/workout",
   focus: "#/workout/focus",
   lecture: "#/lectures",
+  trainerRequest: "#/trainer-request",
   settings: "#/settings",
 };
 
@@ -133,17 +136,6 @@ function loadAuthSkipped() {
   return false;
 }
 
-function authTokenFromUrl(rawUrl) {
-  try {
-    const url = new URL(rawUrl);
-    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
-    return url.searchParams.get("auth_token") || hashParams.get("auth_token") || "";
-  } catch (_) {
-    const hash = String(rawUrl || "").split("#")[1] || "";
-    return new URLSearchParams(hash).get("auth_token") || "";
-  }
-}
-
 function externalReturnFromUrl(rawUrl) {
   if (APP_STORE_REVIEW) return "";
 
@@ -164,11 +156,6 @@ function externalReturnFromUrl(rawUrl) {
   if (normalized.includes(successMarker)) return "success";
   if (normalized.includes(failMarker)) return "fail";
   return "";
-}
-
-function emailAuthActionFromUrl(rawUrl) {
-  const normalized = String(rawUrl || "").toLowerCase();
-  return normalized.includes("/email/verify") || normalized.includes("/email/reset-password");
 }
 
 function programIdFromAssignment(assignment = null) {
@@ -373,7 +360,7 @@ function saveActiveWorkoutSelection(selection = null) {
 
 function AppContent() {
   const { loading, error, data } = useTrainingData();
-  const initialAuthActionUrl = emailAuthActionFromUrl(window.location.href) ? window.location.href : "";
+  const initialAuthRoute = parseAuthDeepLink(window.location.href);
   const [screen, setScreen] = useState(() => healthScreenFromHash() || appScreenFromHash() || "home");
   const [selectedWorkoutState, setSelectedWorkoutState] = useState(() => loadSelectedWorkoutState());
   const [selectedWorkoutIndex, setSelectedWorkoutIndex] = useState(() => {
@@ -389,12 +376,16 @@ function AppContent() {
   const [programAssignment, setProgramAssignment] = useState(loadProgramAssignment);
   const [programCycleLock, setProgramCycleLock] = useState(loadProgramCycleLock);
   const [authSkipped, setAuthSkipped] = useState(loadAuthSkipped);
-  const [authActionUrl, setAuthActionUrl] = useState(initialAuthActionUrl);
-  const [quizOpen, setQuizOpen] = useState(() => !initialAuthActionUrl && !loadProfile().onboardingCompleted);
-  const [authPromptOpen, setAuthPromptOpen] = useState(() => Boolean(initialAuthActionUrl) || (loadProfile().onboardingCompleted && !loadAuthUser() && !loadAuthSkipped()));
+  const [authRoute, setAuthRoute] = useState(() => initialAuthRoute.recognized ? initialAuthRoute : null);
+  const [quizOpen, setQuizOpen] = useState(() => !initialAuthRoute.recognized && !loadProfile().onboardingCompleted);
+  const [authPromptOpen, setAuthPromptOpen] = useState(() => Boolean(initialAuthRoute.recognized) || (loadProfile().onboardingCompleted && !loadAuthUser() && !loadAuthSkipped()));
+  const [authPromptMode, setAuthPromptMode] = useState("login");
   const screenRef = useRef(screen);
   const routeStackRef = useRef([screen]);
   const routeMetaRef = useRef(window.history.state || {});
+  const handledAuthUrlsRef = useRef(new Set());
+  const sessionInvalidHandledRef = useRef(false);
+  const workoutDetailOpenRef = useRef(false);
 
   useEffect(() => {
     screenRef.current = screen;
@@ -473,11 +464,19 @@ function AppContent() {
   }
 
   function navigate(nextScreen, options = {}) {
+    let targetScreen = nextScreen;
     setScreen((current) => {
-      if (typeof nextScreen === "string" && current !== nextScreen) {
-        writeRoute(nextScreen, options);
+      if (options?.source === "tab" && nextScreen === "workouts") {
+        if (current === "workout") {
+          workoutDetailOpenRef.current = false;
+        } else if (workoutDetailOpenRef.current) {
+          targetScreen = "workout";
+        }
       }
-      return nextScreen;
+      if (typeof targetScreen === "string" && current !== targetScreen) {
+        writeRoute(targetScreen, options);
+      }
+      return targetScreen;
     });
   }
 
@@ -532,14 +531,12 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (!window.location.hash.includes("auth_token=")) {
-      const initialScreen = screenFromLocation();
-      const currentState = window.history.state || {};
-      if (currentState.fruitfitScreen !== initialScreen) {
-        writeRoute(initialScreen, { replace: true, source: "initial" });
-      } else {
-        routeMetaRef.current = currentState;
-      }
+    const initialScreen = screenFromLocation();
+    const currentState = window.history.state || {};
+    if (currentState.fruitfitScreen !== initialScreen) {
+      writeRoute(initialScreen, { replace: true, source: "initial" });
+    } else {
+      routeMetaRef.current = currentState;
     }
   }, []);
 
@@ -566,40 +563,28 @@ function AppContent() {
     };
   }, []);
 
-  async function applyAuthToken(token, { cleanUrl = false } = {}) {
-    if (!token) return;
-    setAuthToken(token);
-    localStorage.removeItem(SKIP_AUTH_KEY);
-    setAuthSkipped(false);
-    registerDeviceAndPush();
-    if (cleanUrl) {
-      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  function handleExternalReturnUrl(rawUrl) {
+    const externalReturn = APP_STORE_REVIEW ? "" : externalReturnFromUrl(rawUrl);
+    if (!APP_STORE_REVIEW && externalReturn) {
+      writeRoute("profile", { replace: true, source: `program-return-${externalReturn}` });
+      setScreen("profile");
+      if (loadAuthUser()) refreshProgramStateAfterReturn().catch(() => {});
+      return true;
     }
-    const user = await fetchMe();
-    if (user) {
-      registerDeviceAndPush();
-      await transferPreAuthProfileDraft({ reason: "token-auth" });
-      const [access, serverProfile, assignment] = await Promise.all([
-        fetchAccess(),
-        fetchProfile(),
-        fetchProgramAssignment()
-      ]);
-      if (serverProfile) {
-        const mergedProfile = saveProfile(serverProfile);
-        setProfile(mergedProfile);
-      }
-      setAuthUser(user);
-      setAccessState(access);
-      setProgramAssignment(assignment);
-      setProgramCycleLock(loadProgramCycleLock());
-      setAuthPromptOpen(false);
-      const pendingProvider = sessionStorage.getItem("fruitfit.pendingProviderLink") || "";
-      if (pendingProvider) {
-        window.dispatchEvent(new CustomEvent("fruitfit:auth-link-returned", { detail: { provider: pendingProvider } }));
-      }
-    } else {
-      setAuthPromptOpen(true);
-    }
+    return false;
+  }
+
+  async function handleIncomingAuthUrl(rawUrl, { cleanBrowserUrl = false } = {}) {
+    const route = parseAuthDeepLink(rawUrl);
+    if (!route.recognized) return false;
+    if (handledAuthUrlsRef.current.has(route.deliveryKey)) return true;
+    handledAuthUrlsRef.current.add(route.deliveryKey);
+    if (cleanBrowserUrl) stripAuthSecretsFromBrowserUrl();
+
+    setAuthRoute({ ...route, message: route.message || "" });
+    setQuizOpen(false);
+    setAuthPromptOpen(true);
+    return true;
   }
 
   async function refreshProgramStateAfterReturn() {
@@ -612,25 +597,15 @@ function AppContent() {
   }
 
   useEffect(() => {
-    const externalReturn = APP_STORE_REVIEW ? "" : externalReturnFromUrl(window.location.href);
-    if (!APP_STORE_REVIEW && externalReturn) {
-      writeRoute("profile", { replace: true, source: `program-return-${externalReturn}` });
-      setScreen("profile");
-      if (loadAuthUser()) refreshProgramStateAfterReturn().catch(() => {});
-      return;
-    }
-    if (emailAuthActionFromUrl(window.location.href)) {
-      setAuthActionUrl(window.location.href);
-      setQuizOpen(false);
-      setAuthPromptOpen(true);
-      return;
-    }
-    const token = authTokenFromUrl(window.location.href);
-    if (token) {
-      applyAuthToken(token, { cleanUrl: true }).catch(() => setAuthPromptOpen(true));
-    } else if (loadAuthUser()) {
+    let cancelled = false;
+    async function startAuthFlow() {
+      if (handleExternalReturnUrl(window.location.href)) return;
+      const handled = await handleIncomingAuthUrl(window.location.href, { cleanBrowserUrl: true });
+      if (cancelled || handled) return;
+      if (loadAuthUser()) {
       // Validate session on load
-      fetchMe().then(async (user) => {
+        fetchMe().then(async (user) => {
+          if (cancelled) return;
         if (user) {
           registerDeviceAndPush();
           await transferPreAuthProfileDraft({ reason: "existing-session" });
@@ -651,31 +626,79 @@ function AppContent() {
           setAuthPromptOpen(true);
         }
       });
+      }
     }
+    startAuthFlow();
+    CapacitorApp.getLaunchUrl?.()
+      .then((result) => {
+        if (!cancelled && result?.url && !handleExternalReturnUrl(result.url)) {
+          handleIncomingAuthUrl(result.url).catch(() => {});
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    let listener;
+    let urlListener;
+    let stateListener;
     CapacitorApp.addListener("appUrlOpen", ({ url }) => {
-      const externalReturn = APP_STORE_REVIEW ? "" : externalReturnFromUrl(url);
-      if (!APP_STORE_REVIEW && externalReturn) {
-        writeRoute("profile", { replace: true, source: `program-return-${externalReturn}` });
-        setScreen("profile");
-        if (loadAuthUser()) refreshProgramStateAfterReturn().catch(() => {});
-        return;
-      }
-      if (emailAuthActionFromUrl(url)) {
-        setAuthActionUrl(url);
-        setQuizOpen(false);
-        setAuthPromptOpen(true);
-        return;
-      }
-      const token = authTokenFromUrl(url);
-      if (token) applyAuthToken(token).catch(() => setAuthPromptOpen(true));
+      if (!handleExternalReturnUrl(url)) handleIncomingAuthUrl(url).catch(() => {});
     }).then((handle) => {
-      listener = handle;
+      urlListener = handle;
     }).catch(() => {});
-    return () => listener?.remove?.();
+    CapacitorApp.addListener("appStateChange", ({ isActive }) => {
+      if (!isActive) return;
+      CapacitorApp.getLaunchUrl?.()
+        .then((result) => {
+          if (result?.url && !handleExternalReturnUrl(result.url)) {
+            handleIncomingAuthUrl(result.url).catch(() => {});
+          }
+        })
+        .catch(() => {});
+    }).then((handle) => {
+      stateListener = handle;
+    }).catch(() => {});
+    return () => {
+      urlListener?.remove?.();
+      stateListener?.remove?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    function handleInvalidSession(event) {
+      if (sessionInvalidHandledRef.current) return;
+      sessionInvalidHandledRef.current = true;
+      const code = String(event?.detail?.code || "SESSION_REVOKED").toUpperCase();
+      const authScreen = code === "ACCOUNT_DELETED" ? "accountDeleted" : "sessionRevoked";
+      try {
+        if (routeableScreens.has(screenRef.current)) {
+          sessionStorage.setItem("fruitfit.auth.returnScreen", screenRef.current);
+        }
+      } catch (_) {}
+      clearLocalAuthSession();
+      setAuthUser(null);
+      setAccessState(null);
+      setProgramAssignment(null);
+      setProgramCycleLock(null);
+      setProfile(profileDefaults);
+      clearSelectedWorkoutSelection(`auth-${code.toLowerCase()}`, 0);
+      setAuthRoute({
+        recognized: true,
+        kind: "session",
+        screen: authScreen,
+        code,
+        token: "",
+        deliveryKey: `session:${code}:${Date.now()}`,
+      });
+      setAuthPromptMode("login");
+      setQuizOpen(false);
+      setAuthPromptOpen(true);
+    }
+    window.addEventListener("fruitfit:auth-session-invalid", handleInvalidSession);
+    return () => window.removeEventListener("fruitfit:auth-session-invalid", handleInvalidSession);
   }, []);
 
   useLayoutEffect(() => {
@@ -931,11 +954,13 @@ function AppContent() {
       <OnboardingQuiz
         initialProfile={profile}
         restart={profile.onboardingCompleted}
+        requireAccountChoice={!authUser}
         onCancel={profile.onboardingCompleted ? () => setQuizOpen(false) : null}
-        onComplete={(savedProfile) => {
+        onComplete={(savedProfile, meta = {}) => {
           setProfile(savedProfile);
           clearSelectedWorkoutSelection("questionnaire-complete-clear-selection", 0);
           setQuizOpen(false);
+          setAuthPromptMode(meta.authMode === "register" ? "register" : "login");
           setAuthPromptOpen(!loadAuthUser() && !loadAuthSkipped());
           navigate("home");
         }}
@@ -946,11 +971,16 @@ function AppContent() {
   if (authPromptOpen || (!authUser && !authSkipped)) {
     return (
       <AuthPrompt
-        key={authActionUrl || "auth"}
-        initialUrl={authActionUrl || window.location.href}
+        key={`${authRoute?.deliveryKey || "auth"}:${authPromptMode}`}
+        initialUrl={window.location.href}
+        initialRoute={authRoute}
+        initialMode={authPromptMode}
+        onRouteConsumed={() => {
+          setAuthRoute((current) => current ? { ...current, token: "" } : null);
+        }}
         onComplete={async (user, meta = {}) => {
           if (meta.skipped) {
-            setAuthActionUrl("");
+            setAuthRoute(null);
             localStorage.setItem(SKIP_AUTH_KEY, "1");
             setAuthSkipped(true);
             setAuthUser(null);
@@ -962,7 +992,9 @@ function AppContent() {
             setAuthPromptOpen(false);
             return;
           }
-          setAuthActionUrl("");
+          setAuthRoute(null);
+          setAuthPromptMode("login");
+          sessionInvalidHandledRef.current = false;
           localStorage.removeItem(SKIP_AUTH_KEY);
           setAuthSkipped(false);
           const nextUser = user || loadAuthUser();
@@ -979,6 +1011,11 @@ function AppContent() {
           setAccessState(access);
           setProgramAssignment(assignment);
           setAuthPromptOpen(false);
+          try {
+            const returnScreen = sessionStorage.getItem("fruitfit.auth.returnScreen") || "";
+            sessionStorage.removeItem("fruitfit.auth.returnScreen");
+            if (routeableScreens.has(returnScreen)) navigate(returnScreen, { replace: true, source: "auth-return" });
+          } catch (_) {}
         }}
       />
     );
@@ -1018,6 +1055,7 @@ function AppContent() {
     }
     const selectedWorkout = program?.workouts?.[safeIndex] || null;
     saveSelectedWorkoutSelection(selectedWorkout, safeIndex, "open-workout");
+    workoutDetailOpenRef.current = true;
     navigate("workout");
     resetStaleWorkoutState({ reason: "open-workout" });
     if (authUser) {
@@ -1087,15 +1125,19 @@ function AppContent() {
   }
 
   if (screen === "profile") {
-    return <ProfileScreen profile={profile} access={accessState} onProfileChange={setProfile} theme={theme} onThemeChange={setTheme} onNavigate={navigate} onRestartQuiz={() => setQuizOpen(true)} onRequireAuth={() => setAuthPromptOpen(true)} />;
+    return <ProfileScreen profile={profile} access={accessState} programAssignment={programAssignment} onProfileChange={setProfile} theme={theme} onThemeChange={setTheme} onNavigate={navigate} onRestartQuiz={() => setQuizOpen(true)} onRequireAuth={() => setAuthPromptOpen(true)} />;
   }
 
   if (screen === "settings") {
     return <SettingsScreen theme={theme} onThemeChange={setTheme} onNavigate={navigate} onBack={() => goBack("profile")} />;
   }
 
+  if (screen === "trainerRequest") {
+    return <TrainerRequestScreen profile={profile} onBack={() => goBack("home")} onNavigate={navigate} onRequireAuth={() => setAuthPromptOpen(true)} />;
+  }
+
   if (screen === "lecture") {
-    return <LectureDetailScreen onBack={() => goBack("home")} access={accessState} />;
+    return <LectureDetailScreen onBack={() => goBack("home")} onNavigate={navigate} access={accessState} />;
   }
 
   return (

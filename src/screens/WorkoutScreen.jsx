@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Activity, Check, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Clock, Leaf, History, Lock, MoreHorizontal, Pause, Play, RotateCcw, User, Volume2, VolumeX, X } from "lucide-react";
 import BottomNavigation from "../components/BottomNavigation";
@@ -6,6 +6,7 @@ import ExerciseList from "../components/ExerciseList";
 import ExerciseMedia from "../components/ExerciseMedia";
 import IconButton from "../components/IconButton";
 import MuscleWorkBlock from "../components/MuscleWorkBlock";
+import ProgramRestrictions from "../components/ProgramRestrictions";
 import { buildClientReportScores, ClientReportSliders, normalizeClientReportScores } from "../components/ClientReportSliders";
 import { isWorkoutUnlocked, LOCKED_WORKOUT_MESSAGE, originalWorkoutIndex, visibleWorkoutsForAccess } from "../data/accessRules";
 import { APP_STORE_REVIEW } from "../config/appStoreReview";
@@ -15,12 +16,16 @@ import { useHealth } from "../data/healthStore";
 import { currentUserId } from "../data/userScopedCache";
 import { getExerciseAlternatives } from "../data/exerciseAlternatives";
 import { assignMuscleTemplate } from "../data/muscleTemplates";
+import { programRestrictionState } from "../data/programRestrictions";
+import { programSummaryTitle } from "../data/programPresentation";
 import { getExerciseWeight, saveExerciseWeight } from "../utils/exerciseWeights";
+import { markWorkoutCompleted } from "../data/workoutCompletion";
 
 const SET_TARGET_SECONDS = 30;
 const REST_SECONDS = 90;
 const EXERCISE_REPLACEMENTS_FIELD = "exerciseReplacements";
 const WORKOUT_REPORTS_FIELD = "workoutReports";
+const WORKOUT_SESSION_PROGRESS_KEY = "fruitfit.workout.sessionProgress";
 
 function exerciseMuscleMapFields(exercise = {}, meta = {}) {
   const assetPath = exercise.muscle_map_asset_path
@@ -119,6 +124,46 @@ function saveReplacements(workoutId, replacements) {
   const next = { ...map, [key]: replacements && typeof replacements === "object" ? replacements : {} };
   writeWorkoutHistoryField(EXERCISE_REPLACEMENTS_FIELD, next);
   return next[key];
+}
+
+function workoutSessionKey(workoutId) {
+  return `${WORKOUT_SESSION_PROGRESS_KEY}:${String(workoutId || "").trim()}`;
+}
+
+function readWorkoutSessionProgress(workoutId) {
+  try {
+    const raw = sessionStorage.getItem(workoutSessionKey(workoutId));
+    const data = raw ? JSON.parse(raw) : null;
+    if (!data || data.workoutId !== String(workoutId || "")) return null;
+    return data;
+  } catch (_) {
+    return null;
+  }
+}
+
+function writeWorkoutSessionProgress(workoutId, state) {
+  try {
+    sessionStorage.setItem(workoutSessionKey(workoutId), JSON.stringify({
+      ...state,
+      workoutId: String(workoutId || ""),
+      savedAt: Date.now(),
+    }));
+  } catch (_) {}
+}
+
+function restoreCompletedSet(value) {
+  if (!Array.isArray(value)) return new Set();
+  return new Set(value.map((item) => Number(item)).filter((item) => Number.isFinite(item) && item >= 0));
+}
+
+function restoredNumber(value, fallback, min = 0, max = Number.MAX_SAFE_INTEGER) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.max(min, Math.min(numeric, max));
+}
+
+function restoredPhase(value) {
+  return ["idle", "prestart", "work", "workPaused", "restReady", "rest", "restPaused", "done"].includes(value) ? value : "idle";
 }
 
 function readWorkoutReport(workoutId) {
@@ -414,7 +459,7 @@ function WorkoutReport({ workoutId, workoutTitle }) {
       setSaved(true);
       setServerStatus(canSendToTrainer ? "pending" : "local");
       if (!canSendToTrainer) {
-        setStatus("Отчёт сохранён. Войдите в аккаунт, чтобы отправить его тренеру.");
+        setStatus("Отчёт сохранён. Войди в аккаунт, чтобы отправить его мне.");
         return;
       }
       try {
@@ -426,7 +471,7 @@ function WorkoutReport({ workoutId, workoutTitle }) {
           sent_at: new Date().toISOString(),
         });
         setServerStatus("sent");
-        setStatus("Отчёт отправлен тренеру.");
+        setStatus("Отчёт отправлен.");
       } catch (sendError) {
         console.warn("[FruitFit Workout] trainer report submit failed", sendError);
         const authExpired = trainerReportAuthExpired(sendError);
@@ -439,8 +484,8 @@ function WorkoutReport({ workoutId, workoutTitle }) {
         });
         setServerStatus(nextServerStatus);
         setStatus(authExpired
-          ? "Сессия истекла. Войдите заново, затем отправьте отчёт."
-          : "Отчёт сохранён. Нажмите «Отправить ещё раз», когда связь восстановится.");
+          ? "Сессия истекла. Войди заново, затем отправь отчёт."
+          : "Отчёт сохранён. Нажми «Отправить ещё раз», когда связь восстановится.");
       }
     } catch (error) {
       console.warn("[FruitFit Workout] report save failed", error);
@@ -839,32 +884,37 @@ function WarmupBlock() {
 }
 
 export default function WorkoutScreen({ program, workout, profile, access, programAssignment, selectedWorkoutIndex = 0, mode = "workout", onBack, onNavigate, onSelectWorkout }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [completed, setCompleted] = useState(() => new Set());
-  const [completedSets, setCompletedSets] = useState(0);
-  const [phase, setPhase] = useState("idle");
+  const restoredSession = useMemo(() => readWorkoutSessionProgress(workout.workout_id), [workout.workout_id]);
+  const [currentIndex, setCurrentIndex] = useState(() => restoredNumber(restoredSession?.currentIndex, 0));
+  const [completed, setCompleted] = useState(() => restoreCompletedSet(restoredSession?.completed));
+  const [completedSets, setCompletedSets] = useState(() => restoredNumber(restoredSession?.completedSets, 0));
+  const [phase, setPhase] = useState(() => restoredPhase(restoredSession?.phase));
   const [alternativeReason, setAlternativeReason] = useState("");
-  const [setSeconds, setSetSeconds] = useState(SET_TARGET_SECONDS);
-  const [restSeconds, setRestSeconds] = useState(REST_SECONDS);
-  const [prestartSeconds, setPrestartSeconds] = useState(3);
-  const [workDuration, setWorkDuration] = useState(SET_TARGET_SECONDS);
-  const [restDuration, setRestDuration] = useState(REST_SECONDS);
-  const [timerSetTotal, setTimerSetTotal] = useState(1);
-  const [muted, setMuted] = useState(false);
+  const [setSeconds, setSetSeconds] = useState(() => restoredNumber(restoredSession?.setSeconds, SET_TARGET_SECONDS, 0, 3600));
+  const [restSeconds, setRestSeconds] = useState(() => restoredNumber(restoredSession?.restSeconds, REST_SECONDS, 0, 3600));
+  const [prestartSeconds, setPrestartSeconds] = useState(() => restoredNumber(restoredSession?.prestartSeconds, 3, 0, 10));
+  const [workDuration, setWorkDuration] = useState(() => restoredNumber(restoredSession?.workDuration, SET_TARGET_SECONDS, 1, 3600));
+  const [restDuration, setRestDuration] = useState(() => restoredNumber(restoredSession?.restDuration, REST_SECONDS, 1, 3600));
+  const [timerSetTotal, setTimerSetTotal] = useState(() => restoredNumber(restoredSession?.timerSetTotal, 1, 1, 8));
+  const [muted, setMuted] = useState(() => Boolean(restoredSession?.muted));
   const [replacements, setReplacements] = useState(() => readReplacements(workout.workout_id));
+  const skipExerciseTimerResetRef = useRef(Boolean(restoredSession));
 
   useEffect(() => {
-    setCurrentIndex(0);
-    setCompleted(new Set());
-    setCompletedSets(0);
-    setPhase("idle");
-    setSetSeconds(SET_TARGET_SECONDS);
-    setRestSeconds(REST_SECONDS);
-    setPrestartSeconds(3);
-    setWorkDuration(SET_TARGET_SECONDS);
-    setRestDuration(REST_SECONDS);
-    setTimerSetTotal(1);
+    const nextSession = readWorkoutSessionProgress(workout.workout_id);
+    setCurrentIndex(restoredNumber(nextSession?.currentIndex, 0));
+    setCompleted(restoreCompletedSet(nextSession?.completed));
+    setCompletedSets(restoredNumber(nextSession?.completedSets, 0));
+    setPhase(restoredPhase(nextSession?.phase));
+    setSetSeconds(restoredNumber(nextSession?.setSeconds, SET_TARGET_SECONDS, 0, 3600));
+    setRestSeconds(restoredNumber(nextSession?.restSeconds, REST_SECONDS, 0, 3600));
+    setPrestartSeconds(restoredNumber(nextSession?.prestartSeconds, 3, 0, 10));
+    setWorkDuration(restoredNumber(nextSession?.workDuration, SET_TARGET_SECONDS, 1, 3600));
+    setRestDuration(restoredNumber(nextSession?.restDuration, REST_SECONDS, 1, 3600));
+    setTimerSetTotal(restoredNumber(nextSession?.timerSetTotal, 1, 1, 8));
+    setMuted(Boolean(nextSession?.muted));
     setReplacements(readReplacements(workout.workout_id));
+    skipExerciseTimerResetRef.current = Boolean(nextSession);
   }, [workout.workout_id]);
 
   const displayExercises = useMemo(() => workout.exercises.map((exercise) => {
@@ -894,8 +944,28 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
   const visibleSelectedIndex = currentVisibleIndex >= 0 ? currentVisibleIndex : Math.min(selectedWorkoutIndex, visibleTotal - 1);
   const meta = exerciseMeta(current);
   const muscleMapGender = profile?.gender === "male" || String(workout.course?.gender || "").toLowerCase().includes("муж") ? "male" : "female";
+  const restrictionState = useMemo(
+    () => programRestrictionState({ profile, course: workout.course, programAssignment }),
+    [profile, programAssignment, workout.course],
+  );
   const setRows = useMemo(() => Array.from({ length: setTotal }, (_, index) => index + 1), [setTotal]);
   const showRest = phase === "restReady" || phase === "rest" || phase === "restPaused";
+
+  useEffect(() => {
+    writeWorkoutSessionProgress(workout.workout_id, {
+      currentIndex,
+      completed: Array.from(completed),
+      completedSets,
+      phase,
+      setSeconds,
+      restSeconds,
+      prestartSeconds,
+      workDuration,
+      restDuration,
+      timerSetTotal,
+      muted,
+    });
+  }, [completed, completedSets, currentIndex, muted, phase, prestartSeconds, restDuration, restSeconds, setSeconds, timerSetTotal, workDuration, workout.workout_id]);
 
   useEffect(() => {
     console.log("WorkoutScreen parsed data", JSON.stringify({
@@ -915,6 +985,10 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
   }, [onSelectWorkout, visibleWorkouts, workout.workout_id]);
 
   useEffect(() => {
+    if (skipExerciseTimerResetRef.current) {
+      skipExerciseTimerResetRef.current = false;
+      return;
+    }
     const staticMode = isStaticExercise(current);
     const nextWork = staticMode ? Math.max(30, Math.min(workDuration || 30, 60)) : SET_TARGET_SECONDS;
     const nextRest = staticMode ? Math.max(30, Math.min(restDuration || 60, 90)) : REST_SECONDS;
@@ -1031,7 +1105,16 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
   }
 
   function finishExercise() {
-    setCompleted((previous) => new Set([...previous, currentIndex]));
+    setCompleted((previous) => {
+      const next = new Set([...previous, currentIndex]);
+      if (displayExercises.length > 0 && next.size >= displayExercises.length) {
+        markWorkoutCompleted(workout.workout_id, {
+          title: workout.lesson?.lesson_title || "",
+          exerciseCount: displayExercises.length,
+        });
+      }
+      return next;
+    });
     setCurrentIndex((index) => Math.min(index + 1, displayExercises.length - 1));
     setCompletedSets(0);
     setSetSeconds(workDuration);
@@ -1133,6 +1216,25 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
     />
   );
 
+  if (restrictionState.requiresAdaptation) {
+    return (
+      <main className="phone-shell safe-tab-screen">
+        <div className="px-4 pb-4 pt-[max(14px,env(safe-area-inset-top))]">
+          <header className="flex items-center justify-between">
+            <IconButton label="Назад" onClick={onBack} className="h-10 w-10"><ChevronLeft size={22} /></IconButton>
+            <h1 className="text-[18px] font-bold text-appText">Тренировка</h1>
+            <div className="h-10 w-10" />
+          </header>
+          <section className="mt-5 rounded-[24px] border border-appBorder bg-appCard p-4 shadow-card">
+            <h2 className="text-[22px] font-black leading-tight text-appText">Сначала нужна адаптация программы</h2>
+            <ProgramRestrictions profile={profile} course={workout.course} programAssignment={programAssignment} />
+          </section>
+        </div>
+        <BottomNavigation active="workouts" onNavigate={onNavigate} />
+      </main>
+    );
+  }
+
   if (mode === "focus") {
     return (
       <main className="phone-shell bg-[#10160F] text-white">
@@ -1171,7 +1273,8 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h2 className="line-clamp-2 text-[26px] font-black leading-[1.08] text-appText">{workout.lesson.lesson_title}</h2>
-              <p className="mt-2 line-clamp-1 text-[13px] text-appMuted">{workout.course.display_name}</p>
+              <p className="mt-2 text-[13px] leading-5 text-appMuted">{programSummaryTitle(profile, workout.course)}</p>
+              <ProgramRestrictions profile={profile} course={workout.course} programAssignment={programAssignment} compact />
             </div>
             <span className="shrink-0 rounded-full bg-appGreen/55 px-3 py-1.5 text-[12px] font-semibold text-[#181F19]">День {visibleSelectedIndex + 1}/{visibleTotal}</span>
           </div>

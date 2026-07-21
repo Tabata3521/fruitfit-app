@@ -190,6 +190,6 @@ export function recordEngagementPromptOutcome({ user = null, type, outcome = "di
 
 export function ratingStoreUrl(platform = "web") {
   if (platform === "ios") return "https://apps.apple.com/app/id6784431088?action=write-review";
-  if (platform === "android") return "https://apps.rustore.ru/app/com.tagirfruit.fruitfit";
+  if (platform === "android") return "https://play.google.com/store/apps/details?id=com.tagirfruit.fruitfit";
   return "";
 }

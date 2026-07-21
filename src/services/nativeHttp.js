@@ -17,6 +17,62 @@ function normalizeNativeData(data) {
   }
 }
 
+function normalizeHeaders(headers = {}) {
+  if (!headers) return {};
+  if (typeof headers.entries === "function") {
+    return Object.fromEntries(headers.entries());
+  }
+  return Object.fromEntries(Object.entries(headers).map(([key, value]) => [String(key).toLowerCase(), String(value)]));
+}
+
+function responseErrorCode(data = {}) {
+  const value = data?.code || data?.error?.code || data?.error || data?.message || "";
+  return String(value || "").trim().replace(/[\s-]+/g, "_").toUpperCase();
+}
+
+function hasBearerHeader(headers = {}) {
+  return Object.entries(headers || {}).some(([key, value]) => (
+    String(key).toLowerCase() === "authorization"
+    && /^bearer\s+\S+/i.test(String(value || ""))
+  ));
+}
+
+function notifyInvalidSession({ status, data, requestHeaders }) {
+  if (typeof window === "undefined" || !hasBearerHeader(requestHeaders)) return;
+  const rawCode = responseErrorCode(data);
+  if (rawCode === "INVALID_CREDENTIALS") return;
+  const code = rawCode === "UNAUTHORIZED" || rawCode === "INVALID_TOKEN"
+    ? "SESSION_REVOKED"
+    : rawCode;
+  if (code !== "SESSION_REVOKED" && code !== "ACCOUNT_DELETED" && Number(status) !== 401) return;
+  window.dispatchEvent(new CustomEvent("fruitfit:auth-session-invalid", {
+    detail: { code: code || "SESSION_REVOKED", status: Number(status) || 401 },
+  }));
+}
+
+function normalizedResponse(response, requestHeaders = {}) {
+  const result = {
+    ok: response.status >= 200 && response.status < 300,
+    status: response.status,
+    data: normalizeNativeData(response.data),
+    headers: normalizeHeaders(response.headers),
+  };
+  notifyInvalidSession({ ...result, requestHeaders });
+  return result;
+}
+
+async function webResponse(response, requestHeaders = {}) {
+  const data = await response.json().catch(() => ({}));
+  const result = {
+    ok: response.ok,
+    status: response.status,
+    data,
+    headers: normalizeHeaders(response.headers),
+  };
+  notifyInvalidSession({ ...result, requestHeaders });
+  return result;
+}
+
 export async function getJson(url, options = {}) {
   if (isNativeHttpAvailable()) {
     const response = await CapacitorHttp.get({
@@ -24,11 +80,7 @@ export async function getJson(url, options = {}) {
       headers: options.headers || {},
       params: options.params || {},
     });
-    return {
-      ok: response.status >= 200 && response.status < 300,
-      status: response.status,
-      data: normalizeNativeData(response.data),
-    };
+    return normalizedResponse(response, options.headers || {});
   }
 
   const response = await fetch(url, {
@@ -36,8 +88,7 @@ export async function getJson(url, options = {}) {
     cache: options.cache || "no-store",
     headers: options.headers,
   });
-  const data = await response.json().catch(() => ({}));
-  return { ok: response.ok, status: response.status, data };
+  return webResponse(response, options.headers || {});
 }
 
 export async function postJson(url, body = {}, options = {}) {
@@ -48,11 +99,7 @@ export async function postJson(url, body = {}, options = {}) {
       headers,
       data: body,
     });
-    return {
-      ok: response.status >= 200 && response.status < 300,
-      status: response.status,
-      data: normalizeNativeData(response.data),
-    };
+    return normalizedResponse(response, headers);
   }
 
   const response = await fetch(url, {
@@ -62,8 +109,7 @@ export async function postJson(url, body = {}, options = {}) {
     body: JSON.stringify(body),
     cache: options.cache || "no-store",
   });
-  const data = await response.json().catch(() => ({}));
-  return { ok: response.ok, status: response.status, data };
+  return webResponse(response, headers);
 }
 
 export async function putJson(url, body = {}, options = {}) {
@@ -74,11 +120,7 @@ export async function putJson(url, body = {}, options = {}) {
       headers,
       data: body,
     });
-    return {
-      ok: response.status >= 200 && response.status < 300,
-      status: response.status,
-      data: normalizeNativeData(response.data),
-    };
+    return normalizedResponse(response, headers);
   }
 
   const response = await fetch(url, {
@@ -88,8 +130,7 @@ export async function putJson(url, body = {}, options = {}) {
     body: JSON.stringify(body),
     cache: options.cache || "no-store",
   });
-  const data = await response.json().catch(() => ({}));
-  return { ok: response.ok, status: response.status, data };
+  return webResponse(response, headers);
 }
 
 export async function deleteJson(url, body = {}, options = {}) {
@@ -101,11 +142,7 @@ export async function deleteJson(url, body = {}, options = {}) {
       data: body,
       params: options.params || {},
     });
-    return {
-      ok: response.status >= 200 && response.status < 300,
-      status: response.status,
-      data: normalizeNativeData(response.data),
-    };
+    return normalizedResponse(response, headers);
   }
 
   const response = await fetch(url, {
@@ -115,6 +152,5 @@ export async function deleteJson(url, body = {}, options = {}) {
     body: JSON.stringify(body),
     cache: options.cache || "no-store",
   });
-  const data = await response.json().catch(() => ({}));
-  return { ok: response.ok, status: response.status, data };
+  return webResponse(response, headers);
 }

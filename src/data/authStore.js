@@ -3,6 +3,7 @@ const TOKEN_KEY = "fruitfit.authToken";
 const ACCESS_KEY = "fruitfit.accessState";
 const PROGRAM_ASSIGNMENT_KEY = "fruitfit.programAssignment";
 import { deleteJson, getJson, postJson, putJson } from "../services/nativeHttp";
+import { authApiErrorFromResponse, authApiErrorFromThrown } from "../services/authFlow";
 import { clearCurrentUserContainers, readUserCoreField, writeUserCoreField } from "./dataContainers";
 import { resetStaleWorkoutState, serverCurrentWorkoutFromAssignment } from "./dataAccess";
 import { clearPreAuthProfileDraft, hasMeaningfulPreAuthProfileDraft, mergeProfileDraftWithServer, normalizeProfile, readPreAuthProfileDraft } from "./profileStore";
@@ -13,6 +14,31 @@ export const TRAINER_REQUEST_URL = "https://tagirfruit.ru/trainer-request";
 
 export function apiUrl(path) {
   return `${API_BASE_URL}${path}`;
+}
+
+export async function requestPasswordResetEmail(email) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail) {
+    throw authApiErrorFromResponse({ status: 400, data: { code: "INVALID_EMAIL" } }, "INVALID_EMAIL");
+  }
+
+  let response;
+  try {
+    response = await postJson(apiUrl("/api/auth/email/request-password-reset"), {
+      email: normalizedEmail,
+    }, {
+      credentials: "omit",
+      cache: "no-store",
+    });
+  } catch (error) {
+    throw authApiErrorFromThrown(error);
+  }
+
+  if (!response.ok) {
+    throw authApiErrorFromResponse(response, "EMAIL_DELIVERY_UNAVAILABLE");
+  }
+
+  return response.data || { ok: true };
 }
 
 export function trainerRequestPageUrl(request = {}) {
@@ -320,6 +346,11 @@ export function saveAuthUser(user) {
   return user;
 }
 
+export function clearLocalAuthSession() {
+  setAuthToken(null);
+  saveAuthUser(null);
+}
+
 export function saveAccessState(access) {
   if (!access) {
     localStorage.removeItem(ACCESS_KEY);
@@ -458,7 +489,7 @@ export async function fetchMe() {
     });
     if (!res.ok) {
       if (res.status === 401) saveAuthUser(null);
-      return null;
+      return res.status === 401 ? null : loadAuthUser();
     }
     const data = res.data || {};
     const savedUser = data.user ? saveAuthUser(data.user) : null;
@@ -467,8 +498,9 @@ export async function fetchMe() {
     if (savedUser) return savedUser;
   } catch (err) {
     console.error("[FruitFit Auth] fetchMe failed", err);
+    return loadAuthUser();
   }
-  return null;
+  return loadAuthUser();
 }
 
 export async function fetchProfile() {
@@ -481,7 +513,7 @@ export async function fetchProfile() {
       if (res.status === 401) saveAuthUser(null);
       return null;
     }
-    return res.data?.profile || null;
+    return res.data?.profile ? normalizeProfile(res.data.profile) : null;
   } catch (err) {
     console.error("[FruitFit Auth] fetchProfile failed", err);
   }
@@ -489,8 +521,9 @@ export async function fetchProfile() {
 }
 
 export async function saveServerProfile(profile) {
+  const normalizedProfile = normalizeProfile(profile);
   try {
-    const res = await postJson(apiUrl("/api/me/profile"), { profile }, {
+    const res = await postJson(apiUrl("/api/me/profile"), { profile: normalizedProfile }, {
       credentials: "include",
       headers: authHeaders()
     });
@@ -498,7 +531,7 @@ export async function saveServerProfile(profile) {
       if (res.status === 401) saveAuthUser(null);
       return null;
     }
-    const savedProfile = res.data?.profile || profile;
+    const savedProfile = normalizeProfile(res.data?.profile || normalizedProfile);
     const current = loadAuthUser();
     if (current) {
       saveAuthUser({
@@ -514,14 +547,18 @@ export async function saveServerProfile(profile) {
   return null;
 }
 
-export async function createTrainerRequest({ profile = {}, source = "client" } = {}) {
-  const res = await postJson(apiUrl("/api/trainer-requests"), { profile: trainerRequestProfile(profile), source }, {
+export async function createTrainerRequest({ profile = {}, source = "client", submit = false } = {}) {
+  const res = await postJson(apiUrl("/api/trainer-requests"), {
+    profile: trainerRequestProfile(profile),
+    source,
+    ...(submit ? { submit: true, status: "submitted" } : {}),
+  }, {
     credentials: "include",
     headers: authHeaders()
   });
   if (!res.ok) {
     if (res.status === 401) saveAuthUser(null);
-    throw new Error(res.data?.error || res.data?.message || "Не удалось создать заявку тренеру");
+    throw new Error(res.data?.error || res.data?.message || "Не удалось создать заявку");
   }
   const data = res.data || {};
   const request = data.request && typeof data.request === "object" ? data.request : {};
@@ -552,6 +589,7 @@ function profilesEqualForTransfer(left = {}, right = {}) {
     "goal",
     "experience",
     "trainingFrequency",
+    "restrictionKeys",
     "restrictions",
     "dietType",
     "calculatedCalories",
@@ -568,6 +606,7 @@ export async function transferPreAuthProfileDraft({ reason = "auth" } = {}) {
   const mergedProfile = mergeProfileDraftWithServer(serverProfile || {}, draft);
   if (serverProfile && profilesEqualForTransfer(serverProfile, mergedProfile)) {
     writeUserCoreField("profile", normalizeProfile(serverProfile));
+    clearPreAuthProfileDraft();
     return { transferred: false, reason: "server_profile_already_filled", profile: normalizeProfile(serverProfile) };
   }
 
@@ -735,61 +774,41 @@ export async function saveMenstrualCycle(cycle) {
 }
 
 export async function logoutUser() {
+  let response;
   try {
-    await postJson(apiUrl("/api/auth/logout"), {}, {
+    response = await postJson(apiUrl("/api/auth/logout"), {}, {
       credentials: "include",
       headers: authHeaders()
     });
   } catch (err) {
-    console.error("[FruitFit Auth] logout failed", err);
+    throw authApiErrorFromThrown(err);
   }
-  setAuthToken(null);
-  saveAuthUser(null);
+  const code = String(response?.data?.code || response?.data?.error || "").toUpperCase();
+  const alreadyEnded = response?.status === 401 && ["SESSION_REVOKED", "UNAUTHORIZED", "INVALID TOKEN", "INVALID_TOKEN"].includes(code);
+  if (!response?.ok && !alreadyEnded) {
+    throw authApiErrorFromResponse(response, "AUTH_UNAVAILABLE");
+  }
+  clearLocalAuthSession();
+  return { ok: true, alreadyEnded };
 }
 
-export async function fetchAuthIdentities() {
+export async function logoutAllDevices() {
+  let response;
   try {
-    const res = await getJson(apiUrl("/api/me/identities"), {
+    response = await postJson(apiUrl("/api/auth/logout-all"), {}, {
       credentials: "include",
       headers: authHeaders()
     });
-    if (!res.ok) {
-      if (res.status === 401) saveAuthUser(null);
-      return [];
-    }
-    return Array.isArray(res.data?.identities) ? res.data.identities : [];
-  } catch (err) {
-    console.error("[FruitFit Auth] fetchAuthIdentities failed", err);
-    return [];
+  } catch (error) {
+    throw authApiErrorFromThrown(error);
   }
-}
-
-export async function unlinkAuthProvider(provider, providerUserId = "") {
-  const res = await deleteJson(apiUrl("/api/auth/unlink-provider"), {
-    provider,
-    providerUserId
-  }, {
-    credentials: "include",
-    headers: authHeaders()
-  });
-  if (!res.ok) {
-    throw new Error(res.data?.error || res.data?.message || "Не удалось отвязать аккаунт");
+  const code = String(response?.data?.code || response?.data?.error || "").toUpperCase();
+  const alreadyEnded = response?.status === 401 && ["SESSION_REVOKED", "UNAUTHORIZED", "INVALID TOKEN", "INVALID_TOKEN"].includes(code);
+  if (!response?.ok && !alreadyEnded) {
+    throw authApiErrorFromResponse(response, "AUTH_UNAVAILABLE");
   }
-  return Array.isArray(res.data?.identities) ? res.data.identities : null;
-}
-
-export async function linkAuthProvider(provider, payload = {}) {
-  const res = await postJson(apiUrl("/api/auth/link-provider"), {
-    provider,
-    ...payload
-  }, {
-    credentials: "include",
-    headers: authHeaders()
-  });
-  if (!res.ok) {
-    throw new Error(res.data?.error || res.data?.message || "Не удалось привязать аккаунт");
-  }
-  return Array.isArray(res.data?.identities) ? res.data.identities : null;
+  clearLocalAuthSession();
+  return { ok: true, alreadyEnded };
 }
 
 export async function fetchProgressPhotos() {
@@ -895,17 +914,6 @@ export async function submitTrainerReport(report = {}) {
   const item = res.data?.item || null;
   window.dispatchEvent(new CustomEvent("fruitfit:trainer-report-submitted", { detail: { item, report } }));
   return item;
-}
-
-export function telegramWebAppUser() {
-  const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-  if (!tgUser) return null;
-  return {
-    provider: "telegram",
-    id: String(tgUser.id),
-    username: tgUser.username ? `@${tgUser.username}` : [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" "),
-    name: [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" "),
-  };
 }
 
 function firstReadableName(value, options = {}) {
