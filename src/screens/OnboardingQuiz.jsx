@@ -3,6 +3,7 @@ import { Capacitor } from "@capacitor/core";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, X } from "lucide-react";
 import RestrictionMultiSelect from "../components/RestrictionMultiSelect";
 import { legacyRestrictionValue, normalizeProfile, profileDefaults, saveProfile } from "../data/profileStore";
+import { trackAnalyticsEvent } from "../services/attribution";
 
 const HEALTH_PROVIDER_NAME = Capacitor.getPlatform?.() === "android" ? "Google Health Connect" : "Apple Health";
 
@@ -71,6 +72,10 @@ export default function OnboardingQuiz({
   const progress = Math.round(((index + 1) / steps.length) * 100);
   const options = useMemo(() => step.options.map((option) => optionParts(option, step.labels)), [step]);
   const selected = draft[step.key];
+
+  useEffect(() => {
+    trackAnalyticsEvent("questionnaire_started", { screen: "questionnaire" }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (step.key !== "dietType" || !footerRef.current) {

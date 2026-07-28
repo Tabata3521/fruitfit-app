@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { App as CapacitorApp } from "@capacitor/app";
 import { AnimatePresence, motion } from "framer-motion";
 import { Activity, Check, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Clock, Leaf, History, Lock, MoreHorizontal, Pause, Play, RotateCcw, User, Volume2, VolumeX, X } from "lucide-react";
 import BottomNavigation from "../components/BottomNavigation";
@@ -20,12 +21,81 @@ import { programRestrictionState } from "../data/programRestrictions";
 import { programSummaryTitle } from "../data/programPresentation";
 import { getExerciseWeight, saveExerciseWeight } from "../utils/exerciseWeights";
 import { markWorkoutCompleted } from "../data/workoutCompletion";
+import {
+  activeWorkoutSession,
+  abandonWorkoutSession,
+  completeWorkoutSession,
+  createWorkoutSession,
+  deleteWorkoutSession,
+  migrateLegacyWorkoutSession,
+  reconcileWorkoutSession,
+  saveWorkoutSession,
+  stableExerciseId,
+  timerRemainingSeconds,
+  updateWorkoutSession,
+  workoutSessionForWorkout,
+} from "../data/workoutSessions";
+import { flushWorkoutSessionSync, scheduleWorkoutSessionSync } from "../services/workoutSessionSync";
+import { trackAnalyticsEvent } from "../services/attribution";
 
 const SET_TARGET_SECONDS = 30;
 const REST_SECONDS = 90;
 const EXERCISE_REPLACEMENTS_FIELD = "exerciseReplacements";
 const WORKOUT_REPORTS_FIELD = "workoutReports";
 const WORKOUT_SESSION_PROGRESS_KEY = "fruitfit.workout.sessionProgress";
+
+function loadDurableWorkoutSession(workout, program) {
+  const userId = currentUserId();
+  if (!userId) return null;
+  const migrated = migrateLegacyWorkoutSession({ workout, program, userId });
+  const existing = migrated || workoutSessionForWorkout(workout.workout_id, userId);
+  if (existing) {
+    const reconciled = reconcileWorkoutSession(existing, { workout, program, userId });
+    return saveWorkoutSession(reconciled, { activate: reconciled.status === "active", userId });
+  }
+  const active = activeWorkoutSession(userId);
+  const created = createWorkoutSession({
+    workout,
+    program,
+    userId,
+    status: active && active.workout_id !== String(workout.workout_id || "") ? "paused" : "active",
+  });
+  return saveWorkoutSession(created, { activate: created.status === "active", userId });
+}
+
+function completedExerciseIds(session = {}) {
+  return new Set(
+    Object.values(session.exercises || {})
+      .filter((exercise) => exercise.status === "completed")
+      .map((exercise) => exercise.exercise_id),
+  );
+}
+
+function selectedExerciseIndex(session, exercises = []) {
+  const selectedId = String(session?.selected_exercise_id || "");
+  const index = exercises.findIndex((exercise, itemIndex) => stableExerciseId(exercise, itemIndex) === selectedId);
+  return index >= 0 ? index : 0;
+}
+
+function completedSetCount(session, exerciseId) {
+  return (session?.exercises?.[exerciseId]?.sets || []).filter((set) => set.completed).length;
+}
+
+function trackWorkoutStartedOnce(session, program) {
+  if (!session?.session_id) return;
+  const marker = `fruitfit.analytics.workoutStarted:${session.session_id}`;
+  try {
+    if (localStorage.getItem(marker) === "1") return;
+    localStorage.setItem(marker, "1");
+  } catch (_) {
+    // The backend event id still protects against request retries.
+  }
+  trackAnalyticsEvent("workout_started", {
+    screen: "workout",
+    workoutId: session.workout_id,
+    programId: session.program_id || program?.course?.course_id || program?.course?.id || "",
+  }).catch(() => {});
+}
 
 function exerciseMuscleMapFields(exercise = {}, meta = {}) {
   const assetPath = exercise.muscle_map_asset_path
@@ -635,18 +705,20 @@ function WorkRestTimer({
   );
 }
 
-function WeightInput({ exercise, setNumber, initialWeight }) {
+function WeightInput({ exercise, setNumber, initialWeight, sessionValue, disabled = false, onValueChange }) {
   const saved = getExerciseWeight(exercise, setNumber);
-  const [value, setValue] = useState(saved?.lastWeight || initialWeight || "");
+  const [value, setValue] = useState(sessionValue ?? saved?.lastWeight ?? initialWeight ?? "");
   const [savedPulse, setSavedPulse] = useState(false);
 
   useEffect(() => {
-    setValue(getExerciseWeight(exercise, setNumber)?.lastWeight || initialWeight || "");
-  }, [exercise, initialWeight, setNumber]);
+    setValue(sessionValue ?? getExerciseWeight(exercise, setNumber)?.lastWeight ?? initialWeight ?? "");
+  }, [exercise, initialWeight, sessionValue, setNumber]);
 
   function update(nextValue) {
+    if (disabled) return;
     const clean = String(nextValue).replace(/[^\d.]/g, "");
     setValue(clean);
+    onValueChange?.(clean === "" ? null : Number(clean));
     const entry = saveExerciseWeight(exercise, clean, setNumber);
     if (entry) {
       setSavedPulse(true);
@@ -656,17 +728,17 @@ function WeightInput({ exercise, setNumber, initialWeight }) {
 
   return (
     <div className="flex items-center justify-end gap-1">
-      <button type="button" onClick={() => update(Math.max(0, Number(value || 0) - 2.5))} className="grid h-7 w-7 place-items-center rounded-full bg-appBg text-appMuted">-</button>
+      <button type="button" disabled={disabled} onClick={() => update(Math.max(0, Number(value || 0) - 2.5))} className="grid h-7 w-7 place-items-center rounded-full bg-appBg text-appMuted disabled:opacity-40">-</button>
       <label className={`flex h-8 w-[70px] items-center rounded-full border bg-appCard px-2 transition ${savedPulse ? "border-[#8BBE3D] shadow-glow" : "border-appBorder"}`}>
-        <input aria-label={`Вес подход ${setNumber}`} value={value} onChange={(event) => update(event.target.value)} inputMode="decimal" className="min-w-0 flex-1 bg-transparent text-center text-[12px] font-bold text-appText outline-none" />
+        <input disabled={disabled} aria-label={`Вес подход ${setNumber}`} value={value} onChange={(event) => update(event.target.value)} inputMode="decimal" className="min-w-0 flex-1 bg-transparent text-center text-[12px] font-bold text-appText outline-none disabled:opacity-50" />
         <span className="text-[10px] text-appMuted">кг</span>
       </label>
-      <button type="button" onClick={() => update(Number(value || 0) + 2.5)} className="grid h-7 w-7 place-items-center rounded-full bg-appBg text-appMuted">+</button>
+      <button type="button" disabled={disabled} onClick={() => update(Number(value || 0) + 2.5)} className="grid h-7 w-7 place-items-center rounded-full bg-appBg text-appMuted disabled:opacity-40">+</button>
     </div>
   );
 }
 
-function SetsTable({ current, setRows, completedSets, currentSet }) {
+function SetsTable({ current, exerciseState, setRows, completedSets, currentSet, disabled = false, onSetValueChange }) {
   const saved = getExerciseWeight(current);
   const initialWeight = current?.weight ? Number(String(current.weight).replace(/[^\d.]/g, "")) : "";
 
@@ -680,10 +752,27 @@ function SetsTable({ current, setRows, completedSets, currentSet }) {
         {setRows.map((set, index) => {
           const status = set <= completedSets ? "completed" : set === currentSet ? "current" : "upcoming";
           return (
-            <div key={set} className={`sets-table-row grid grid-cols-[74px_1fr_122px_24px] items-center gap-2 rounded-xl px-2 py-2 text-[13px] ${index % 2 ? "sets-table-row-alt" : ""} ${status === "current" ? "sets-table-row-current" : ""}`}>
+            <div key={set} className={`sets-table-row grid grid-cols-[64px_64px_1fr_24px] items-center gap-2 rounded-xl px-2 py-2 text-[13px] ${index % 2 ? "sets-table-row-alt" : ""} ${status === "current" ? "sets-table-row-current" : ""}`}>
               <span className="font-semibold text-appText">Подход {set}</span>
-              <span className="truncate text-appMuted">{current.reps ? `${current.reps} повторений` : current.raw_line}</span>
-              <WeightInput exercise={current} setNumber={set} initialWeight={initialWeight} />
+              <label className="flex h-8 items-center rounded-full border border-appBorder bg-appCard px-2">
+                <input
+                  aria-label={`Повторения подход ${set}`}
+                  disabled={disabled}
+                  value={exerciseState?.sets?.[set - 1]?.reps ?? current.reps ?? ""}
+                  onChange={(event) => onSetValueChange?.(set, { reps: event.target.value === "" ? null : Math.max(0, Number(event.target.value) || 0) })}
+                  inputMode="numeric"
+                  className="min-w-0 flex-1 bg-transparent text-center text-[12px] font-bold text-appText outline-none disabled:opacity-50"
+                />
+                <span className="text-[9px] text-appMuted">раз</span>
+              </label>
+              <WeightInput
+                exercise={current}
+                setNumber={set}
+                initialWeight={initialWeight}
+                sessionValue={exerciseState?.sets?.[set - 1]?.weight}
+                disabled={disabled}
+                onValueChange={(weight) => onSetValueChange?.(set, { weight })}
+              />
               <span className={`grid h-5 w-5 place-items-center rounded-full ${status === "completed" ? "bg-appGreen text-[#181F19]" : "border border-appBorder"}`}>
                 {status === "completed" && <Check size={13} />}
               </span>
@@ -884,58 +973,73 @@ function WarmupBlock() {
 }
 
 export default function WorkoutScreen({ program, workout, profile, access, programAssignment, selectedWorkoutIndex = 0, mode = "workout", onBack, onNavigate, onSelectWorkout }) {
-  const restoredSession = useMemo(() => readWorkoutSessionProgress(workout.workout_id), [workout.workout_id]);
-  const [currentIndex, setCurrentIndex] = useState(() => restoredNumber(restoredSession?.currentIndex, 0));
-  const [completed, setCompleted] = useState(() => restoreCompletedSet(restoredSession?.completed));
-  const [completedSets, setCompletedSets] = useState(() => restoredNumber(restoredSession?.completedSets, 0));
-  const [phase, setPhase] = useState(() => restoredPhase(restoredSession?.phase));
+  const [workoutSession, setWorkoutSession] = useState(() => loadDurableWorkoutSession(workout, program));
+  const [currentIndex, setCurrentIndex] = useState(() => selectedExerciseIndex(workoutSession, workout.exercises));
+  const [completed, setCompleted] = useState(() => completedExerciseIds(workoutSession));
+  const initialExerciseId = stableExerciseId(workout.exercises?.[currentIndex] || {}, currentIndex);
+  const [completedSets, setCompletedSets] = useState(() => completedSetCount(workoutSession, initialExerciseId));
+  const initialTimer = workoutSession?.timer || {};
+  const [phase, setPhase] = useState(() => restoredPhase(initialTimer.phase));
   const [alternativeReason, setAlternativeReason] = useState("");
-  const [setSeconds, setSetSeconds] = useState(() => restoredNumber(restoredSession?.setSeconds, SET_TARGET_SECONDS, 0, 3600));
-  const [restSeconds, setRestSeconds] = useState(() => restoredNumber(restoredSession?.restSeconds, REST_SECONDS, 0, 3600));
-  const [prestartSeconds, setPrestartSeconds] = useState(() => restoredNumber(restoredSession?.prestartSeconds, 3, 0, 10));
-  const [workDuration, setWorkDuration] = useState(() => restoredNumber(restoredSession?.workDuration, SET_TARGET_SECONDS, 1, 3600));
-  const [restDuration, setRestDuration] = useState(() => restoredNumber(restoredSession?.restDuration, REST_SECONDS, 1, 3600));
-  const [timerSetTotal, setTimerSetTotal] = useState(() => restoredNumber(restoredSession?.timerSetTotal, 1, 1, 8));
-  const [muted, setMuted] = useState(() => Boolean(restoredSession?.muted));
+  const [setSeconds, setSetSeconds] = useState(() => restoredNumber(timerRemainingSeconds(initialTimer), SET_TARGET_SECONDS, 0, 3600));
+  const [restSeconds, setRestSeconds] = useState(() => restoredNumber(timerRemainingSeconds(initialTimer), REST_SECONDS, 0, 3600));
+  const [prestartSeconds, setPrestartSeconds] = useState(3);
+  const [workDuration, setWorkDuration] = useState(() => restoredNumber(initialTimer.duration_seconds, SET_TARGET_SECONDS, 1, 3600));
+  const [restDuration, setRestDuration] = useState(REST_SECONDS);
+  const [timerSetTotal, setTimerSetTotal] = useState(() => Math.max(1, Number(workout.exercises?.[currentIndex]?.sets) || 1));
+  const [timerEndsAt, setTimerEndsAt] = useState(initialTimer.ends_at || null);
+  const [muted, setMuted] = useState(false);
+  const [exerciseNotes, setExerciseNotes] = useState(() => workoutSession?.exercises?.[initialExerciseId]?.notes || "");
+  const [activationConflict, setActivationConflict] = useState(null);
+  const [draftMenuOpen, setDraftMenuOpen] = useState(false);
   const [replacements, setReplacements] = useState(() => readReplacements(workout.workout_id));
-  const skipExerciseTimerResetRef = useRef(Boolean(restoredSession));
+  const skipExerciseTimerResetRef = useRef(Boolean(workoutSession));
 
   useEffect(() => {
-    const nextSession = readWorkoutSessionProgress(workout.workout_id);
-    setCurrentIndex(restoredNumber(nextSession?.currentIndex, 0));
-    setCompleted(restoreCompletedSet(nextSession?.completed));
-    setCompletedSets(restoredNumber(nextSession?.completedSets, 0));
-    setPhase(restoredPhase(nextSession?.phase));
-    setSetSeconds(restoredNumber(nextSession?.setSeconds, SET_TARGET_SECONDS, 0, 3600));
-    setRestSeconds(restoredNumber(nextSession?.restSeconds, REST_SECONDS, 0, 3600));
-    setPrestartSeconds(restoredNumber(nextSession?.prestartSeconds, 3, 0, 10));
-    setWorkDuration(restoredNumber(nextSession?.workDuration, SET_TARGET_SECONDS, 1, 3600));
-    setRestDuration(restoredNumber(nextSession?.restDuration, REST_SECONDS, 1, 3600));
-    setTimerSetTotal(restoredNumber(nextSession?.timerSetTotal, 1, 1, 8));
-    setMuted(Boolean(nextSession?.muted));
+    const nextSession = loadDurableWorkoutSession(workout, program);
+    const nextIndex = selectedExerciseIndex(nextSession, workout.exercises);
+    const nextExerciseId = stableExerciseId(workout.exercises?.[nextIndex] || {}, nextIndex);
+    const nextTimer = nextSession?.timer || {};
+    const remaining = timerRemainingSeconds(nextTimer);
+    setWorkoutSession(nextSession);
+    setCurrentIndex(nextIndex);
+    setCompleted(completedExerciseIds(nextSession));
+    setCompletedSets(completedSetCount(nextSession, nextExerciseId));
+    setPhase(remaining <= 0 && ["work", "rest", "prestart"].includes(nextTimer.phase) ? "done" : restoredPhase(nextTimer.phase));
+    setSetSeconds(restoredNumber(remaining, SET_TARGET_SECONDS, 0, 3600));
+    setRestSeconds(restoredNumber(remaining, REST_SECONDS, 0, 3600));
+    setPrestartSeconds(nextTimer.phase === "prestart" ? Math.min(3, remaining) : 3);
+    setWorkDuration(restoredNumber(nextTimer.duration_seconds, SET_TARGET_SECONDS, 1, 3600));
+    setRestDuration(REST_SECONDS);
+    setTimerSetTotal(Math.max(1, Number(workout.exercises?.[nextIndex]?.sets) || 1));
+    setTimerEndsAt(nextTimer.ends_at || null);
+    setExerciseNotes(nextSession?.exercises?.[nextExerciseId]?.notes || "");
     setReplacements(readReplacements(workout.workout_id));
     skipExerciseTimerResetRef.current = Boolean(nextSession);
   }, [workout.workout_id]);
 
-  const displayExercises = useMemo(() => workout.exercises.map((exercise) => {
+  const displayExercises = useMemo(() => workout.exercises.map((exercise, index) => {
     const replacement = replacements[String(exercise.exercise_order)];
     return replacement ? {
       ...exercise,
       ...replacement,
+      session_exercise_id: stableExerciseId(exercise, index),
       exercise_name: replacement.exercise_name || replacement.name || exercise.exercise_name,
       name: replacement.name || replacement.exercise_name || exercise.exercise_name,
       replacedFrom: exercise.exercise_name,
       sets: exercise.sets,
       reps: exercise.reps,
       weight: exercise.weight,
-    } : exercise;
+    } : { ...exercise, session_exercise_id: stableExerciseId(exercise, index) };
   }), [replacements, workout.exercises]);
 
   const current = displayExercises[currentIndex] || displayExercises[0];
+  const currentExerciseId = stableExerciseId(current, currentIndex);
+  const currentExerciseState = workoutSession?.exercises?.[currentExerciseId] || null;
   const baseSetTotal = Math.max(1, Math.min(Number(current?.sets) || 1, 8));
   const setTotal = Math.max(1, Math.min(Number(timerSetTotal) || baseSetTotal, 8));
   const currentSet = Math.min(completedSets + 1, setTotal);
-  const progress = displayExercises.length ? Math.round((completed.size / displayExercises.length) * 100) : 0;
+  const progress = workoutSession?.progress?.percent || 0;
   const day = workout.lesson?.lesson_number || selectedWorkoutIndex + 1;
   const total = program?.workouts?.length || workout.lessons?.length || 1;
   const visibleWorkouts = useMemo(() => visibleWorkoutsForAccess(program?.workouts || [], access, profile, programAssignment), [access, profile, programAssignment, program?.workouts]);
@@ -950,22 +1054,126 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
   );
   const setRows = useMemo(() => Array.from({ length: setTotal }, (_, index) => index + 1), [setTotal]);
   const showRest = phase === "restReady" || phase === "rest" || phase === "restPaused";
+  const sessionIsActive = workoutSession?.status === "active";
+  const syncLabel = workoutSession?.sync_status === "offline"
+    ? "Нет сети — сохранено на устройстве"
+    : workoutSession?.sync_status === "syncing" || workoutSession?.sync_status === "pending"
+      ? "Сохранение…"
+      : workoutSession?.sync_status === "error" || workoutSession?.sync_status === "conflict"
+        ? "Ошибка синхронизации"
+        : "Сохранено";
 
   useEffect(() => {
-    writeWorkoutSessionProgress(workout.workout_id, {
-      currentIndex,
-      completed: Array.from(completed),
-      completedSets,
-      phase,
-      setSeconds,
-      restSeconds,
-      prestartSeconds,
-      workDuration,
-      restDuration,
-      timerSetTotal,
-      muted,
+    if (!workoutSession?.session_id || !currentExerciseId) return;
+    const timestamp = new Date().toISOString();
+    const next = updateWorkoutSession(workoutSession.session_id, (session) => {
+      const exercise = session.exercises?.[currentExerciseId];
+      if (!exercise) return session;
+      const sets = exercise.sets.map((set, index) => ({
+        ...set,
+        completed: index < completedSets,
+        reps: index < completedSets && set.reps == null
+          ? (Number(String(current?.reps || "").match(/\d+/)?.[0]) || null)
+          : set.reps,
+        updated_at: index < completedSets ? timestamp : set.updated_at,
+      }));
+      const hadAction = completedSets > 0 || sets.some((set) => set.weight != null || set.reps != null) || Boolean(exerciseNotes);
+      const exerciseStatus = completed.has(currentExerciseId)
+        ? "completed"
+        : exercise.status === "skipped"
+          ? "skipped"
+          : hadAction ? "in_progress" : "not_started";
+      return {
+        ...session,
+        selected_exercise_id: currentExerciseId,
+        last_opened_exercise_id: currentExerciseId,
+        exercises: {
+          ...session.exercises,
+          [currentExerciseId]: {
+            ...exercise,
+            status: exerciseStatus,
+            sets,
+            notes: exerciseNotes,
+            completed_at: exerciseStatus === "completed" ? (exercise.completed_at || timestamp) : null,
+            updated_at: timestamp,
+          },
+        },
+        timer: {
+          phase,
+          duration_seconds: phase.startsWith("rest") ? restDuration : workDuration,
+          started_at: timerEndsAt ? new Date(new Date(timerEndsAt).getTime() - ((phase.startsWith("rest") ? restDuration : workDuration) * 1000)).toISOString() : null,
+          ends_at: timerEndsAt,
+          paused_at: phase.endsWith("Paused") ? timestamp : null,
+          remaining_seconds: phase.startsWith("rest") ? restSeconds : phase === "prestart" ? prestartSeconds : setSeconds,
+          exercise_id: currentExerciseId,
+        },
+      };
+    }, { activate: sessionIsActive });
+    if (next) {
+      setWorkoutSession(next);
+      scheduleWorkoutSessionSync(next.session_id, { userId: next.user_id });
+    }
+  }, [completed, completedSets, current?.reps, currentExerciseId, exerciseNotes, phase, prestartSeconds, restDuration, restSeconds, sessionIsActive, setSeconds, timerEndsAt, workDuration]);
+
+  useEffect(() => {
+    if (!workoutSession?.session_id) return undefined;
+    const flush = () => flushWorkoutSessionSync(workoutSession.session_id, { userId: workoutSession.user_id }).catch(() => {});
+    const restoreTimer = () => {
+      const latest = workoutSessionForWorkout(workout.workout_id, workoutSession.user_id);
+      const timer = latest?.timer || {};
+      const remaining = timerRemainingSeconds(timer);
+      if (timer.phase === "rest") {
+        setRestSeconds(remaining);
+        setPhase(remaining > 0 ? "rest" : "idle");
+      } else if (timer.phase === "work" || timer.phase === "prestart") {
+        setSetSeconds(remaining);
+        setPhase(remaining > 0 ? timer.phase : "done");
+      }
+      setTimerEndsAt(remaining > 0 ? timer.ends_at : null);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush();
+      else restoreTimer();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", flush);
+    let appStateHandle;
+    CapacitorApp.addListener("appStateChange", ({ isActive }) => {
+      if (!isActive) flush();
+      else restoreTimer();
+    }).then((handle) => {
+      appStateHandle = handle;
+    }).catch(() => {});
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", flush);
+      appStateHandle?.remove?.();
+      flush();
+    };
+  }, [workoutSession?.session_id, workoutSession?.user_id]);
+
+  useEffect(() => {
+    if (!workoutSession?.session_id) return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      if (workoutSession.scroll_position > 0) window.scrollTo({ top: workoutSession.scroll_position, behavior: "auto" });
     });
-  }, [completed, completedSets, currentIndex, muted, phase, prestartSeconds, restDuration, restSeconds, setSeconds, timerSetTotal, workDuration, workout.workout_id]);
+    let timer;
+    const persistScroll = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        updateWorkoutSession(workoutSession.session_id, { scroll_position: Math.max(0, window.scrollY || 0) }, {
+          userId: workoutSession.user_id,
+          activate: workoutSession.status === "active",
+        });
+      }, 250);
+    };
+    window.addEventListener("scroll", persistScroll, { passive: true });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+      window.removeEventListener("scroll", persistScroll);
+    };
+  }, [workoutSession?.session_id]);
 
   useEffect(() => {
     console.log("WorkoutScreen parsed data", JSON.stringify({
@@ -1009,6 +1217,7 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
           window.clearInterval(id);
           softBeep("start", muted);
           setSetSeconds(workDuration);
+          setTimerEndsAt(new Date(Date.now() + workDuration * 1000).toISOString());
           setPhase("work");
           return 3;
         }
@@ -1043,6 +1252,7 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
           window.clearInterval(id);
           softBeep("rest", muted);
           setPhase("idle");
+          setTimerEndsAt(null);
           return restDuration;
         }
         return value - 1;
@@ -1051,7 +1261,73 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
     return () => window.clearInterval(id);
   }, [phase, muted, restDuration]);
 
+  function ensureActiveSession() {
+    if (!workoutSession) return false;
+    if (workoutSession.status === "completed") return false;
+    if (workoutSession.status === "active") {
+      trackWorkoutStartedOnce(workoutSession, program);
+      return true;
+    }
+    const active = activeWorkoutSession(workoutSession.user_id);
+    if (active && active.session_id !== workoutSession.session_id) {
+      setActivationConflict(active);
+      return false;
+    }
+    const activated = updateWorkoutSession(workoutSession.session_id, { status: "active" }, {
+      activate: true,
+      userId: workoutSession.user_id,
+    });
+    setWorkoutSession(activated);
+    scheduleWorkoutSessionSync(activated.session_id, { userId: activated.user_id, delay: 0 });
+    trackWorkoutStartedOnce(activated, program);
+    return true;
+  }
+
+  function updateCurrentSetValue(setNumber, patch) {
+    if (!ensureActiveSession()) return;
+    const next = updateWorkoutSession(workoutSession.session_id, (session) => {
+      const exercise = session.exercises[currentExerciseId];
+      if (!exercise) return session;
+      const sets = exercise.sets.map((set, index) => (
+        index === setNumber - 1
+          ? { ...set, ...patch, updated_at: new Date().toISOString() }
+          : set
+      ));
+      return {
+        ...session,
+        exercises: {
+          ...session.exercises,
+          [currentExerciseId]: { ...exercise, status: "in_progress", sets },
+        },
+      };
+    }, { activate: true });
+    setWorkoutSession(next);
+    scheduleWorkoutSessionSync(next.session_id, { userId: next.user_id });
+  }
+
+  function updateExerciseNotes(value) {
+    if (!ensureActiveSession()) return;
+    setExerciseNotes(value);
+    const next = updateWorkoutSession(workoutSession.session_id, (session) => ({
+      ...session,
+      exercises: {
+        ...session.exercises,
+        [currentExerciseId]: {
+          ...session.exercises[currentExerciseId],
+          status: value && session.exercises[currentExerciseId].status === "not_started"
+            ? "in_progress"
+            : session.exercises[currentExerciseId].status,
+          notes: value,
+          updated_at: new Date().toISOString(),
+        },
+      },
+    }), { activate: true });
+    setWorkoutSession(next);
+    scheduleWorkoutSessionSync(next.session_id, { userId: next.user_id });
+  }
+
   function saveReplacement(selected) {
+    if (!ensureActiveSession()) return;
     const selectedMeta = selected.exercise_table_meta || selected.category || {};
     const selectedName = selected.exercise_name || selected.name;
     const selectedTemplate = assignMuscleTemplate({ ...selected, exercise_table_meta: selectedMeta });
@@ -1088,6 +1364,7 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
   }
 
   function undoReplacement(exerciseOrder) {
+    if (!ensureActiveSession()) return;
     const key = String(exerciseOrder);
     const next = { ...replacements };
     delete next[key];
@@ -1097,40 +1374,69 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
   }
 
   function startSet() {
+    if (!ensureActiveSession()) return;
     setSetSeconds(workDuration);
     setRestSeconds(restDuration);
     setPrestartSeconds(3);
+    setTimerEndsAt(new Date(Date.now() + 3000).toISOString());
     softBeep("tick", muted);
     setPhase("prestart");
   }
 
   function finishExercise() {
-    setCompleted((previous) => {
-      const next = new Set([...previous, currentIndex]);
-      if (displayExercises.length > 0 && next.size >= displayExercises.length) {
-        markWorkoutCompleted(workout.workout_id, {
-          title: workout.lesson?.lesson_title || "",
-          exerciseCount: displayExercises.length,
-        });
-      }
-      return next;
-    });
-    setCurrentIndex((index) => Math.min(index + 1, displayExercises.length - 1));
+    if (!ensureActiveSession()) return;
+    if (completedSets < setTotal && !window.confirm(`Отмечено подходов: ${completedSets} из ${setTotal}. Завершить упражнение как есть?`)) return;
+    const timestamp = new Date().toISOString();
+    const saved = updateWorkoutSession(workoutSession.session_id, (session) => {
+      const exercise = session.exercises[currentExerciseId];
+      return {
+        ...session,
+        exercises: {
+          ...session.exercises,
+          [currentExerciseId]: {
+            ...exercise,
+            status: "completed",
+            completed_at: timestamp,
+            updated_at: timestamp,
+            sets: exercise.sets.map((set, index) => ({
+              ...set,
+              completed: index < completedSets,
+              updated_at: index < completedSets ? timestamp : set.updated_at,
+            })),
+          },
+        },
+      };
+    }, { activate: true });
+    setWorkoutSession(saved);
+    setCompleted(completedExerciseIds(saved));
+    scheduleWorkoutSessionSync(saved.session_id, { userId: saved.user_id });
+    const nextIndex = displayExercises.findIndex((exercise, index) => (
+      index > currentIndex && saved.exercises?.[stableExerciseId(exercise, index)]?.status !== "completed"
+    ));
+    if (nextIndex >= 0) setCurrentIndex(nextIndex);
     setCompletedSets(0);
     setSetSeconds(workDuration);
     setRestSeconds(restDuration);
     setPrestartSeconds(3);
     setAlternativeReason("");
     setPhase("idle");
+    setTimerEndsAt(null);
   }
 
   function finishWorkInterval() {
+    if (!ensureActiveSession()) return;
     const nextCompleted = completedSets + 1;
     setCompletedSets(nextCompleted);
     setSetSeconds(workDuration);
+    setTimerEndsAt(null);
     softBeep("end", muted);
-    if (nextCompleted >= setTotal) setPhase("done");
-    else setPhase("rest");
+    if (nextCompleted >= setTotal) {
+      setPhase("done");
+    } else {
+      setRestSeconds(restDuration);
+      setTimerEndsAt(new Date(Date.now() + restDuration * 1000).toISOString());
+      setPhase("rest");
+    }
   }
 
   function completeSet() {
@@ -1139,45 +1445,139 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
   }
 
   function skipRest() {
+    if (!ensureActiveSession()) return;
     setRestSeconds(restDuration);
     setPhase("idle");
+    setTimerEndsAt(null);
   }
 
   function resetTimer() {
+    if (!ensureActiveSession()) return;
     setSetSeconds(workDuration);
     setRestSeconds(restDuration);
     setPrestartSeconds(3);
     setPhase("idle");
+    setTimerEndsAt(null);
   }
 
   function pauseTimer() {
+    if (!ensureActiveSession()) return;
     setPhase((value) => (value === "work" ? "workPaused" : value === "rest" ? "restPaused" : value === "prestart" ? "idle" : value));
+    setTimerEndsAt(null);
   }
 
   function resumeTimer() {
-    setPhase((value) => (value === "workPaused" ? "work" : value === "restPaused" ? "rest" : value));
+    if (!ensureActiveSession()) return;
+    setPhase((value) => {
+      const next = value === "workPaused" ? "work" : value === "restPaused" ? "rest" : value;
+      const seconds = next === "rest" ? restSeconds : setSeconds;
+      if (next === "work" || next === "rest") setTimerEndsAt(new Date(Date.now() + seconds * 1000).toISOString());
+      return next;
+    });
   }
 
   function changeWorkDuration(seconds) {
+    if (!ensureActiveSession()) return;
     setWorkDuration(seconds);
     if (phase === "idle") setSetSeconds(seconds);
   }
 
   function changeRestDuration(seconds) {
+    if (!ensureActiveSession()) return;
     setRestDuration(seconds);
     if (phase === "idle") setRestSeconds(seconds);
   }
 
   function jumpToExercise(exercise) {
     const index = displayExercises.findIndex((item) => item.exercise_order === exercise.exercise_order);
-    if (index >= 0 && (completed.has(index) || index <= currentIndex + 1)) {
+    if (index >= 0) {
+      const nextExerciseId = stableExerciseId(displayExercises[index], index);
       setCurrentIndex(index);
-      setCompletedSets(0);
-      setSetSeconds(workDuration);
-      setRestSeconds(restDuration);
-      setPrestartSeconds(3);
-      setPhase("idle");
+      setCompletedSets(completedSetCount(workoutSession, nextExerciseId));
+      setExerciseNotes(workoutSession?.exercises?.[nextExerciseId]?.notes || "");
     }
+  }
+
+  function goToPreviousExercise() {
+    if (currentIndex <= 0) return;
+    jumpToExercise(displayExercises[currentIndex - 1]);
+  }
+
+  function goToNextExercise() {
+    const after = displayExercises.findIndex((exercise, index) => (
+      index > currentIndex && workoutSession?.exercises?.[stableExerciseId(exercise, index)]?.status !== "completed"
+    ));
+    const before = after >= 0 ? -1 : displayExercises.findIndex((exercise, index) => (
+      index < currentIndex && workoutSession?.exercises?.[stableExerciseId(exercise, index)]?.status !== "completed"
+    ));
+    const nextIndex = after >= 0 ? after : before;
+    if (nextIndex >= 0) jumpToExercise(displayExercises[nextIndex]);
+  }
+
+  function skipCurrentExercise() {
+    if (!ensureActiveSession()) return;
+    const next = updateWorkoutSession(workoutSession.session_id, (session) => ({
+      ...session,
+      exercises: {
+        ...session.exercises,
+        [currentExerciseId]: {
+          ...session.exercises[currentExerciseId],
+          status: "skipped",
+          skipped_at: new Date().toISOString(),
+        },
+      },
+    }), { activate: true });
+    setWorkoutSession(next);
+    setCompleted((previous) => {
+      const value = new Set(previous);
+      value.delete(currentExerciseId);
+      return value;
+    });
+    scheduleWorkoutSessionSync(next.session_id, { userId: next.user_id });
+  }
+
+  function finishWorkout() {
+    if (!ensureActiveSession()) return;
+    const incomplete = Object.values(workoutSession.exercises || {}).filter((exercise) => exercise.status !== "completed");
+    if (incomplete.length && !window.confirm(`Осталось незавершённых упражнений: ${incomplete.length}. Завершить тренировку как есть?`)) return;
+    const completedSession = completeWorkoutSession(workoutSession.session_id, { userId: workoutSession.user_id });
+    setWorkoutSession(completedSession);
+    markWorkoutCompleted(workout.workout_id, {
+      title: workout.lesson?.lesson_title || "",
+      exerciseCount: displayExercises.length,
+      completedExerciseCount: completedSession.progress?.completed_exercises || 0,
+      completedSetCount: completedSession.progress?.completed_sets || 0,
+    });
+    trackAnalyticsEvent("workout_completed", {
+      screen: "workout",
+      workoutId: completedSession.workout_id,
+      programId: completedSession.program_id || program?.course?.course_id || program?.course?.id || "",
+    }).catch(() => {});
+    flushWorkoutSessionSync(completedSession.session_id, { userId: completedSession.user_id }).catch(() => {});
+  }
+
+  function restartWorkout() {
+    if (!window.confirm("Удалить сохранённый прогресс этой тренировки и начать заново?")) return;
+    deleteWorkoutSession(workoutSession.session_id, workoutSession.user_id);
+    const fresh = createWorkoutSession({ workout, program, userId: workoutSession.user_id, status: "active" });
+    const saved = saveWorkoutSession(fresh, { activate: true, userId: workoutSession.user_id });
+    setWorkoutSession(saved);
+    setCurrentIndex(0);
+    setCompleted(new Set());
+    setCompletedSets(0);
+    setExerciseNotes("");
+    setPhase("idle");
+    setTimerEndsAt(null);
+    setDraftMenuOpen(false);
+  }
+
+  function removeDraft() {
+    if (!window.confirm("Удалить черновик этой тренировки? Это действие нельзя отменить.")) return;
+    const abandoned = abandonWorkoutSession(workoutSession.session_id, { userId: workoutSession.user_id });
+    flushWorkoutSessionSync(abandoned.session_id, { userId: abandoned.user_id }).catch(() => {});
+    deleteWorkoutSession(workoutSession.session_id, workoutSession.user_id);
+    setDraftMenuOpen(false);
+    onBack?.();
   }
 
   function selectDay(index) {
@@ -1254,7 +1654,7 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
             <MuscleWorkBlock exercise={current} gender={muscleMapGender} className="mt-4" />
           </section>
           <div className="mt-4">{timerNode}</div>
-          <SetsTable current={current} setRows={setRows} completedSets={completedSets} currentSet={currentSet} />
+          <SetsTable current={current} exerciseState={currentExerciseState} setRows={setRows} completedSets={completedSets} currentSet={currentSet} disabled={!sessionIsActive} onSetValueChange={updateCurrentSetValue} />
         </div>
       </main>
     );
@@ -1266,7 +1666,7 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
         <header className="flex items-center justify-between">
           <IconButton label="Назад" onClick={onBack} className="h-10 w-10"><ChevronLeft size={22} /></IconButton>
           <h1 className="text-[18px] font-bold text-appText">Тренировка</h1>
-          <IconButton label="Еще" className="h-10 w-10"><MoreHorizontal size={20} /></IconButton>
+          <IconButton label="Еще" onClick={() => setDraftMenuOpen(true)} className="h-10 w-10"><MoreHorizontal size={20} /></IconButton>
         </header>
 
         <section className="mt-4">
@@ -1283,6 +1683,25 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
             <div className="h-1.5 flex-1 rounded-full bg-[#E6E6DF]"><motion.div className="h-full rounded-full bg-[#8BBE3D]" animate={{ width: `${progress}%` }} /></div>
             <span className="text-[13px] font-bold text-appText">{progress}%</span>
           </div>
+          <div className="mt-2 flex items-center justify-between gap-3 px-1 text-[11px] font-semibold text-appMuted">
+            <span>{workoutSession?.progress?.completed_exercises || 0} из {workoutSession?.progress?.total_exercises || displayExercises.length} упражнений</span>
+            <span>{syncLabel}</span>
+          </div>
+          {workoutSession?.program_update && (
+            <div className="mt-3 rounded-[16px] border border-appBorder bg-appCard px-3 py-2 text-[12px] leading-5 text-appMuted">
+              Программа была обновлена. Сохранённый прогресс оставлен у прежних упражнений, новые добавлены как невыполненные.
+            </div>
+          )}
+          {workoutSession?.conflict && (
+            <div className="mt-3 rounded-[16px] border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-[12px] leading-5 text-appText">
+              На другом устройстве найдена более новая версия тренировки. Данные этого устройства сохранены и не будут удалены автоматически.
+            </div>
+          )}
+          {!sessionIsActive && (
+            <button type="button" onClick={ensureActiveSession} className="mt-3 h-11 w-full rounded-full bg-appGreen text-[13px] font-black text-[#181F19]">
+              Начать или продолжить эту тренировку
+            </button>
+          )}
           <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1">
             <button type="button" onClick={() => selectDay(visibleSelectedIndex - 1)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-appCard text-appMuted shadow-sm"><ChevronLeft size={17} /></button>
             {visibleWorkouts.map((item, index) => {
@@ -1341,11 +1760,69 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
         </section>
 
         <div className="mt-3">{timerNode}</div>
-        <SetsTable current={current} setRows={setRows} completedSets={completedSets} currentSet={currentSet} />
-        <ExerciseList exercises={displayExercises} currentIndex={currentIndex} superset={workout.hasSupersetData ? workout.superset : []} onExerciseClick={jumpToExercise} />
+        <SetsTable current={current} exerciseState={currentExerciseState} setRows={setRows} completedSets={completedSets} currentSet={currentSet} disabled={!sessionIsActive} onSetValueChange={updateCurrentSetValue} />
+        <section className="mt-3 rounded-[18px] border border-appBorder bg-appCard p-3">
+          <label className="text-[12px] font-bold text-appMuted" htmlFor="workout-exercise-note">Заметка к упражнению</label>
+          <textarea
+            id="workout-exercise-note"
+            value={exerciseNotes}
+            disabled={!sessionIsActive}
+            onChange={(event) => updateExerciseNotes(event.target.value)}
+            placeholder="Самочувствие, техника, рабочий вес"
+            className="mt-2 min-h-[72px] w-full resize-none rounded-[14px] border border-appBorder bg-appBg px-3 py-2 text-[13px] text-appText outline-none focus:border-appGreen disabled:opacity-50"
+          />
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <button type="button" disabled={currentIndex <= 0} onClick={goToPreviousExercise} className="h-10 rounded-full border border-appBorder text-[11px] font-bold text-appMuted disabled:opacity-35">Назад</button>
+            <button type="button" disabled={!sessionIsActive} onClick={skipCurrentExercise} className="h-10 rounded-full border border-appBorder text-[11px] font-bold text-appMuted disabled:opacity-45">Пропустить</button>
+            <button type="button" onClick={goToNextExercise} className="h-10 rounded-full bg-appDark text-[11px] font-bold text-appGreen">Следующее</button>
+          </div>
+          <button type="button" disabled={!sessionIsActive} onClick={finishExercise} className="mt-2 h-10 w-full rounded-full bg-appGreen text-[12px] font-black text-[#181F19] disabled:opacity-45">Завершить упражнение</button>
+        </section>
+        <ExerciseList exercises={displayExercises} currentIndex={currentIndex} exerciseStates={workoutSession?.exercises || {}} getExerciseId={stableExerciseId} superset={workout.hasSupersetData ? workout.superset : []} onExerciseClick={jumpToExercise} />
+        <button type="button" onClick={finishWorkout} disabled={workoutSession?.status === "completed"} className="mt-4 h-[52px] w-full rounded-full bg-appGreen text-[14px] font-black text-[#181F19] disabled:opacity-45">
+          {workoutSession?.status === "completed" ? "Тренировка завершена" : "Завершить тренировку"}
+        </button>
         <WorkoutReport key={workout.workout_id} workoutId={workout.workout_id} workoutTitle={workout.lesson?.lesson_title} />
       </div>
       {alternativeReason && <AlternativesModal exercise={current} reason={alternativeReason} catalog={program.exerciseCatalog} profile={profile} onSelect={saveReplacement} onClose={() => setAlternativeReason("")} />}
+      {activationConflict && (
+        <div className="fixed inset-0 z-[70] grid place-items-end bg-black/45 px-3 pb-[max(16px,env(safe-area-inset-bottom))]">
+          <section className="w-full max-w-[390px] rounded-[24px] bg-appCard p-4 shadow-soft">
+            <h2 className="text-[19px] font-black text-appText">Уже идёт другая тренировка</h2>
+            <p className="mt-2 text-[13px] leading-5 text-appMuted">{activationConflict.workout_title || "Текущая тренировка"} сохранена и может быть продолжена.</p>
+            <div className="mt-4 space-y-2">
+              <button type="button" onClick={() => {
+                const activeWorkoutIndex = program?.workouts?.findIndex(
+                  (item) => String(item.workout_id) === activationConflict.workout_id,
+                );
+                setActivationConflict(null);
+                if (activeWorkoutIndex >= 0) onSelectWorkout?.(activeWorkoutIndex);
+              }} className="h-12 w-full rounded-full bg-appDark text-[13px] font-black text-appGreen">Продолжить текущую тренировку</button>
+              <button type="button" onClick={() => {
+                const activated = saveWorkoutSession({ ...workoutSession, status: "active" }, { activate: true, userId: workoutSession.user_id });
+                setWorkoutSession(activated);
+                setActivationConflict(null);
+                scheduleWorkoutSessionSync(activated.session_id, { userId: activated.user_id, delay: 0 });
+              }} className="h-12 w-full rounded-full bg-appGreen text-[13px] font-black text-[#181F19]">Сохранить текущую и начать другую</button>
+              <button type="button" onClick={() => setActivationConflict(null)} className="h-11 w-full rounded-full border border-appBorder text-[13px] font-bold text-appMuted">Отмена</button>
+            </div>
+          </section>
+        </div>
+      )}
+      {draftMenuOpen && (
+        <div className="fixed inset-0 z-[70] grid place-items-end bg-black/45 px-3 pb-[max(16px,env(safe-area-inset-bottom))]">
+          <section className="w-full max-w-[390px] rounded-[24px] bg-appCard p-4 shadow-soft">
+            <h2 className="text-[19px] font-black text-appText">Черновик тренировки</h2>
+            <p className="mt-2 text-[13px] text-appMuted">Прогресс сохранён на устройстве и синхронизируется с аккаунтом.</p>
+            <div className="mt-4 space-y-2">
+              <button type="button" onClick={() => setDraftMenuOpen(false)} className="h-12 w-full rounded-full bg-appGreen text-[13px] font-black text-[#181F19]">Продолжить</button>
+              <button type="button" onClick={restartWorkout} className="h-12 w-full rounded-full border border-appBorder text-[13px] font-bold text-appText">Начать заново</button>
+              <button type="button" onClick={removeDraft} className="h-12 w-full rounded-full border border-red-400/35 text-[13px] font-bold text-red-500">Удалить черновик</button>
+              <button type="button" onClick={() => setDraftMenuOpen(false)} className="h-10 w-full text-[13px] font-bold text-appMuted">Отмена</button>
+            </div>
+          </section>
+        </div>
+      )}
       <BottomNavigation active="workouts" onNavigate={onNavigate} />
     </main>
   );

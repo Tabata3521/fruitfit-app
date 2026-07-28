@@ -45,6 +45,17 @@ export default function EngagementPrompt({ user, access, onNavigate }) {
     return () => window.clearTimeout(timer);
   }, [access, access?.billingStatus, access?.paymentStatus, access?.status, access?.updatedAt, user, user?.id]);
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("fruitfit:modal-state", {
+      detail: { open: Boolean(type), source: "engagement-prompt" },
+    }));
+    return () => {
+      window.dispatchEvent(new CustomEvent("fruitfit:modal-state", {
+        detail: { open: false, source: "engagement-prompt" },
+      }));
+    };
+  }, [type]);
+
   function dismiss() {
     if (!type || loading) return;
     recordEngagementPromptOutcome({ user, type, outcome: "dismissed" });

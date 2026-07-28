@@ -25,6 +25,8 @@ import { HealthDetailScreen, LectureDetailScreen } from "./components/WidgetGrid
 import { registerFirebaseMessagingPush } from "./services/notifications/firebaseMessagingPush";
 import { APP_STORE_REVIEW } from "./config/appStoreReview";
 import { parseAuthDeepLink, stripAuthSecretsFromBrowserUrl } from "./services/authDeepLinks";
+import { hydrateWorkoutSessionsFromServer, syncPendingWorkoutSessions } from "./services/workoutSessionSync";
+import { captureAttributionUrl, flushAttributionQueue, initializeAttribution, trackAnalyticsEvent } from "./services/attribution";
 
 const FruitFitOrientation = registerPlugin("FruitFitOrientation");
 const SKIP_AUTH_KEY = "fruitfit.authSkipped";
@@ -386,10 +388,25 @@ function AppContent() {
   const handledAuthUrlsRef = useRef(new Set());
   const sessionInvalidHandledRef = useRef(false);
   const workoutDetailOpenRef = useRef(false);
+  const analyticsScreenRef = useRef("");
 
   useEffect(() => {
     screenRef.current = screen;
   }, [screen]);
+
+  useEffect(() => {
+    let cancelled = false;
+    CapacitorApp.getLaunchUrl?.()
+      .then((result) => {
+        if (!cancelled) initializeAttribution(result?.url || window.location.href).catch(() => {});
+      })
+      .catch(() => {
+        if (!cancelled) initializeAttribution(window.location.href).catch(() => {});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function clearSelectedWorkoutSelection(reason = "clear-selected-workout", fallbackIndex = 0) {
     clearSelectedWorkoutState();
@@ -541,6 +558,15 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
+    const syncPending = () => {
+      const user = loadAuthUser();
+      if (user?.id) syncPendingWorkoutSessions(user.id).catch(() => {});
+    };
+    window.addEventListener("online", syncPending);
+    return () => window.removeEventListener("online", syncPending);
+  }, []);
+
+  useEffect(() => {
     let listener;
     CapacitorApp.addListener("backButton", () => {
       if (!handleBackNavigation("android-back")) CapacitorApp.minimizeApp?.();
@@ -564,6 +590,7 @@ function AppContent() {
   }, []);
 
   function handleExternalReturnUrl(rawUrl) {
+    captureAttributionUrl(rawUrl);
     const externalReturn = APP_STORE_REVIEW ? "" : externalReturnFromUrl(rawUrl);
     if (!APP_STORE_REVIEW && externalReturn) {
       writeRoute("profile", { replace: true, source: `program-return-${externalReturn}` });
@@ -575,6 +602,7 @@ function AppContent() {
   }
 
   async function handleIncomingAuthUrl(rawUrl, { cleanBrowserUrl = false } = {}) {
+    captureAttributionUrl(rawUrl);
     const route = parseAuthDeepLink(rawUrl);
     if (!route.recognized) return false;
     if (handledAuthUrlsRef.current.has(route.deliveryKey)) return true;
@@ -608,6 +636,7 @@ function AppContent() {
           if (cancelled) return;
         if (user) {
           registerDeviceAndPush();
+          hydrateWorkoutSessionsFromServer(user.id).catch(() => {});
           await transferPreAuthProfileDraft({ reason: "existing-session" });
           const [access, serverProfile, assignment] = await Promise.all([
             fetchAccess(),
@@ -645,12 +674,14 @@ function AppContent() {
     let urlListener;
     let stateListener;
     CapacitorApp.addListener("appUrlOpen", ({ url }) => {
+      captureAttributionUrl(url);
       if (!handleExternalReturnUrl(url)) handleIncomingAuthUrl(url).catch(() => {});
     }).then((handle) => {
       urlListener = handle;
     }).catch(() => {});
     CapacitorApp.addListener("appStateChange", ({ isActive }) => {
       if (!isActive) return;
+      trackAnalyticsEvent("app_open", { source: "foreground" }).then(() => flushAttributionQueue()).catch(() => {});
       CapacitorApp.getLaunchUrl?.()
         .then((result) => {
           if (result?.url && !handleExternalReturnUrl(result.url)) {
@@ -853,6 +884,57 @@ function AppContent() {
   const lastProgramIdRef = useRef("");
 
   useEffect(() => {
+    if (!screen || analyticsScreenRef.current === screen) return;
+    analyticsScreenRef.current = screen;
+    const programId = effectiveAssignedProgramId || programIdFromAssignment(programAssignment);
+    const workoutId = uiSelectedWorkoutId || workoutSelectionId(workout);
+    const eventByScreen = {
+      workouts: ["program_opened", { screen, programId }],
+      workout: ["workout_opened", { screen, programId, workoutId }],
+      food: ["nutrition_opened", { screen }],
+      lecture: ["lecture_opened", { screen }],
+      coach: ["ai_coach_opened", { screen }],
+    };
+    const entry = eventByScreen[screen];
+    if (entry) trackAnalyticsEvent(entry[0], entry[1]).catch(() => {});
+  }, [effectiveAssignedProgramId, programAssignment, screen, uiSelectedWorkoutId, workout]);
+
+  useEffect(() => {
+    const programId = effectiveAssignedProgramId || programIdFromAssignment(programAssignment);
+    if (!programId) return;
+    const userId = authUserId(authUser) || "guest";
+    const marker = `fruitfit.analytics.programGenerated:${userId}:${programId}`;
+    try {
+      if (localStorage.getItem(marker) === "1") return;
+      localStorage.setItem(marker, "1");
+    } catch (_) {
+      // Event idempotency still protects queued request retries.
+    }
+    trackAnalyticsEvent("program_generated", {
+      programId,
+      programType: String(programAssignment?.program?.type || programAssignment?.programType || "assigned"),
+      source: "program_assignment",
+    }).catch(() => {});
+  }, [authUser, effectiveAssignedProgramId, programAssignment]);
+
+  useEffect(() => {
+    function resumeActiveWorkout(event) {
+      const session = event?.detail;
+      if (!session?.workout_id) return;
+      const index = (program?.workouts || []).findIndex((item) => String(item.workout_id || "") === String(session.workout_id));
+      if (index < 0) {
+        window.alert("Сохранённая тренировка больше не входит в текущую программу. Прогресс сохранён.");
+        return;
+      }
+      saveSelectedWorkoutSelection(program.workouts[index], index, "resume-active-workout");
+      workoutDetailOpenRef.current = true;
+      navigate("workout", { source: "resume-workout" });
+    }
+    window.addEventListener("fruitfit:resume-workout", resumeActiveWorkout);
+    return () => window.removeEventListener("fruitfit:resume-workout", resumeActiveWorkout);
+  }, [program?.workouts]);
+
+  useEffect(() => {
     const nextProgramId = String(effectiveAssignedProgramId || "").trim();
     if (!nextProgramId) return;
     if (lastProgramIdRef.current && lastProgramIdRef.current !== nextProgramId) {
@@ -957,6 +1039,7 @@ function AppContent() {
         requireAccountChoice={!authUser}
         onCancel={profile.onboardingCompleted ? () => setQuizOpen(false) : null}
         onComplete={(savedProfile, meta = {}) => {
+          trackAnalyticsEvent("questionnaire_completed", { screen: "questionnaire" }).catch(() => {});
           setProfile(savedProfile);
           clearSelectedWorkoutSelection("questionnaire-complete-clear-selection", 0);
           setQuizOpen(false);
@@ -1011,6 +1094,7 @@ function AppContent() {
           setAccessState(access);
           setProgramAssignment(assignment);
           setAuthPromptOpen(false);
+          flushAttributionQueue().catch(() => {});
           try {
             const returnScreen = sessionStorage.getItem("fruitfit.auth.returnScreen") || "";
             sessionStorage.removeItem("fruitfit.auth.returnScreen");

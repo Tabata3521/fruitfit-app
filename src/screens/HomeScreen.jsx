@@ -4,10 +4,12 @@ import BottomNavigation from "../components/BottomNavigation";
 import HeroWorkoutCard from "../components/HeroWorkoutCard";
 import WidgetGrid from "../components/WidgetGrid";
 import EngagementPrompt from "../components/EngagementPrompt";
+import HealthConnectionOnboarding from "../components/HealthConnectionOnboarding";
 import { loadNotificationCenter } from "../data/notificationCenterStore";
 import { profileGreetingName } from "../data/profileStore";
+import { activeWorkoutSession } from "../data/workoutSessions";
+import { currentUserId } from "../data/userScopedCache";
 import { ensureMotivationLockScreenNotifications } from "../services/notifications/localMotivationNotifications";
-import { APP_STORE_REVIEW } from "../config/appStoreReview";
 
 const fallbackCoachTip = {
   id: "home-coach-fallback",
@@ -19,7 +21,6 @@ const fallbackCoachTip = {
 export default function HomeScreen({ program, workout, profile, user, access, programAssignment, onStartWorkout, onNavigate }) {
   const [notificationItems, setNotificationItems] = useState(() => loadNotificationCenter());
   const greetingName = profileGreetingName(profile);
-  const accessBadge = APP_STORE_REVIEW ? "" : accessLabel(access);
   const coachTip = notificationItems[0] || fallbackCoachTip;
   const showPersonalSupportCard = !hasActivePersonalProgram(access);
 
@@ -56,11 +57,6 @@ export default function HomeScreen({ program, workout, profile, user, access, pr
             </div>
             <div className="max-w-[150px] pt-1 text-right">
               <p className="truncate text-[12px] font-bold leading-4 text-appMuted">Привет, {greetingName}!</p>
-              {accessBadge && (
-                <p className="accent-readable-shadow mt-1 inline-flex rounded-full bg-appGreen/20 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-appGreen">
-                  {accessBadge}
-                </p>
-              )}
             </div>
           </div>
 
@@ -90,6 +86,7 @@ export default function HomeScreen({ program, workout, profile, user, access, pr
       </div>
       <BottomNavigation active="home" onNavigate={onNavigate} />
       <EngagementPrompt user={user} access={access} onNavigate={onNavigate} />
+      <HealthConnectionOnboarding user={user} blocked={Boolean(activeWorkoutSession(currentUserId()))} />
     </main>
   );
 }
@@ -157,15 +154,4 @@ function hasActivePersonalProgram(access) {
     access.subscription?.status === "active" ||
     values.some((value) => activeValues.has(value))
   );
-}
-
-function accessLabel(access) {
-  if (!access) return "";
-  if (access.isAdmin) return "admin";
-  if (access.isTrainer) return "trainer";
-  const assigned = ["pa", "id"].join("");
-  const priority = ["v", "ip"].join("");
-  if (access.status === priority || access?.[["is", "V", "ip"].join("")]) return priority;
-  if (access.status === assigned || access?.[["is", "Pa", "id"].join("")]) return assigned;
-  return "free";
 }

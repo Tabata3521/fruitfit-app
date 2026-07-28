@@ -9,6 +9,7 @@ const app = read("src/App.jsx");
 const auth = read("src/screens/AuthPrompt.jsx");
 const coach = read("src/screens/CoachScreen.jsx");
 const engagement = read("src/components/EngagementPrompt.jsx");
+const bottomNavigation = read("src/components/BottomNavigation.jsx");
 const settings = read("src/screens/SettingsScreen.jsx");
 const workout = read("src/screens/WorkoutScreen.jsx");
 const health = read("src/data/healthStore.jsx");
@@ -63,6 +64,15 @@ test("global health provider does not call account APIs before login", () => {
   assert.ok(cycleEffect.includes("if (!currentUserId()) return"));
   assert.ok(cycleEffect.includes('window.addEventListener("fruitfit:auth-updated"'));
   assert.ok(cycleEffect.includes('window.removeEventListener("fruitfit:auth-updated"'));
+});
+
+test("active workout banner can move, save and hide without completing the workout", () => {
+  assert.ok(bottomNavigation.includes("onPointerMove={moveBanner}"));
+  assert.ok(bottomNavigation.includes("clampBannerLift"));
+  assert.ok(bottomNavigation.includes("flushWorkoutSessionSync(sessionId"));
+  assert.ok(bottomNavigation.includes('title="Сохранить и скрыть"'));
+  assert.ok(bottomNavigation.includes("setHiddenSessionId(sessionId)"));
+  assert.ok(!bottomNavigation.includes("completeWorkoutSession"));
 });
 
 let failed = 0;

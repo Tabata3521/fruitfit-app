@@ -33,7 +33,7 @@ export async function getFirebaseMessagingPermissionStatus() {
 
 export async function openFirebaseMessagingSettings() {
   const platform = Capacitor.getPlatform?.() || "web";
-  if (!Capacitor.isNativePlatform?.() || platform !== "ios") {
+  if (!Capacitor.isNativePlatform?.() || !["android", "ios"].includes(platform)) {
     return { ok: false, status: "settings_unavailable", platform };
   }
   return FruitFitSystemSettings.openAppSettings();

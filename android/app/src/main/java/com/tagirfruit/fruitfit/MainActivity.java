@@ -33,6 +33,8 @@ public class MainActivity extends BridgeActivity {
         }
         registerPlugin(FruitFitAppIconPlugin.class);
         registerPlugin(FruitFitOrientationPlugin.class);
+        registerPlugin(FruitFitInstallReferrerPlugin.class);
+        registerPlugin(FruitFitSystemSettingsPlugin.class);
         super.onCreate(savedInstanceState);
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override

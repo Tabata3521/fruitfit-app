@@ -4,9 +4,14 @@ import { postJson } from "../services/nativeHttp";
 
 const INSTALLATION_KEY = "fruitfit.installationId.v1";
 const DEVICE_ID_KEY = "fruitfit.deviceId.v1";
+const LEGACY_INSTALLATION_KEYS = [
+  "fruitfit.installationId",
+  "fruitfit.installation_id",
+  "fruitfit.device.installationId",
+];
 
 export function getInstallationId() {
-  return getStableId(INSTALLATION_KEY, "inst");
+  return getStableInstallationId();
 }
 
 export function getDeviceId() {
@@ -98,11 +103,47 @@ function getStableId(key, prefix) {
   return id;
 }
 
+function getStableInstallationId() {
+  if (typeof window === "undefined") return "";
+  const existing = safeStorageGet(INSTALLATION_KEY);
+  if (existing) return existing;
+
+  for (const key of LEGACY_INSTALLATION_KEYS) {
+    const legacy = safeStorageGet(key);
+    if (!legacy) continue;
+    safeStorageSet(INSTALLATION_KEY, legacy);
+    return legacy;
+  }
+
+  const id = randomId();
+  safeStorageSet(INSTALLATION_KEY, id);
+  return id;
+}
+
+function safeStorageGet(key) {
+  try {
+    return localStorage.getItem(key) || "";
+  } catch (_) {
+    return "";
+  }
+}
+
+function safeStorageSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (_) {
+    // A missing installation id must not block application startup.
+  }
+}
+
 function randomId() {
   if (window.crypto?.randomUUID) return window.crypto.randomUUID();
   const bytes = new Uint8Array(16);
   window.crypto?.getRandomValues?.(bytes);
-  return Array.from(bytes, (item) => item.toString(16).padStart(2, "0")).join("");
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (item) => item.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 function detectPlatform() {

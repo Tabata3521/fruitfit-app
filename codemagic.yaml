@@ -41,7 +41,7 @@ workflows:
       - name: Verify iOS release configuration
         script: |
           grep -q 'PRODUCT_BUNDLE_IDENTIFIER = com.tagirfruit.fruitfit;' ios/App/App.xcodeproj/project.pbxproj
-          grep -q 'CURRENT_PROJECT_VERSION = 12;' ios/App/App.xcodeproj/project.pbxproj
+          grep -q 'CURRENT_PROJECT_VERSION = 13;' ios/App/App.xcodeproj/project.pbxproj
           grep -q 'MARKETING_VERSION = 1.0.3;' ios/App/App.xcodeproj/project.pbxproj
           grep -q 'com.apple.developer.healthkit' ios/App/App/App.entitlements
           grep -q 'FruitFitAppIconPlugin.swift in Sources' ios/App/App.xcodeproj/project.pbxproj
@@ -67,3 +67,5 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false

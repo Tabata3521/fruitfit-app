@@ -1,7 +1,7 @@
 import ExerciseCard from "./ExerciseCard";
 import SupersetCard from "./SupersetCard";
 
-export default function ExerciseList({ exercises = [], currentIndex = 0, superset = [], onExerciseClick, onSupersetStart }) {
+export default function ExerciseList({ exercises = [], currentIndex = 0, exerciseStates = {}, superset = [], onExerciseClick, onSupersetStart, getExerciseId }) {
   const supersetIds = new Set(superset.map((exercise) => exercise.exercise_order));
 
   return (
@@ -17,12 +17,21 @@ export default function ExerciseList({ exercises = [], currentIndex = 0, superse
             return <SupersetCard key="superset" exercises={superset} onStart={onSupersetStart} />;
           }
 
-          const state = index < currentIndex ? "completed" : index === currentIndex ? "current" : "upcoming";
+          const exerciseId = getExerciseId?.(exercise, index) || `${exercise.lesson_id || "exercise"}:${exercise.exercise_order || index + 1}`;
+          const progressState = exerciseStates[exerciseId] || {};
+          const completedSets = Array.isArray(progressState.sets)
+            ? progressState.sets.filter((set) => set.completed).length
+            : 0;
+          const totalSets = Array.isArray(progressState.sets) ? progressState.sets.length : Number(exercise.sets) || 1;
+          const state = progressState.status || (index === currentIndex ? "current" : "not_started");
           return (
             <ExerciseCard
-              key={`${exercise.lesson_id}-${exercise.exercise_order}`}
+              key={exerciseId}
               exercise={exercise}
               state={state}
+              selected={index === currentIndex}
+              completedSets={completedSets}
+              totalSets={totalSets}
               index={index + 1}
               onClick={() => onExerciseClick?.(exercise)}
             />

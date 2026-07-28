@@ -3807,7 +3807,7 @@ export function HealthProvider({ children }) {
     });
   }, [commit]);
 
-  const requestConnection = useCallback(async () => {
+  const requestConnection = useCallback(async ({ openSettingsOnMissing = true } = {}) => {
     const refreshStartedAt = new Date().toISOString();
     const refreshStartedMs = Date.now();
     setSyncing(true);
@@ -3919,7 +3919,7 @@ export function HealthProvider({ children }) {
           },
         }));
       }
-      if (permissionResult.state === healthProviderStates.PERMISSIONS_REQUIRED) {
+      if (openSettingsOnMissing && permissionResult.state === healthProviderStates.PERMISSIONS_REQUIRED) {
         await openHealthSettings();
       }
       return permissionResult;

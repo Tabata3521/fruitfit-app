@@ -10,6 +10,7 @@ import {
   transferPreAuthProfileDraft,
 } from "../data/authStore";
 import { getDeviceRegistrationPayloadAsync, registerDevice } from "../data/deviceStore";
+import { flushAttributionQueue, trackAnalyticsEvent } from "../services/attribution";
 import { registerFirebaseMessagingPush } from "../services/notifications/firebaseMessagingPush";
 import { postJson } from "../services/nativeHttp";
 import { PRIVACY_POLICY_TEXT, PRIVACY_POLICY_URL } from "../data/privacyPolicyText";
@@ -196,6 +197,7 @@ export default function AuthPrompt({
     registerFirebaseMessagingPush().catch(() => {});
     await transferPreAuthProfileDraft({ reason: "auth-prompt" });
     await fetchAccess();
+    flushAttributionQueue().catch(() => {});
     onComplete?.(result?.user || null);
   }
 
@@ -285,6 +287,7 @@ export default function AuthPrompt({
       return;
     }
     if (!beginAuthAction()) return;
+    trackAnalyticsEvent("registration_started", { screen: "register", source: "email" }).catch(() => {});
     dispatch({ type: "SUBMIT_START" });
     try {
       const { result } = await request("/api/auth/email/register", {

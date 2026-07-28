@@ -129,6 +129,7 @@ export async function putJson(url, body = {}, options = {}) {
     headers,
     body: JSON.stringify(body),
     cache: options.cache || "no-store",
+    keepalive: Boolean(options.keepalive),
   });
   return webResponse(response, headers);
 }
