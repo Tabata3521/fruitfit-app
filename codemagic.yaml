@@ -42,7 +42,7 @@ workflows:
         script: |
           grep -q 'PRODUCT_BUNDLE_IDENTIFIER = com.tagirfruit.fruitfit;' ios/App/App.xcodeproj/project.pbxproj
           grep -q 'CURRENT_PROJECT_VERSION = 13;' ios/App/App.xcodeproj/project.pbxproj
-          grep -q 'MARKETING_VERSION = 1.0.3;' ios/App/App.xcodeproj/project.pbxproj
+          grep -q 'MARKETING_VERSION = 1.0.4;' ios/App/App.xcodeproj/project.pbxproj
           grep -q 'com.apple.developer.healthkit' ios/App/App/App.entitlements
           grep -q 'FruitFitAppIconPlugin.swift in Sources' ios/App/App.xcodeproj/project.pbxproj
           test -f ios/App/App/FruitFitIconOrange@2x.png
