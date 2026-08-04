@@ -69,7 +69,6 @@ import java.lang.reflect.Method;
                 "android.permission.health.READ_STEPS",
                 "android.permission.health.READ_ACTIVE_CALORIES_BURNED",
                 "android.permission.health.READ_TOTAL_CALORIES_BURNED",
-                "android.permission.health.READ_BASAL_METABOLIC_RATE",
                 "android.permission.health.READ_HEART_RATE",
                 "android.permission.health.READ_SLEEP",
                 "android.permission.health.READ_DISTANCE",
@@ -112,7 +111,6 @@ public class FruitFitHealthPlugin extends Plugin {
         HealthPermissions.READ_STEPS,
         HealthPermissions.READ_ACTIVE_CALORIES_BURNED,
         HealthPermissions.READ_TOTAL_CALORIES_BURNED,
-        HealthPermissions.READ_BASAL_METABOLIC_RATE,
         HealthPermissions.READ_HEART_RATE,
         HealthPermissions.READ_SLEEP,
         HealthPermissions.READ_DISTANCE,
@@ -348,8 +346,7 @@ public class FruitFitHealthPlugin extends Plugin {
             HealthConnectManager manager = managerOrResolve(call);
             if (manager == null) return;
             if (!hasHealthPermissionGranted(HealthPermissions.READ_ACTIVE_CALORIES_BURNED)
-                && !hasHealthPermissionGranted(HealthPermissions.READ_TOTAL_CALORIES_BURNED)
-                && !hasHealthPermissionGranted(HealthPermissions.READ_BASAL_METABOLIC_RATE)) {
+                && !hasHealthPermissionGranted(HealthPermissions.READ_TOTAL_CALORIES_BURNED)) {
                 resolveMissingPermission(call, HealthPermissions.READ_ACTIVE_CALORIES_BURNED);
                 return;
             }
@@ -1335,7 +1332,6 @@ public class FruitFitHealthPlugin extends Plugin {
         object.put("steps", hasHealthPermissionGranted(HealthPermissions.READ_STEPS));
         object.put("calories", hasHealthPermissionGranted(HealthPermissions.READ_ACTIVE_CALORIES_BURNED));
         object.put("totalCalories", hasHealthPermissionGranted(HealthPermissions.READ_TOTAL_CALORIES_BURNED));
-        object.put("basalMetabolicRate", hasHealthPermissionGranted(HealthPermissions.READ_BASAL_METABOLIC_RATE));
         object.put("heartRate", hasHealthPermissionGranted(HealthPermissions.READ_HEART_RATE));
         object.put("sleep", hasHealthPermissionGranted(HealthPermissions.READ_SLEEP));
         object.put("distance", hasHealthPermissionGranted(HealthPermissions.READ_DISTANCE));
@@ -1348,7 +1344,6 @@ public class FruitFitHealthPlugin extends Plugin {
         if (recordType == StepsRecord.class) return HealthPermissions.READ_STEPS;
         if (recordType == ActiveCaloriesBurnedRecord.class) return HealthPermissions.READ_ACTIVE_CALORIES_BURNED;
         if (recordType == TotalCaloriesBurnedRecord.class) return HealthPermissions.READ_TOTAL_CALORIES_BURNED;
-        if (recordType == BasalMetabolicRateRecord.class) return HealthPermissions.READ_BASAL_METABOLIC_RATE;
         if (recordType == HeartRateRecord.class) return HealthPermissions.READ_HEART_RATE;
         if (recordType == SleepSessionRecord.class) return HealthPermissions.READ_SLEEP;
         if (recordType == DistanceRecord.class) return HealthPermissions.READ_DISTANCE;
@@ -1361,7 +1356,6 @@ public class FruitFitHealthPlugin extends Plugin {
         if (HealthPermissions.READ_STEPS.equals(permission)) return "steps";
         if (HealthPermissions.READ_ACTIVE_CALORIES_BURNED.equals(permission)) return "calories";
         if (HealthPermissions.READ_TOTAL_CALORIES_BURNED.equals(permission)) return "totalCalories";
-        if (HealthPermissions.READ_BASAL_METABOLIC_RATE.equals(permission)) return "basalMetabolicRate";
         if (HealthPermissions.READ_HEART_RATE.equals(permission)) return "heartRate";
         if (HealthPermissions.READ_SLEEP.equals(permission)) return "sleep";
         if (HealthPermissions.READ_DISTANCE.equals(permission)) return "distance";
