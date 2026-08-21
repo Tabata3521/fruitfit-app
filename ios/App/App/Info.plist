@@ -80,6 +80,10 @@
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>FruitFitAppMetricaAPIKey</key>
+	<string>87dff7a7-e1b8-4d99-a1c6-5b741f4f5fa1</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Разрешение помогает понять, какие рекламные объявления приводят к регистрации в FruitFit, и улучшать рекламу. Приложение полностью работает при любом выборе.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>FruitFit uses Apple Health data to show steps, activity, sleep, heart rate, and recovery inside the app.</string>
 		<key>NSHealthUpdateUsageDescription</key>

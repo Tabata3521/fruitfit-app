@@ -6,5 +6,6 @@ class FruitFitBridgeViewController: CAPBridgeViewController {
         super.capacitorDidLoad()
         bridge?.registerPluginInstance(FruitFitAppIconPlugin())
         bridge?.registerPluginInstance(FruitFitSystemSettingsPlugin())
+        bridge?.registerPluginInstance(FruitFitAppMetricaPlugin())
     }
 }

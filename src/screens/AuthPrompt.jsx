@@ -11,6 +11,12 @@ import {
 } from "../data/authStore";
 import { getDeviceRegistrationPayloadAsync, registerDevice } from "../data/deviceStore";
 import { flushAttributionQueue, trackAnalyticsEvent } from "../services/attribution";
+import {
+  clearPendingAppMetricaRegistration,
+  rememberPendingAppMetricaRegistration,
+  reportAppMetricaRegistration,
+  reportProvenPendingAppMetricaRegistration,
+} from "../services/appMetrica";
 import { registerFirebaseMessagingPush } from "../services/notifications/firebaseMessagingPush";
 import { postJson } from "../services/nativeHttp";
 import { PRIVACY_POLICY_TEXT, PRIVACY_POLICY_URL } from "../data/privacyPolicyText";
@@ -190,6 +196,7 @@ export default function AuthPrompt({
   }, [initial.route?.deliveryKey]);
 
   async function complete(result) {
+    await reportProvenPendingAppMetricaRegistration(result?.user);
     localStorage.removeItem(SKIP_AUTH_KEY);
     if (result?.token) setAuthToken(result.token);
     if (result?.user) saveAuthUser(result.user);
@@ -290,14 +297,17 @@ export default function AuthPrompt({
     trackAnalyticsEvent("registration_started", { screen: "register", source: "email" }).catch(() => {});
     dispatch({ type: "SUBMIT_START" });
     try {
-      const { result } = await request("/api/auth/email/register", {
+      const { result, response } = await request("/api/auth/email/register", {
         email,
         password: flow.password,
         confirmPassword: flow.confirmPassword,
         confirm_password: flow.confirmPassword,
         device: await getDeviceRegistrationPayloadAsync(),
       });
+      rememberPendingAppMetricaRegistration({ email, responseHeaders: response.headers });
       if (result.token && result.user) {
+        await reportAppMetricaRegistration(result.user.id);
+        clearPendingAppMetricaRegistration(result.user.email || email);
         await complete(result);
         return;
       }
@@ -390,6 +400,10 @@ export default function AuthPrompt({
         token: flow.token,
         device: await getDeviceRegistrationPayloadAsync(),
       });
+      if (result?.emailVerified && result?.user?.id) {
+        await reportAppMetricaRegistration(result.user.id);
+        clearPendingAppMetricaRegistration(result.user.email || flow.email);
+      }
       if (result?.token && result?.user) {
         dispatch({ type: "CLEAR_SECRET" });
         onRouteConsumed?.();

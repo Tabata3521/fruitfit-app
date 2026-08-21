@@ -27,6 +27,10 @@
 		7A1C00112F10000000000001 /* FruitFitIconStrawberry@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C00102F10000000000001 /* FruitFitIconStrawberry@2x.png */; };
 		7A1C00132F10000000000001 /* FruitFitIconStrawberry@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C00122F10000000000001 /* FruitFitIconStrawberry@3x.png */; };
 		7A1C00152F10000000000001 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C00142F10000000000001 /* GoogleService-Info.plist */; };
+		7A1C01012F20000000000001 /* AppMetricaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7A1C01072F20000000000001 /* AppMetricaCore */; };
+		7A1C01032F20000000000001 /* AppMetricaAdSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 7A1C01082F20000000000001 /* AppMetricaAdSupport */; };
+		7A1C01052F20000000000001 /* FruitFitAppMetricaPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C01042F20000000000001 /* FruitFitAppMetricaPlugin.swift */; };
+		7A1C010A2F20000000000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C01092F20000000000001 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -51,6 +55,8 @@
 		7A1C00102F10000000000001 /* FruitFitIconStrawberry@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "FruitFitIconStrawberry@2x.png"; sourceTree = "<group>"; };
 		7A1C00122F10000000000001 /* FruitFitIconStrawberry@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "FruitFitIconStrawberry@3x.png"; sourceTree = "<group>"; };
 		7A1C00142F10000000000001 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		7A1C01042F20000000000001 /* FruitFitAppMetricaPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FruitFitAppMetricaPlugin.swift; sourceTree = "<group>"; };
+		7A1C01092F20000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -60,6 +66,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */,
+				7A1C01012F20000000000001 /* AppMetricaCore in Frameworks */,
+				7A1C01032F20000000000001 /* AppMetricaAdSupport in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -91,6 +99,8 @@
 				7A1C00022F10000000000001 /* FruitFitBridgeViewController.swift */,
 				7A1C00002F10000000000001 /* FruitFitAppIconPlugin.swift */,
 				7A1C00172F10000000000001 /* FruitFitSystemSettingsPlugin.swift */,
+				7A1C01042F20000000000001 /* FruitFitAppMetricaPlugin.swift */,
+				7A1C01092F20000000000001 /* PrivacyInfo.xcprivacy */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -128,6 +138,8 @@
 			name = App;
 			packageProductDependencies = (
 				4D22ABE82AF431CB00220026 /* CapApp-SPM */,
+				7A1C01072F20000000000001 /* AppMetricaCore */,
+				7A1C01082F20000000000001 /* AppMetricaAdSupport */,
 			);
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
@@ -171,6 +183,7 @@
 			mainGroup = 504EC2FB1FED79650016851F;
 			packageReferences = (
 				D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */,
+				7A1C01062F20000000000001 /* XCRemoteSwiftPackageReference "appmetrica-sdk-ios" */,
 			);
 			productRefGroup = 504EC3051FED79650016851F /* Products */;
 			projectDirPath = "";
@@ -186,6 +199,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7A1C010A2F20000000000001 /* PrivacyInfo.xcprivacy in Resources */,
 				504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */,
 				7A1C000F2F10000000000001 /* FruitFitIconApple@3x.png in Resources */,
 				50B271D11FEDC1A000F3C39B /* public in Resources */,
@@ -214,6 +228,7 @@
 					7A1C00032F10000000000001 /* FruitFitBridgeViewController.swift in Sources */,
 					7A1C00012F10000000000001 /* FruitFitAppIconPlugin.swift in Sources */,
 					7A1C00162F10000000000001 /* FruitFitSystemSettingsPlugin.swift in Sources */,
+					7A1C01052F20000000000001 /* FruitFitAppMetricaPlugin.swift in Sources */,
 					504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -356,7 +371,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 15;
 				DEVELOPMENT_TEAM = GUBXHZ7W28;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -364,7 +379,11 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.5;
+				MARKETING_VERSION = 1.0.6;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
 				OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.tagirfruit.fruitfit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -381,7 +400,7 @@
 					ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 					CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 					CODE_SIGN_STYLE = Automatic;
-					CURRENT_PROJECT_VERSION = 14;
+					CURRENT_PROJECT_VERSION = 15;
 					DEVELOPMENT_TEAM = GUBXHZ7W28;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -389,7 +408,11 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.5;
+				MARKETING_VERSION = 1.0.6;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.tagirfruit.fruitfit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
@@ -421,6 +444,17 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		7A1C01062F20000000000001 /* XCRemoteSwiftPackageReference "appmetrica-sdk-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/appmetrica/appmetrica-sdk-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 6.6.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCLocalSwiftPackageReference section */
 		D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */ = {
 			isa = XCLocalSwiftPackageReference;
@@ -433,6 +467,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */;
 			productName = "CapApp-SPM";
+		};
+		7A1C01072F20000000000001 /* AppMetricaCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7A1C01062F20000000000001 /* XCRemoteSwiftPackageReference "appmetrica-sdk-ios" */;
+			productName = AppMetricaCore;
+		};
+		7A1C01082F20000000000001 /* AppMetricaAdSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7A1C01062F20000000000001 /* XCRemoteSwiftPackageReference "appmetrica-sdk-ios" */;
+			productName = AppMetricaAdSupport;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
