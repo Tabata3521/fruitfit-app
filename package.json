@@ -27,6 +27,7 @@
     "build": "vite build --configLoader runner",
     "build:ios-review": "vite build --mode app-store --configLoader runner",
     "build:google-play": "vite build --mode google-play --configLoader runner",
+    "verify:google-play-attribution": "node scripts/verify-google-play-attribution-build.mjs",
     "build:rustore": "vite build --mode rustore --configLoader runner",
     "build:huawei": "vite build --mode huawei --configLoader runner",
     "build:direct-apk": "vite build --mode direct-apk --configLoader runner",

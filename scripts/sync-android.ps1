@@ -1,13 +1,27 @@
+param(
+  [ValidateSet("default", "google-play", "rustore", "huawei", "direct-apk")]
+  [string]$DistributionChannel = "default"
+)
+
 $ErrorActionPreference = "Stop"
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..")
 
 Push-Location $root
 try {
-  npm.cmd run build
+  $buildScript = if ($DistributionChannel -eq "default") { "build" } else { "build:$DistributionChannel" }
+  npm.cmd run $buildScript
   if ($LASTEXITCODE -ne 0) { throw "Web build failed with exit code $LASTEXITCODE." }
+  if ($DistributionChannel -eq "google-play") {
+    npm.cmd run verify:google-play-attribution
+    if ($LASTEXITCODE -ne 0) { throw "Google Play attribution bundle verification failed with exit code $LASTEXITCODE." }
+  }
   npx cap sync android
   if ($LASTEXITCODE -ne 0) { throw "Capacitor Android sync failed with exit code $LASTEXITCODE." }
+  if ($DistributionChannel -eq "google-play") {
+    node scripts/verify-google-play-attribution-build.mjs android/app/src/main/assets/public/assets
+    if ($LASTEXITCODE -ne 0) { throw "Synced Android attribution bundle verification failed with exit code $LASTEXITCODE." }
+  }
 
   $settingsPath = Join-Path $root "android\capacitor.settings.gradle"
   $buildPath = Join-Path $root "android\app\capacitor.build.gradle"
