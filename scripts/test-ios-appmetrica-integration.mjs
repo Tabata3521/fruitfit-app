@@ -61,7 +61,7 @@ assert.doesNotMatch(
 );
 
 const codemagic = read("codemagic.yaml");
-assert.match(codemagic, /submit_to_testflight: false/);
-assert.match(codemagic, /submit_to_app_store: false/);
+assert.doesNotMatch(codemagic, /^\s*publishing:/m, "build-only workflow must not upload to App Store Connect");
+assert.doesNotMatch(codemagic, /submit_to_(testflight|app_store)/);
 
 console.log("iOS AppMetrica integration tests: PASS");
