@@ -62,12 +62,20 @@
     </queries>
 
     <application
+        android:name=".FruitFitApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+
+        <meta-data
+            android:name="fruitfit.appmetrica.enabled"
+            android:value="${fruitfitAppMetricaEnabled}" />
+        <meta-data
+            android:name="fruitfit.appmetrica.api_key"
+            android:value="${fruitfitAppMetricaApiKey}" />
 
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"

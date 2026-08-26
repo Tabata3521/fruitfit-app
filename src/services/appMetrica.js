@@ -1,4 +1,5 @@
 import { Capacitor, registerPlugin } from "@capacitor/core";
+import { DISTRIBUTION_CHANNEL } from "../config/distributionChannel.js";
 
 const FruitFitAppMetrica = registerPlugin("FruitFitAppMetrica");
 const PENDING_REGISTRATION_KEY = "fruitfit.appmetrica.pendingRegistration.v1";
@@ -6,8 +7,10 @@ const PROOF_BEFORE_RESPONSE_MS = 2 * 60 * 1000;
 const PROOF_AFTER_RESPONSE_MS = 10 * 1000;
 const PROOF_TTL_MS = 48 * 60 * 60 * 1000;
 
-function isNativeIos() {
-  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios";
+function isNativeAppMetricaBuild() {
+  if (!Capacitor.isNativePlatform()) return false;
+  const platform = Capacitor.getPlatform();
+  return platform === "ios" || (platform === "android" && DISTRIBUTION_CHANNEL === "rustore");
 }
 
 function normalizedEmail(value) {
@@ -36,7 +39,7 @@ function readPendingRegistration() {
 }
 
 export function rememberPendingAppMetricaRegistration({ email, responseHeaders } = {}) {
-  if (!isNativeIos() || typeof localStorage === "undefined") return false;
+  if (!isNativeAppMetricaBuild() || typeof localStorage === "undefined") return false;
   const normalized = normalizedEmail(email);
   const serverResponseAt = Date.parse(headerValue(responseHeaders, "date"));
   if (!normalized || !Number.isFinite(serverResponseAt)) return false;
@@ -58,7 +61,7 @@ export function clearPendingAppMetricaRegistration(email = "") {
 }
 
 export async function reportProvenPendingAppMetricaRegistration(user) {
-  if (!isNativeIos()) return { reported: false, skipped: true };
+  if (!isNativeAppMetricaBuild()) return { reported: false, skipped: true };
   const pending = readPendingRegistration();
   if (!pending || pending.email !== normalizedEmail(user?.email)) {
     return { reported: false, skipped: true };
@@ -75,7 +78,7 @@ export async function reportProvenPendingAppMetricaRegistration(user) {
 
 export async function reportAppMetricaRegistration(userId) {
   const normalizedUserId = String(userId || "").trim();
-  if (!normalizedUserId || !isNativeIos()) {
+  if (!normalizedUserId || !isNativeAppMetricaBuild()) {
     return { reported: false, skipped: true };
   }
 

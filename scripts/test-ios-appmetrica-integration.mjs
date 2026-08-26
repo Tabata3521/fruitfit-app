@@ -40,7 +40,8 @@ assert.match(privacyManifest, /NSPrivacyAccessedAPICategoryUserDefaults/);
 assert.match(privacyManifest, /CA92\.1/);
 
 const appMetricaService = read("src/services/appMetrica.js");
-assert.match(appMetricaService, /Capacitor\.getPlatform\(\) === "ios"/);
+assert.match(appMetricaService, /const platform = Capacitor\.getPlatform\(\)/);
+assert.match(appMetricaService, /platform === "ios"/);
 assert.match(appMetricaService, /FruitFitAppMetrica\.reportRegistration/);
 assert.match(appMetricaService, /responseHeaders/);
 assert.match(appMetricaService, /createdAt >= Number\(pending\.createdAfter\)/);
