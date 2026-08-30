@@ -15,8 +15,8 @@ assert.match(project, /AppMetricaAdSupport in Frameworks/);
 assert.match(project, /FruitFitAppMetricaPlugin\.swift in Sources/);
 assert.match(project, /PrivacyInfo\.xcprivacy in Resources/);
 assert.match(project, /"-ObjC"/);
-assert.equal((project.match(/CURRENT_PROJECT_VERSION = 15;/g) || []).length, 2);
-assert.equal((project.match(/MARKETING_VERSION = 1\.0\.6;/g) || []).length, 2);
+assert.equal((project.match(/CURRENT_PROJECT_VERSION = 17;/g) || []).length, 2);
+assert.equal((project.match(/MARKETING_VERSION = 1\.0\.7;/g) || []).length, 2);
 
 const appDelegate = read("ios/App/App/AppDelegate.swift");
 assert.match(appDelegate, /applicationDidBecomeActive[\s\S]*FruitFitAppMetricaService\.shared\.applicationDidBecomeActive\(\)/);
@@ -62,7 +62,9 @@ assert.doesNotMatch(
 );
 
 const codemagic = read("codemagic.yaml");
-assert.doesNotMatch(codemagic, /^\s*publishing:/m, "build-only workflow must not upload to App Store Connect");
-assert.doesNotMatch(codemagic, /submit_to_(testflight|app_store)/);
+assert.match(codemagic, /publishing:\s+app_store_connect:/, "iOS workflow must publish through App Store Connect");
+assert.match(codemagic, /auth:\s+integration/, "iOS workflow must use the configured App Store Connect integration");
+assert.match(codemagic, /submit_to_testflight:\s+false/, "iOS workflow must not submit to TestFlight");
+assert.match(codemagic, /submit_to_app_store:\s+true/, "iOS workflow must submit to App Store review");
 
 console.log("iOS AppMetrica integration tests: PASS");
