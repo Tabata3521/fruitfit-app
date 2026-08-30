@@ -4,8 +4,8 @@ import { readFileSync } from "node:fs";
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
 const gradle = read("android/app/build.gradle");
-assert.match(gradle, /versionCode 30/);
-assert.match(gradle, /versionName "1\.9\.8"/);
+assert.match(gradle, /versionCode 31/);
+assert.match(gradle, /versionName "1\.9\.9"/);
 assert.match(gradle, /io\.appmetrica\.analytics:analytics:8\.5\.1/);
 assert.match(gradle, /fruitfitAppMetricaEnabled/);
 assert.match(gradle, /fruitfitAppMetricaApiKey/);

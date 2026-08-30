@@ -21,7 +21,7 @@ function programTypeLabel(course) {
   return "Программа";
 }
 
-export default function WorkoutsScreen({ program, selectedWorkoutIndex, onOpenWorkout, onNavigate, access, profile, programAssignment }) {
+export default function WorkoutsScreen({ program, selectedWorkoutIndex, onOpenWorkout, onNavigate, access, profile, programAssignment, workoutCycle = {} }) {
   const [, setCompletionRevision] = useState(0);
   const totalWorkouts = program.workouts.length;
   const visibleWorkouts = visibleWorkoutsForAccess(program.workouts, access, profile, programAssignment);
@@ -79,7 +79,7 @@ export default function WorkoutsScreen({ program, selectedWorkoutIndex, onOpenWo
             const safeSourceIndex = sourceIndex >= 0 ? sourceIndex : index;
             const active = safeSourceIndex === selectedWorkoutIndex;
             const locked = restrictionState.requiresAdaptation || (!APP_STORE_REVIEW && !isWorkoutUnlocked(safeSourceIndex, program.workouts, access, profile, programAssignment));
-            const completed = isWorkoutCompleted(workout.workout_id);
+            const completed = isWorkoutCompleted(workout.workout_id, workoutCycle);
             const status = locked ? "закрыта" : completed ? "завершена" : active ? "в процессе" : "не начата";
             return (
               <button

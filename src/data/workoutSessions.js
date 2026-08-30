@@ -1,7 +1,8 @@
 import { currentUserId, readUserScopedCache, writeUserScopedCache } from "./userScopedCache";
+import { cycleIdentity, legacyStateBelongsToCycle, withWorkoutCycle } from "./workoutCycle";
 
 export const WORKOUT_SESSIONS_KEY = "fruitfit.workout_sessions.v2";
-export const WORKOUT_SESSION_SCHEMA_VERSION = 2;
+export const WORKOUT_SESSION_SCHEMA_VERSION = 3;
 const LEGACY_SESSION_PREFIX = "fruitfit.workout.sessionProgress:";
 const SESSION_STATUSES = new Set(["active", "paused", "completed", "abandoned"]);
 const EXERCISE_STATUSES = new Set(["not_started", "in_progress", "completed", "skipped"]);
@@ -138,7 +139,7 @@ export function calculateWorkoutProgress(session = {}) {
   };
 }
 
-export function reconcileWorkoutSession(session = {}, { workout = {}, program = {}, userId = currentUserId() } = {}) {
+export function reconcileWorkoutSession(session = {}, { workout = {}, program = {}, userId = currentUserId(), cycle = {} } = {}) {
   const timestamp = nowIso();
   const exercises = {};
   const previous = session.exercises && typeof session.exercises === "object" ? session.exercises : {};
@@ -161,7 +162,7 @@ export function reconcileWorkoutSession(session = {}, { workout = {}, program = 
   const workoutId = stableWorkoutId(workout) || text(session.workout_id);
   const selectedId = text(session.selected_exercise_id);
   const firstExerciseId = currentExercises.length ? stableExerciseId(currentExercises[0], 0) : "";
-  const normalized = {
+  const normalized = withWorkoutCycle({
     schema_version: WORKOUT_SESSION_SCHEMA_VERSION,
     session_id: text(session.session_id) || uuid(),
     user_id: text(userId || session.user_id),
@@ -196,7 +197,7 @@ export function reconcileWorkoutSession(session = {}, { workout = {}, program = 
           removed_exercise_ids: removedExerciseIds,
         }
       : (session.program_update || null),
-  };
+  }, cycle);
   normalized.progress = calculateWorkoutProgress(normalized);
   normalized.recommended_next_exercise_id = Object.values(normalized.exercises)
     .sort((a, b) => a.order - b.order)
@@ -257,28 +258,47 @@ export function readWorkoutSession(sessionId, userId = currentUserId()) {
   return readStore(userId).sessions[text(sessionId)] || null;
 }
 
-export function activeWorkoutSession(userId = currentUserId()) {
+export function activeWorkoutSession(userId = currentUserId(), cycle = {}) {
   const store = readStore(userId);
   const active = store.sessions[store.active_session_id] || null;
-  return active?.status === "active" ? active : null;
+  if (active?.status !== "active") return null;
+  const cycleKey = cycleIdentity(cycle);
+  if (cycleKey === "legacy-unscoped") return active;
+  const activeKey = cycleIdentity({
+    cycleId: active.subscription_cycle_id,
+    cycleNumber: active.subscription_cycle_number,
+    accessFrom: active.subscription_cycle_access_from,
+  });
+  return activeKey === cycleKey ? active : null;
 }
 
-export function workoutSessionForWorkout(workoutId, userId = currentUserId()) {
+export function workoutSessionForWorkout(workoutId, userId = currentUserId(), cycle = {}) {
   const id = text(workoutId);
-  return listWorkoutSessions(userId).find(
+  const cycleKey = cycleIdentity(cycle);
+  const sessions = listWorkoutSessions(userId).filter(
     (session) => session.workout_id === id && session.status !== "abandoned",
-  ) || null;
+  );
+  if (cycleKey === "legacy-unscoped") return sessions.find((session) => !text(session.subscription_cycle_id) && !text(session.subscription_cycle_number)) || sessions[0] || null;
+  const exact = sessions.find((session) => cycleIdentity({
+    cycleId: session.subscription_cycle_id,
+    cycleNumber: session.subscription_cycle_number,
+    accessFrom: session.subscription_cycle_access_from,
+  }) === cycleKey);
+  if (exact) return exact;
+  const legacy = sessions.find((session) => !text(session.subscription_cycle_id) && !text(session.subscription_cycle_number) && legacyStateBelongsToCycle(session, cycle));
+  if (!legacy) return null;
+  return saveWorkoutSession(withWorkoutCycle(legacy, cycle), { activate: legacy.status === "active", userId });
 }
 
-export function migrateLegacyWorkoutSession({ workout, program, userId = currentUserId() }) {
+export function migrateLegacyWorkoutSession({ workout, program, userId = currentUserId(), cycle = {} }) {
   if (typeof window === "undefined") return null;
   const workoutId = stableWorkoutId(workout);
-  if (!workoutId || workoutSessionForWorkout(workoutId, userId)) return null;
+  if (!workoutId || workoutSessionForWorkout(workoutId, userId, cycle)) return null;
   try {
     const key = `${LEGACY_SESSION_PREFIX}${workoutId}`;
     const raw = sessionStorage.getItem(key);
     const legacy = raw ? JSON.parse(raw) : null;
-    if (!legacy) return null;
+    if (!legacy || (cycleIdentity(cycle) !== "legacy-unscoped" && !legacyStateBelongsToCycle(legacy, cycle))) return null;
     const exercises = {};
     const items = Array.isArray(workout.exercises) ? workout.exercises : [];
     const completedIndexes = new Set(Array.isArray(legacy.completed) ? legacy.completed.map(Number) : []);
@@ -308,7 +328,7 @@ export function migrateLegacyWorkoutSession({ workout, program, userId = current
         duration_seconds: legacy.phase === "rest" ? legacy.restDuration : legacy.workDuration,
       },
       updated_at: legacy.savedAt ? new Date(legacy.savedAt).toISOString() : nowIso(),
-    }, { workout, program, userId });
+    }, { workout, program, userId, cycle });
     saveWorkoutSession(migrated, { activate: true, userId });
     sessionStorage.removeItem(key);
     return migrated;
@@ -317,8 +337,8 @@ export function migrateLegacyWorkoutSession({ workout, program, userId = current
   }
 }
 
-export function createWorkoutSession({ workout, program, userId = currentUserId(), status = "active" }) {
-  return reconcileWorkoutSession({ session_id: uuid(), status }, { workout, program, userId });
+export function createWorkoutSession({ workout, program, userId = currentUserId(), status = "active", cycle = {} }) {
+  return reconcileWorkoutSession({ session_id: uuid(), status }, { workout, program, userId, cycle });
 }
 
 export function saveWorkoutSession(session, { activate = session?.status === "active", userId = currentUserId() } = {}) {

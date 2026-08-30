@@ -37,6 +37,7 @@ import {
 } from "../data/workoutSessions";
 import { flushWorkoutSessionSync, scheduleWorkoutSessionSync } from "../services/workoutSessionSync";
 import { trackAnalyticsEvent } from "../services/attribution";
+import { cycleIdentity, cycleScopedWorkoutKey, legacyStateBelongsToCycle, withWorkoutCycle } from "../data/workoutCycle";
 
 const SET_TARGET_SECONDS = 30;
 const REST_SECONDS = 90;
@@ -44,20 +45,21 @@ const EXERCISE_REPLACEMENTS_FIELD = "exerciseReplacements";
 const WORKOUT_REPORTS_FIELD = "workoutReports";
 const WORKOUT_SESSION_PROGRESS_KEY = "fruitfit.workout.sessionProgress";
 
-function loadDurableWorkoutSession(workout, program) {
+function loadDurableWorkoutSession(workout, program, cycle = {}) {
   const userId = currentUserId();
   if (!userId) return null;
-  const migrated = migrateLegacyWorkoutSession({ workout, program, userId });
-  const existing = migrated || workoutSessionForWorkout(workout.workout_id, userId);
+  const migrated = migrateLegacyWorkoutSession({ workout, program, userId, cycle });
+  const existing = migrated || workoutSessionForWorkout(workout.workout_id, userId, cycle);
   if (existing) {
-    const reconciled = reconcileWorkoutSession(existing, { workout, program, userId });
+    const reconciled = reconcileWorkoutSession(existing, { workout, program, userId, cycle });
     return saveWorkoutSession(reconciled, { activate: reconciled.status === "active", userId });
   }
-  const active = activeWorkoutSession(userId);
+  const active = activeWorkoutSession(userId, cycle);
   const created = createWorkoutSession({
     workout,
     program,
     userId,
+    cycle,
     status: active && active.workout_id !== String(workout.workout_id || "") ? "paused" : "active",
   });
   return saveWorkoutSession(created, { activate: created.status === "active", userId });
@@ -177,32 +179,46 @@ function readWorkoutHistoryMap(field) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
-function readReplacements(workoutId) {
+function readReplacements(workoutId, cycle = {}) {
   try {
     const map = readWorkoutHistoryMap(EXERCISE_REPLACEMENTS_FIELD);
-    const value = map[String(workoutId || "")] || {};
+    const id = String(workoutId || "");
+    const scopedKey = cycleScopedWorkoutKey(id, cycle);
+    const hasCycle = Boolean(cycle?.cycleId || cycle?.subscriptionCycleId || cycle?.subscription_cycle_id || cycle?.cycleNumber || cycle?.subscriptionCycleNumber || cycle?.subscription_cycle_number || cycle?.accessFrom);
+    let value = map[scopedKey] || (!hasCycle ? map[id] : null) || null;
+    const legacy = map[id];
+    if (!value && legacy && legacyStateBelongsToCycle(legacy, cycle)) {
+      value = withWorkoutCycle({ ...legacy, migratedFromLegacy: true }, cycle);
+      writeWorkoutHistoryField(EXERCISE_REPLACEMENTS_FIELD, { ...map, [scopedKey]: value });
+    }
+    value ||= {};
     return value && typeof value === "object" && !Array.isArray(value) ? value : {};
   } catch (_) {
     return {};
   }
 }
 
-function saveReplacements(workoutId, replacements) {
+function saveReplacements(workoutId, replacements, cycle = {}) {
   const key = String(workoutId || "").trim();
   if (!key) return {};
   const map = readWorkoutHistoryMap(EXERCISE_REPLACEMENTS_FIELD);
-  const next = { ...map, [key]: replacements && typeof replacements === "object" ? replacements : {} };
+  const scopedKey = cycleScopedWorkoutKey(key, cycle);
+  const value = withWorkoutCycle({
+    ...(replacements && typeof replacements === "object" ? replacements : {}),
+    updatedAt: new Date().toISOString(),
+  }, cycle);
+  const next = { ...map, [scopedKey]: value };
   writeWorkoutHistoryField(EXERCISE_REPLACEMENTS_FIELD, next);
-  return next[key];
+  return next[scopedKey];
 }
 
-function workoutSessionKey(workoutId) {
-  return `${WORKOUT_SESSION_PROGRESS_KEY}:${String(workoutId || "").trim()}`;
+function workoutSessionKey(workoutId, cycle = {}) {
+  return `${WORKOUT_SESSION_PROGRESS_KEY}:${cycleScopedWorkoutKey(workoutId, cycle)}`;
 }
 
-function readWorkoutSessionProgress(workoutId) {
+function readWorkoutSessionProgress(workoutId, cycle = {}) {
   try {
-    const raw = sessionStorage.getItem(workoutSessionKey(workoutId));
+    const raw = sessionStorage.getItem(workoutSessionKey(workoutId, cycle));
     const data = raw ? JSON.parse(raw) : null;
     if (!data || data.workoutId !== String(workoutId || "")) return null;
     return data;
@@ -211,13 +227,13 @@ function readWorkoutSessionProgress(workoutId) {
   }
 }
 
-function writeWorkoutSessionProgress(workoutId, state) {
+function writeWorkoutSessionProgress(workoutId, state, cycle = {}) {
   try {
-    sessionStorage.setItem(workoutSessionKey(workoutId), JSON.stringify({
+    sessionStorage.setItem(workoutSessionKey(workoutId, cycle), JSON.stringify(withWorkoutCycle({
       ...state,
       workoutId: String(workoutId || ""),
       savedAt: Date.now(),
-    }));
+    }, cycle)));
   } catch (_) {}
 }
 
@@ -236,20 +252,30 @@ function restoredPhase(value) {
   return ["idle", "prestart", "work", "workPaused", "restReady", "rest", "restPaused", "done"].includes(value) ? value : "idle";
 }
 
-function readWorkoutReport(workoutId) {
+function readWorkoutReport(workoutId, cycle = {}) {
   try {
     const map = readWorkoutHistoryMap(WORKOUT_REPORTS_FIELD);
-    return map[String(workoutId || "")] || null;
+    const id = String(workoutId || "");
+    const scopedKey = cycleScopedWorkoutKey(id, cycle);
+    const hasCycle = Boolean(cycle?.cycleId || cycle?.subscriptionCycleId || cycle?.subscription_cycle_id || cycle?.cycleNumber || cycle?.subscriptionCycleNumber || cycle?.subscription_cycle_number || cycle?.accessFrom);
+    const scoped = map[scopedKey] || (!hasCycle ? map[id] : null);
+    if (scoped) return scoped;
+    const legacy = map[id];
+    if (!legacy || !legacyStateBelongsToCycle(legacy, cycle)) return null;
+    const migrated = withWorkoutCycle({ ...legacy, migratedFromLegacy: true }, cycle);
+    writeWorkoutHistoryField(WORKOUT_REPORTS_FIELD, { ...map, [scopedKey]: migrated });
+    return migrated;
   } catch (_) {
     return null;
   }
 }
 
-function saveWorkoutReport(workoutId, report) {
+function saveWorkoutReport(workoutId, report, cycle = {}) {
   const key = String(workoutId || "").trim();
   if (!key) return null;
   const map = readWorkoutHistoryMap(WORKOUT_REPORTS_FIELD);
-  writeWorkoutHistoryField(WORKOUT_REPORTS_FIELD, { ...map, [key]: report || null });
+  const scopedKey = cycleScopedWorkoutKey(key, cycle);
+  writeWorkoutHistoryField(WORKOUT_REPORTS_FIELD, { ...map, [scopedKey]: withWorkoutCycle(report || {}, cycle) });
   return report || null;
 }
 
@@ -470,9 +496,9 @@ function RestWheelPicker({ value, onChange }) {
   );
 }
 
-function WorkoutReport({ workoutId, workoutTitle }) {
+function WorkoutReport({ workoutId, workoutTitle, workoutCycle = {} }) {
   const { health, syncNativeHealth } = useHealth();
-  const savedReport = readWorkoutReport(workoutId);
+  const savedReport = readWorkoutReport(workoutId, workoutCycle);
   const [report, setReport] = useState(() => initialReportScores(savedReport));
   const [saved, setSaved] = useState(Boolean(savedReport));
   const [saving, setSaving] = useState(false);
@@ -524,7 +550,7 @@ function WorkoutReport({ workoutId, workoutTitle }) {
         healthSummary: healthSnapshot.summary,
       };
       const localPayload = { ...serverPayload, saved_at: new Date().toISOString() };
-      saveWorkoutReport(workoutId, { ...localPayload, serverStatus: canSendToTrainer ? "pending" : "local" });
+      saveWorkoutReport(workoutId, { ...localPayload, serverStatus: canSendToTrainer ? "pending" : "local" }, workoutCycle);
       setReport(scores);
       setSaved(true);
       setServerStatus(canSendToTrainer ? "pending" : "local");
@@ -539,7 +565,7 @@ function WorkoutReport({ workoutId, workoutTitle }) {
           serverStatus: "sent",
           serverReportId: item?.id || null,
           sent_at: new Date().toISOString(),
-        });
+        }, workoutCycle);
         setServerStatus("sent");
         setStatus("Отчёт отправлен.");
       } catch (sendError) {
@@ -551,7 +577,7 @@ function WorkoutReport({ workoutId, workoutTitle }) {
           serverStatus: nextServerStatus,
           serverError: sendError?.message || "send_failed",
           serverErrorStatus: sendError?.status || null,
-        });
+        }, workoutCycle);
         setServerStatus(nextServerStatus);
         setStatus(authExpired
           ? "Сессия истекла. Войди заново, затем отправь отчёт."
@@ -559,7 +585,7 @@ function WorkoutReport({ workoutId, workoutTitle }) {
       }
     } catch (error) {
       console.warn("[FruitFit Workout] report save failed", error);
-      saveWorkoutReport(workoutId, { ...payload, saved_at: new Date().toISOString() });
+      saveWorkoutReport(workoutId, { ...payload, saved_at: new Date().toISOString() }, workoutCycle);
       setSaved(true);
       setStatus("Отчёт сохранён.");
     } finally {
@@ -972,8 +998,9 @@ function WarmupBlock() {
   );
 }
 
-export default function WorkoutScreen({ program, workout, profile, access, programAssignment, selectedWorkoutIndex = 0, mode = "workout", onBack, onNavigate, onSelectWorkout }) {
-  const [workoutSession, setWorkoutSession] = useState(() => loadDurableWorkoutSession(workout, program));
+export default function WorkoutScreen({ program, workout, profile, access, programAssignment, workoutCycle = {}, selectedWorkoutIndex = 0, mode = "workout", onBack, onNavigate, onSelectWorkout }) {
+  const workoutCycleKey = cycleIdentity(workoutCycle);
+  const [workoutSession, setWorkoutSession] = useState(() => loadDurableWorkoutSession(workout, program, workoutCycle));
   const [currentIndex, setCurrentIndex] = useState(() => selectedExerciseIndex(workoutSession, workout.exercises));
   const [completed, setCompleted] = useState(() => completedExerciseIds(workoutSession));
   const initialExerciseId = stableExerciseId(workout.exercises?.[currentIndex] || {}, currentIndex);
@@ -992,11 +1019,11 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
   const [exerciseNotes, setExerciseNotes] = useState(() => workoutSession?.exercises?.[initialExerciseId]?.notes || "");
   const [activationConflict, setActivationConflict] = useState(null);
   const [draftMenuOpen, setDraftMenuOpen] = useState(false);
-  const [replacements, setReplacements] = useState(() => readReplacements(workout.workout_id));
+  const [replacements, setReplacements] = useState(() => readReplacements(workout.workout_id, workoutCycle));
   const skipExerciseTimerResetRef = useRef(Boolean(workoutSession));
 
   useEffect(() => {
-    const nextSession = loadDurableWorkoutSession(workout, program);
+    const nextSession = loadDurableWorkoutSession(workout, program, workoutCycle);
     const nextIndex = selectedExerciseIndex(nextSession, workout.exercises);
     const nextExerciseId = stableExerciseId(workout.exercises?.[nextIndex] || {}, nextIndex);
     const nextTimer = nextSession?.timer || {};
@@ -1014,9 +1041,9 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
     setTimerSetTotal(Math.max(1, Number(workout.exercises?.[nextIndex]?.sets) || 1));
     setTimerEndsAt(nextTimer.ends_at || null);
     setExerciseNotes(nextSession?.exercises?.[nextExerciseId]?.notes || "");
-    setReplacements(readReplacements(workout.workout_id));
+    setReplacements(readReplacements(workout.workout_id, workoutCycle));
     skipExerciseTimerResetRef.current = Boolean(nextSession);
-  }, [workout.workout_id]);
+  }, [workout.workout_id, workoutCycleKey]);
 
   const displayExercises = useMemo(() => workout.exercises.map((exercise, index) => {
     const replacement = replacements[String(exercise.exercise_order)];
@@ -1119,7 +1146,7 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
     if (!workoutSession?.session_id) return undefined;
     const flush = () => flushWorkoutSessionSync(workoutSession.session_id, { userId: workoutSession.user_id }).catch(() => {});
     const restoreTimer = () => {
-      const latest = workoutSessionForWorkout(workout.workout_id, workoutSession.user_id);
+      const latest = workoutSessionForWorkout(workout.workout_id, workoutSession.user_id, workoutCycle);
       const timer = latest?.timer || {};
       const remaining = timerRemainingSeconds(timer);
       if (timer.phase === "rest") {
@@ -1268,7 +1295,7 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
       trackWorkoutStartedOnce(workoutSession, program);
       return true;
     }
-    const active = activeWorkoutSession(workoutSession.user_id);
+    const active = activeWorkoutSession(workoutSession.user_id, workoutCycle);
     if (active && active.session_id !== workoutSession.session_id) {
       setActivationConflict(active);
       return false;
@@ -1359,7 +1386,7 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
     };
     const next = { ...replacements, [String(current.exercise_order)]: replacement };
     setReplacements(next);
-    saveReplacements(workout.workout_id, next);
+    saveReplacements(workout.workout_id, next, workoutCycle);
     setAlternativeReason("");
   }
 
@@ -1369,7 +1396,7 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
     const next = { ...replacements };
     delete next[key];
     setReplacements(next);
-    saveReplacements(workout.workout_id, next);
+    saveReplacements(workout.workout_id, next, workoutCycle);
     setAlternativeReason("");
   }
 
@@ -1547,7 +1574,7 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
       exerciseCount: displayExercises.length,
       completedExerciseCount: completedSession.progress?.completed_exercises || 0,
       completedSetCount: completedSession.progress?.completed_sets || 0,
-    });
+    }, workoutCycle, workoutSession.user_id);
     trackAnalyticsEvent("workout_completed", {
       screen: "workout",
       workoutId: completedSession.workout_id,
@@ -1559,7 +1586,7 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
   function restartWorkout() {
     if (!window.confirm("Удалить сохранённый прогресс этой тренировки и начать заново?")) return;
     deleteWorkoutSession(workoutSession.session_id, workoutSession.user_id);
-    const fresh = createWorkoutSession({ workout, program, userId: workoutSession.user_id, status: "active" });
+    const fresh = createWorkoutSession({ workout, program, userId: workoutSession.user_id, status: "active", cycle: workoutCycle });
     const saved = saveWorkoutSession(fresh, { activate: true, userId: workoutSession.user_id });
     setWorkoutSession(saved);
     setCurrentIndex(0);
@@ -1782,7 +1809,7 @@ export default function WorkoutScreen({ program, workout, profile, access, progr
         <button type="button" onClick={finishWorkout} disabled={workoutSession?.status === "completed"} className="mt-4 h-[52px] w-full rounded-full bg-appGreen text-[14px] font-black text-[#181F19] disabled:opacity-45">
           {workoutSession?.status === "completed" ? "Тренировка завершена" : "Завершить тренировку"}
         </button>
-        <WorkoutReport key={workout.workout_id} workoutId={workout.workout_id} workoutTitle={workout.lesson?.lesson_title} />
+        <WorkoutReport key={`${workoutCycleKey}:${workout.workout_id}`} workoutId={workout.workout_id} workoutTitle={workout.lesson?.lesson_title} workoutCycle={workoutCycle} />
       </div>
       {alternativeReason && <AlternativesModal exercise={current} reason={alternativeReason} catalog={program.exerciseCatalog} profile={profile} onSelect={saveReplacement} onClose={() => setAlternativeReason("")} />}
       {activationConflict && (

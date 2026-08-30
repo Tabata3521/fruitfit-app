@@ -11,6 +11,7 @@ import { readUserCoreField, writeUserCoreField } from "./data/dataContainers";
 import { findWorkoutIndexForServerWorkout, normalizeServerWorkout, persistCurrentWorkout, resetStaleWorkoutState, serverCurrentWorkoutFromAssignment } from "./data/dataAccess";
 import { buildAssignmentProgramView, buildProgramView, useTrainingData } from "./data/useTrainingData";
 import { selectedWorkoutStateIndex } from "./data/workoutSelection";
+import { cycleIdentity, legacyStateBelongsToCycle, withWorkoutCycle, workoutCycleIdentity } from "./data/workoutCycle";
 import CoachScreen from "./screens/CoachScreen";
 import AuthPrompt from "./screens/AuthPrompt";
 import HomeScreen from "./screens/HomeScreen";
@@ -200,12 +201,20 @@ function normalizeSelectedWorkoutState(value = null, ownerId = "") {
   const workoutId = String(data.workoutId || data.workout_id || data.lessonId || data.lesson_id || "").trim();
   const title = String(data.title || data.lessonTitle || data.lesson_title || "").trim();
   const programId = String(data.programId || data.program_id || "").trim();
+  const subscriptionCycleId = String(data.subscriptionCycleId || data.subscription_cycle_id || data.cycleId || data.cycle_id || "").trim();
+  const subscriptionCycleNumber = Number(data.subscriptionCycleNumber ?? data.subscription_cycle_number ?? data.cycleNumber ?? data.cycle_number);
+  const subscriptionCycleAccessFrom = data.subscriptionCycleAccessFrom || data.subscription_cycle_access_from || null;
+  const savedAt = data.savedAt || data.saved_at || value.savedAt || value.saved_at || null;
   if (!workoutId && !title && dayIndex === null) return null;
   return {
     workoutId: workoutId || null,
     title: title || null,
     programId: programId || null,
     dayIndex,
+    subscriptionCycleId: subscriptionCycleId || null,
+    subscriptionCycleNumber: Number.isFinite(subscriptionCycleNumber) && subscriptionCycleNumber > 0 ? Math.round(subscriptionCycleNumber) : null,
+    subscriptionCycleAccessFrom,
+    savedAt,
   };
 }
 
@@ -323,25 +332,25 @@ function workoutSelectionTitle(workout = null) {
   ).trim();
 }
 
-function selectedWorkoutStateFromWorkout(workout = null, dayIndex = 0, assignment = null) {
+function selectedWorkoutStateFromWorkout(workout = null, dayIndex = 0, assignment = null, cycle = {}) {
   if (!workout) return null;
   const snapshot = workoutSelectionSnapshot(workout, assignment);
   const indexNumber = Number(dayIndex);
-  return normalizeSelectedWorkoutState({
+  return normalizeSelectedWorkoutState(withWorkoutCycle({
     workoutId: snapshot?.workoutId || workoutSelectionId(workout) || null,
     title: snapshot?.title || workoutSelectionTitle(workout) || null,
     programId: snapshot?.programId || programIdFromAssignment(assignment) || programIdFromCourse(workout?.course) || null,
     dayIndex: Number.isFinite(indexNumber) && indexNumber >= 0 ? Math.floor(indexNumber) : null,
-  });
+  }, cycle));
 }
 
-function workoutSelectionSnapshot(workout = null, assignment = null) {
+function workoutSelectionSnapshot(workout = null, assignment = null, cycle = {}) {
   if (!workout) return null;
   const normalized = normalizeServerWorkout(workout, assignment) || {};
   const selectedId = workoutSelectionId(workout);
   const selectedTitle = workoutSelectionTitle(workout);
   if (!selectedId && !selectedTitle && !normalized.workoutId && !normalized.lessonId && !normalized.title) return null;
-  return {
+  return withWorkoutCycle({
     ...normalized,
     workoutId: normalized.workoutId || selectedId || null,
     lessonId: normalized.lessonId || selectedId || null,
@@ -353,7 +362,7 @@ function workoutSelectionSnapshot(workout = null, assignment = null) {
     selectedInApp: true,
     selectedAt: new Date().toISOString(),
     source: "user_selection",
-  };
+  }, cycle);
 }
 
 function saveActiveWorkoutSelection(selection = null) {
@@ -422,9 +431,9 @@ function AppContent() {
   }
 
   function saveSelectedWorkoutSelection(nextWorkout, dayIndex, reason = "user-select-workout") {
-    const nextState = selectedWorkoutStateFromWorkout(nextWorkout, dayIndex, programAssignment);
+    const nextState = selectedWorkoutStateFromWorkout(nextWorkout, dayIndex, programAssignment, currentWorkoutCycle);
     const savedState = saveSelectedWorkoutState(nextState, authUser) || nextState;
-    const nextSnapshot = workoutSelectionSnapshot(nextWorkout, programAssignment);
+    const nextSnapshot = workoutSelectionSnapshot(nextWorkout, programAssignment, currentWorkoutCycle);
     setSelectedWorkoutState(savedState);
     setUserSelectedWorkoutId(savedState?.workoutId || "");
     setUserSelectedWorkoutSnapshot(nextSnapshot);
@@ -856,6 +865,7 @@ function AppContent() {
   }, [authUser]);
 
   const assignedProgramId = programIdFromAssignment(programAssignment);
+  const currentWorkoutCycle = useMemo(() => workoutCycleIdentity(programAssignment, accessState), [accessState, programAssignment]);
   const programCycleLocked = isProgramCycleLockedAccess(accessState);
   const serverWorkoutForProgram = useMemo(() => serverCurrentWorkoutFromAssignment(programAssignment), [programAssignment]);
   const serverWorkoutProgramId = String(serverWorkoutForProgram?.programId || serverWorkoutForProgram?.program_id || "").trim();
@@ -866,7 +876,7 @@ function AppContent() {
     [assignmentProgramForIndex, data, profile, effectiveAssignedProgramId]
   );
   const serverSelectedWorkoutIndex = findWorkoutIndexForServerWorkout(programForServerIndex, serverWorkoutForProgram);
-  const selectedWorkoutStateResolvedIndex = selectedWorkoutStateIndex(programForServerIndex?.workouts || [], selectedWorkoutState, effectiveAssignedProgramId);
+  const selectedWorkoutStateResolvedIndex = selectedWorkoutStateIndex(programForServerIndex?.workouts || [], selectedWorkoutState, effectiveAssignedProgramId, currentWorkoutCycle);
   const hasPersistentWorkoutSelection = selectedWorkoutStateResolvedIndex >= 0;
   const renderSelectedWorkoutIndex = hasPersistentWorkoutSelection
     ? selectedWorkoutStateResolvedIndex
@@ -877,11 +887,25 @@ function AppContent() {
   );
   const workout = program?.selectedWorkout;
   const uiSelectedWorkoutIndex = program?.selectedWorkoutIndex ?? renderSelectedWorkoutIndex;
-  const derivedWorkoutForCoach = useMemo(() => workoutSelectionSnapshot(workout, programAssignment), [programAssignment, workout]);
+  const derivedWorkoutForCoach = useMemo(() => workoutSelectionSnapshot(workout, programAssignment, currentWorkoutCycle), [currentWorkoutCycle, programAssignment, workout]);
   const uiSelectedWorkoutForCoach = hasPersistentWorkoutSelection ? (userSelectedWorkoutSnapshot || derivedWorkoutForCoach) : derivedWorkoutForCoach;
   const uiSelectedWorkoutId = String(selectedWorkoutState?.workoutId || userSelectedWorkoutId || uiSelectedWorkoutForCoach?.workoutId || uiSelectedWorkoutForCoach?.lessonId || workoutSelectionId(workout) || "").trim();
   const uiSelectedWorkoutTitle = String(selectedWorkoutState?.title || uiSelectedWorkoutForCoach?.title || workoutSelectionTitle(workout) || "").trim();
   const lastProgramIdRef = useRef("");
+
+  useEffect(() => {
+    const activeCycleKey = cycleIdentity(currentWorkoutCycle);
+    if (activeCycleKey === "legacy-unscoped" || !selectedWorkoutState) return;
+    const storedCycleKey = cycleIdentity(selectedWorkoutState);
+    if (storedCycleKey === activeCycleKey) return;
+    if (storedCycleKey === "legacy-unscoped" && legacyStateBelongsToCycle(selectedWorkoutState, currentWorkoutCycle)) {
+      const migrated = normalizeSelectedWorkoutState(withWorkoutCycle(selectedWorkoutState, currentWorkoutCycle), selectedWorkoutOwnerId());
+      const saved = saveSelectedWorkoutState(migrated, authUser);
+      setSelectedWorkoutState(saved);
+      return;
+    }
+    clearSelectedWorkoutSelection("subscription-cycle-change", serverSelectedWorkoutIndex >= 0 ? serverSelectedWorkoutIndex : 0);
+  }, [authUser, currentWorkoutCycle, selectedWorkoutState, serverSelectedWorkoutIndex]);
 
   useEffect(() => {
     if (!screen || analyticsScreenRef.current === screen) return;
@@ -921,6 +945,12 @@ function AppContent() {
     function resumeActiveWorkout(event) {
       const session = event?.detail;
       if (!session?.workout_id) return;
+      const activeCycleKey = cycleIdentity(currentWorkoutCycle);
+      const sessionCycleKey = cycleIdentity(session);
+      if (activeCycleKey !== "legacy-unscoped" && sessionCycleKey !== activeCycleKey) {
+        window.alert("Сохранённая тренировка относится к предыдущему периоду. Открой текущую тренировку из программы — старый прогресс сохранён в истории.");
+        return;
+      }
       const index = (program?.workouts || []).findIndex((item) => String(item.workout_id || "") === String(session.workout_id));
       if (index < 0) {
         window.alert("Сохранённая тренировка больше не входит в текущую программу. Прогресс сохранён.");
@@ -932,7 +962,7 @@ function AppContent() {
     }
     window.addEventListener("fruitfit:resume-workout", resumeActiveWorkout);
     return () => window.removeEventListener("fruitfit:resume-workout", resumeActiveWorkout);
-  }, [program?.workouts]);
+  }, [currentWorkoutCycle, program?.workouts]);
 
   useEffect(() => {
     const nextProgramId = String(effectiveAssignedProgramId || "").trim();
@@ -947,7 +977,7 @@ function AppContent() {
     const serverWorkout = persistCurrentWorkout({ programAssignment: assignment });
     const nextIndex = findWorkoutIndexForServerWorkout(programForServerIndex, serverWorkout);
     const forceServerSelection = Boolean(options.forceServerSelection);
-    const activeSelectionIndex = selectedWorkoutStateIndex(programForServerIndex?.workouts || [], selectedWorkoutState, effectiveAssignedProgramId);
+    const activeSelectionIndex = selectedWorkoutStateIndex(programForServerIndex?.workouts || [], selectedWorkoutState, effectiveAssignedProgramId, currentWorkoutCycle);
     const userSelectionStillValid = activeSelectionIndex >= 0
       ? isWorkoutUnlocked(activeSelectionIndex, program?.workouts || [], accessState, profile, programAssignment)
       : false;
@@ -1166,6 +1196,7 @@ function AppContent() {
         profile={profile}
         access={accessState}
         programAssignment={programAssignment}
+        workoutCycle={currentWorkoutCycle}
       />
     );
   }
@@ -1182,6 +1213,7 @@ function AppContent() {
         profile={profile}
         access={accessState}
         programAssignment={programAssignment}
+        workoutCycle={currentWorkoutCycle}
       />
     );
   }
@@ -1196,6 +1228,7 @@ function AppContent() {
         profile={profile}
         access={accessState}
         programAssignment={programAssignment}
+        workoutCycle={currentWorkoutCycle}
       />
     );
   }

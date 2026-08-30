@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Bot, Dumbbell, GripHorizontal, Home, Salad, Save, User } from "lucide-react";
 import { activeWorkoutSession } from "../data/workoutSessions";
+import { readUserCoreField } from "../data/dataContainers";
+import { workoutCycleIdentity } from "../data/workoutCycle";
 import { flushWorkoutSessionSync } from "../services/workoutSessionSync";
 
 const HIDDEN_BANNER_KEY = "fruitfit.workout.activeBanner.hiddenSession.v1";
@@ -47,7 +49,13 @@ const items = [
 ];
 
 export default function BottomNavigation({ active = "home", onNavigate }) {
-  const [activeSession, setActiveSession] = useState(() => activeWorkoutSession());
+  function readCycleScopedActiveSession() {
+    const assignment = readUserCoreField("programAssignment", undefined, null);
+    const access = readUserCoreField("accessState", undefined, null);
+    return activeWorkoutSession(undefined, workoutCycleIdentity(assignment, access));
+  }
+
+  const [activeSession, setActiveSession] = useState(readCycleScopedActiveSession);
   const [hiddenSessionId, setHiddenSessionId] = useState(() => readSessionValue(HIDDEN_BANNER_KEY));
   const [bannerLift, setBannerLift] = useState(0);
   const bannerLiftRef = useRef(0);
@@ -55,11 +63,15 @@ export default function BottomNavigation({ active = "home", onNavigate }) {
   const movedRef = useRef(false);
 
   useEffect(() => {
-    const refresh = () => setActiveSession(activeWorkoutSession());
+    const refresh = () => setActiveSession(readCycleScopedActiveSession());
     window.addEventListener("fruitfit:workout-sessions-updated", refresh);
+    window.addEventListener("fruitfit:program-assignment-updated", refresh);
+    window.addEventListener("fruitfit:access-updated", refresh);
     window.addEventListener("storage", refresh);
     return () => {
       window.removeEventListener("fruitfit:workout-sessions-updated", refresh);
+      window.removeEventListener("fruitfit:program-assignment-updated", refresh);
+      window.removeEventListener("fruitfit:access-updated", refresh);
       window.removeEventListener("storage", refresh);
     };
   }, []);

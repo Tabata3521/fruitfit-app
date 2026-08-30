@@ -1,3 +1,5 @@
+import { cycleIdentity } from "./workoutCycle";
+
 function clean(value) {
   return String(value || "").trim();
 }
@@ -31,9 +33,16 @@ function workoutTitle(workout = {}) {
   ).toLowerCase();
 }
 
-export function selectedWorkoutStateIndex(workouts = [], state = null, programId = "") {
+export function selectedWorkoutStateIndex(workouts = [], state = null, programId = "", cycle = {}) {
   const items = Array.isArray(workouts) ? workouts : [];
   if (!items.length || !state || typeof state !== "object") return -1;
+
+  const activeCycleKey = cycleIdentity(cycle);
+  const stateCycleId = clean(state?.subscriptionCycleId || state?.subscription_cycle_id || state?.cycleId || state?.cycle_id);
+  const stateCycleNumber = clean(state?.subscriptionCycleNumber || state?.subscription_cycle_number || state?.cycleNumber || state?.cycle_number);
+  const stateAccessFrom = clean(state?.subscriptionCycleAccessFrom || state?.subscription_cycle_access_from);
+  const stateCycleKey = cycleIdentity({ cycleId: stateCycleId, cycleNumber: stateCycleNumber, accessFrom: stateAccessFrom });
+  if (activeCycleKey !== "legacy-unscoped" && stateCycleKey !== activeCycleKey) return -1;
 
   const selectedId = clean(state.workoutId || state.workout_id || state.lessonId || state.lesson_id);
   if (selectedId) {

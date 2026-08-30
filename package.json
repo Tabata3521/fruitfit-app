@@ -18,6 +18,7 @@
     "test:ux": "node scripts/test-ux-release-patch.mjs",
     "test:ai-feedback": "node scripts/test-ai-feedback-client.mjs",
     "test:workout-sessions": "node scripts/test-workout-sessions.mjs",
+    "test:workout-cycles": "node scripts/test-workout-cycle-isolation.mjs",
     "test:attribution": "node scripts/test-attribution-client.mjs",
     "build:exercise-catalog": "node tools/import-didactic-exercises.mjs",
     "audit:muscle-templates": "node scripts/audit-muscle-templates.mjs",

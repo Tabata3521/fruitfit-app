@@ -63,7 +63,7 @@ for (const alias of ["MainActivityOrange", "MainActivityPear", "MainActivityAppl
 }
 
 assert.doesNotMatch(workouts, /completedUntil|safeSourceIndex <=/);
-assert.match(workouts, /isWorkoutCompleted\(workout\.workout_id\)/);
+assert.match(workouts, /isWorkoutCompleted\(workout\.workout_id(?:,\s*workoutCycle)?\)/);
 assert.match(workout, /markWorkoutCompleted\(workout\.workout_id/);
 assert.match(completion, /writeWorkoutHistoryField\(COMPLETED_WORKOUTS_FIELD/);
 assert.match(app, /workoutDetailOpenRef\.current = true/);
